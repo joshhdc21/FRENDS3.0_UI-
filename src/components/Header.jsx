@@ -8,7 +8,7 @@ function Header({ firebaseConnected }) {
 
         <div className="brand-text">
           <h1>Frends 3.0</h1>
-          <p>Smart Flood Monitoring System</p>
+          <p>Smart fgfyfg by Flood Monitoring System</p>
         </div>
       </div>
 
