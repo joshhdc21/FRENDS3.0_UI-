@@ -3,6 +3,7 @@ import { useState } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import MonitoringSection from "./components/MonitoringSection";
+import trafficherosection from "./components/trafficherosection";
 import FloodLevelSection from "./components/FloodLevelSection";
 import DeviceSection from "./components/DeviceSection";
 import NewsSection from "./components/NewsSection";
@@ -63,8 +64,7 @@ function App() {
 
         {page === "traffic" && (
           <>
-            <TrafficHeroSection />
-            <TrafficSection />
+            <trafficherosection />
           </>
         )}
 
