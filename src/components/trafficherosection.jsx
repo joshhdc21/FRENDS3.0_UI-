@@ -1,82 +1,135 @@
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+} from "react-native";
+
+
 export default function TrafficHeroSection() {
+
   return (
-    <section
-      id="traffic"
-      className="page-section"
-    >
 
-      <div className="hero-panel">
+    <View style={styles.pageSection}>
 
-        <div className="hero-content">
 
-          <p className="eyebrow">
+      <View style={styles.heroPanel}>
+
+
+        <View style={styles.heroContent}>
+
+
+          <Text style={styles.eyebrow}>
             REAL-TIME TRAFFIC MONITORING SYSTEM
-          </p>
+          </Text>
 
-          <h2>
+
+          <Text style={styles.title}>
             Monitor Traffic Flow,
-            <br />
+            {"\n"}
             Detect Congestion,
-            <br />
+            {"\n"}
             and Find Safer Routes.
-          </h2>
+          </Text>
 
-          <p className="hero-description">
+
+          <Text style={styles.description}>
             FRENDS provides real-time traffic condition
             monitoring using smart road data, helping
             commuters avoid congested areas and make
             better navigation decisions during heavy
             traffic and severe weather conditions.
-          </p>
+          </Text>
+
 
 
           {/* Traffic Summary Cards */}
-          <div className="traffic-summary">
 
-            <div className="traffic-summary-card">
-              <span>Current Traffic</span>
-              <strong>MODERATE</strong>
-            </div>
+          <View style={styles.trafficSummary}>
 
 
-            <div className="traffic-summary-card">
-              <span>Active Roads</span>
-              <strong>24</strong>
-            </div>
+            <View style={styles.summaryCard}>
+
+              <Text style={styles.summaryLabel}>
+                Current Traffic
+              </Text>
+
+              <Text style={styles.summaryValue}>
+                MODERATE
+              </Text>
+
+            </View>
 
 
-            <div className="traffic-summary-card">
-              <span>Average Speed</span>
-              <strong>42 km/h</strong>
-            </div>
 
-          </div>
+            <View style={styles.summaryCard}>
+
+              <Text style={styles.summaryLabel}>
+                Active Roads
+              </Text>
+
+              <Text style={styles.summaryValue}>
+                24
+              </Text>
+
+            </View>
 
 
-        </div>
+
+            <View style={styles.summaryCard}>
+
+              <Text style={styles.summaryLabel}>
+                Average Speed
+              </Text>
+
+              <Text style={styles.summaryValue}>
+                42 km/h
+              </Text>
+
+            </View>
 
 
-        {/* Traffic Status Panel */}
-        <div className="system-status-card">
+          </View>
 
-          <span>Traffic System</span>
 
-          <strong>
+        </View>
+
+
+
+        {/* Traffic System Status */}
+
+
+        <View style={styles.statusCard}>
+
+
+          <Text style={styles.statusLabel}>
+            Traffic System
+          </Text>
+
+
+          <Text style={styles.statusOnline}>
             ONLINE
-          </strong>
+          </Text>
 
-          <small>
+
+          <Text style={styles.statusDescription}>
             Monitoring road conditions,
             congestion levels, vehicle flow,
             and navigation updates.
-          </small>
-
-        </div>
+          </Text>
 
 
-      </div>
+        </View>
 
 
-    </section>
+
+      </View>
+
+
+    </View>
+
   );
+
 }
+
+
