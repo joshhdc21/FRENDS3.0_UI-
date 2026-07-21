@@ -1,4 +1,4 @@
-function Header({ firebaseConnected }) {
+function Header({ firebaseConnected, page, setPage }) {
   return (
     <header className="topbar">
       <div className="brand">
@@ -8,16 +8,52 @@ function Header({ firebaseConnected }) {
 
         <div className="brand-text">
           <h1>Frends 3.0</h1>
-          <p>Smart fgfyfg by Flood Monitoring System</p>
+          <p>Smart Flood Monitoring System</p>
         </div>
       </div>
 
       <nav className="navigation" aria-label="Main navigation">
-        <a href="#monitoring">Overview</a>
-        <a href="#nodes">Nodes</a>
-        <a href="#flood-level">Flood Guide</a>
-        <a href="#device">Devices</a>
-        <a href="#news">News</a>
+        <button
+          className={page === "dashboard" ? "active" : ""}
+          onClick={() => setPage("dashboard")}
+        >
+          Dashboard
+        </button>
+
+        <button
+          className={page === "traffic" ? "active" : ""}
+          onClick={() => setPage("traffic")}
+        >
+          Traffic
+        </button>
+
+        <button
+          className={page === "flood" ? "active" : ""}
+          onClick={() => setPage("flood")}
+        >
+          Flood
+        </button>
+
+        <button
+          className={page === "nodes" ? "active" : ""}
+          onClick={() => setPage("nodes")}
+        >
+          Nodes
+        </button>
+
+        <button
+          className={page === "devices" ? "active" : ""}
+          onClick={() => setPage("devices")}
+        >
+          Devices
+        </button>
+
+        <button
+          className={page === "news" ? "active" : ""}
+          onClick={() => setPage("news")}
+        >
+          News
+        </button>
       </nav>
 
       <div

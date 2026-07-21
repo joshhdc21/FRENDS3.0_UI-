@@ -13,3 +13,32 @@ body {
 #root {
   min-height: 100vh;
 }
+
+
+.navigation {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.navigation button {
+  border: none;
+  background: transparent;
+  color: #5c6784;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 10px 16px;
+  border-radius: 10px;
+  transition: 0.3s;
+}
+
+.navigation button:hover {
+  background: #eef6ff;
+  color: #0b5ed7;
+}
+
+.navigation button.active {
+  background: #0b5ed7;
+  color: #fff;
+}

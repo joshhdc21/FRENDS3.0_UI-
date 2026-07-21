@@ -19,7 +19,7 @@ function MonitoringSection() {
         <div className="hero-content">
           <p className="eyebrow">REAL-TIME MONITORING</p>
 
-          <h2>Smart flood and water-level monitoring</h2>
+          <h2>Smart Flood and Water-Level Monitoring</h2>
 
           <p className="hero-description">
             View live pressure readings, estimated water level, battery
@@ -29,7 +29,7 @@ function MonitoringSection() {
         </div>
 
         <div className="system-status-card">
-          <span>System status</span>
+          <span>System Status</span>
           <strong>Initializing</strong>
           <small>Waiting for sensor information</small>
         </div>
@@ -38,7 +38,7 @@ function MonitoringSection() {
       <div className="section-heading">
         <div>
           <p className="eyebrow">LIVE SENSOR DATA</p>
-          <h3>Current monitoring values</h3>
+          <h3>Current Monitoring Values</h3>
         </div>
 
         <span className="last-update">No data received yet</span>
@@ -76,6 +76,29 @@ function MonitoringSection() {
           icon="!"
           type="alert"
         />
+      </div>
+
+      {/* Live Map */}
+      <div className="section-heading" style={{ marginTop: "40px" }}>
+        <div>
+          <p className="eyebrow">LIVE MAP</p>
+          <h3>Live Map Viewing</h3>
+        </div>
+      </div>
+
+      <div className="map-container">
+        <iframe
+          title="LIVE MAP VIEWING"
+          src="https://www.google.com/maps?q=14.5995,120.9842&z=15&output=embed"
+          width="100%"
+          height="450"
+          style={{
+            border: 0,
+            borderRadius: "18px",
+          }}
+          loading="lazy"
+          allowFullScreen
+        ></iframe>
       </div>
     </section>
   );

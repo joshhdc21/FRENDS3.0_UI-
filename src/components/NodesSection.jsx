@@ -39,9 +39,7 @@ function getFloodInformation(waterLevel, status) {
 }
 
 function formatLastUpdate(timestamp) {
-  if (!timestamp) {
-    return "No recent data";
-  }
+  if (!timestamp) return "No recent data";
 
   return new Date(timestamp).toLocaleString();
 }
@@ -92,7 +90,7 @@ function NodeCard({ node }) {
         <div
           className={`node-progress-fill ${flood.className}`}
           style={{ width: `${waterPercentage}%` }}
-        ></div>
+        />
       </div>
 
       <p className="node-description">{flood.description}</p>
@@ -100,18 +98,12 @@ function NodeCard({ node }) {
       <div className="node-information-grid">
         <div>
           <span>Pressure</span>
-
-          <strong>
-            {status === "online" ? `${pressure} hPa` : "--"}
-          </strong>
+          <strong>{status === "online" ? `${pressure} hPa` : "--"}</strong>
         </div>
 
         <div>
           <span>Battery</span>
-
-          <strong>
-            {status === "online" ? `${battery} V` : "--"}
-          </strong>
+          <strong>{status === "online" ? `${battery} V` : "--"}</strong>
         </div>
       </div>
 
@@ -123,24 +115,30 @@ function NodeCard({ node }) {
   );
 }
 
-function NodesSection({ nodes, loading, error }) {
-  const onlineNodes = nodes.filter(
-    (node) => node.status === "online",
+function NodesSection({
+  nodes = [],
+  loading = false,
+  error = null,
+}) {
+  const safeNodes = Array.isArray(nodes) ? nodes : [];
+
+  const onlineNodes = safeNodes.filter(
+    (node) => node.status === "online"
   ).length;
 
-  const criticalNodes = nodes.filter((node) => {
+  const criticalNodes = safeNodes.filter((node) => {
     const flood = getFloodInformation(
       Number(node.waterLevel ?? 0),
-      node.status,
+      node.status
     );
 
     return flood.className === "critical";
   }).length;
 
-  const warningNodes = nodes.filter((node) => {
+  const warningNodes = safeNodes.filter((node) => {
     const flood = getFloodInformation(
       Number(node.waterLevel ?? 0),
-      node.status,
+      node.status
     );
 
     return (
@@ -154,18 +152,18 @@ function NodesSection({ nodes, loading, error }) {
       <div className="section-heading nodes-heading">
         <div>
           <p className="eyebrow">MONITORING NETWORK</p>
-          <h3>Flood monitoring nodes</h3>
+
+          <h3>Flood Monitoring Nodes</h3>
 
           <p className="section-description">
-            Real-time flood information from the ten installed
-            monitoring devices.
+            Real-time flood information from the installed monitoring devices.
           </p>
         </div>
 
         <div className="node-summary">
           <div>
-            <span>Total nodes</span>
-            <strong>{nodes.length}</strong>
+            <span>Total Nodes</span>
+            <strong>{safeNodes.length}</strong>
           </div>
 
           <div>
@@ -187,27 +185,27 @@ function NodesSection({ nodes, loading, error }) {
 
       {loading && (
         <div className="firebase-message">
-          Loading node information from Firebase...
+          Loading node information...
         </div>
       )}
 
       {error && (
         <div className="firebase-message firebase-error">
-          Firebase error: {error}
+          {error}
         </div>
       )}
 
-      {!loading && !error && nodes.length === 0 && (
+      {!loading && !error && safeNodes.length === 0 && (
         <div className="firebase-message">
-          No monitoring nodes are stored in Firebase.
+          No monitoring nodes found.
         </div>
       )}
 
       <div className="nodes-grid">
-        {nodes.map((node) => (
+        {safeNodes.map((node) => (
           <NodeCard
-            node={node}
             key={node.firebaseKey || node.id}
+            node={node}
           />
         ))}
       </div>

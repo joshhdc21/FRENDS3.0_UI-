@@ -1,4 +1,4 @@
-function trafficherosection() {
+function TrafficHeroSection() {
   return (
     <section id="traffic" className="page-section">
       <div className="hero-panel">
@@ -16,12 +16,13 @@ function trafficherosection() {
           </h2>
 
           <p className="hero-description">
-            FRENDS provides real-time traffic condition monitoring using
-            smart road data, helping commuters avoid congested areas and
-            make better navigation decisions during heavy traffic and
-            severe weather conditions.
+            FRENDS provides real-time traffic condition monitoring using smart
+            road data, helping commuters avoid congested areas and make better
+            navigation decisions during heavy traffic and severe weather
+            conditions.
           </p>
 
+          {/* Traffic Summary Cards */}
           <div className="traffic-summary">
             <div className="traffic-summary-card">
               <span>Current Traffic</span>
@@ -40,13 +41,13 @@ function trafficherosection() {
           </div>
         </div>
 
+        {/* Traffic Status Panel */}
         <div className="system-status-card">
           <span>Traffic System</span>
           <strong>ONLINE</strong>
-
           <small>
-            Monitoring road conditions, congestion levels, vehicle flow,
-            and navigation updates.
+            Monitoring road conditions, congestion levels, vehicle flow, and
+            navigation updates.
           </small>
         </div>
       </div>
@@ -54,4 +55,4 @@ function trafficherosection() {
   );
 }
 
-export default trafficherosection;
+export default TrafficHeroSection;
