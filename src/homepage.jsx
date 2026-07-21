@@ -1,11 +1,15 @@
-import Traffic from "./Traffic";
-import Flood from "./";
+import App from './main.jsx';
+import Traffic from './traffic.jsx';
 
-export default function Home() {
+function App() {
   return (
-    <View>
-      <Traffic />
-      <Flood />
-    </View>
+    <div>
+      <h1>FRENDS</h1>
+
+      <button>Traffic</button>
+      <button>Flood</button>
+    </div>
   );
 }
+
+export default App;
