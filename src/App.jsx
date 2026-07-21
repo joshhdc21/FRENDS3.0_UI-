@@ -4,8 +4,6 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import MonitoringSection from "./components/MonitoringSection";
 import FloodLevelSection from "./components/FloodLevelSection";
-import trafficherosection from "./components/trafficherosection";
-import TrafficSection from "./components/TrafficSection";
 import DeviceSection from "./components/DeviceSection";
 import NewsSection from "./components/NewsSection";
 
@@ -15,7 +13,7 @@ import "./App.css";
 function App() {
 
   const [page, setPage] = useState("dashboard");
-
+ 
 
   return (
 
