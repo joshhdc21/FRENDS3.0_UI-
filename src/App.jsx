@@ -1,95 +1,87 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import Header from "./components/Header";
+import Footer from "./components/Footer";
 import MonitoringSection from "./components/MonitoringSection";
-import NodesSection from "./components/NodesSection";
 import FloodLevelSection from "./components/FloodLevelSection";
 import DeviceSection from "./components/DeviceSection";
-import HeroSection from "./components/trafficherosection";
-import TrafficSection from "./components/TrafficSection";
-import NodesSection from "./components/NodesSection";
 import NewsSection from "./components/NewsSection";
-import Footer from "./components/Footer";
-
-import {
-  createSampleNodes,
-  subscribeToNodes,
-} from "./services/nodeService";
 
 import "./App.css";
 
+
 function App() {
-  const [nodes, setNodes] = useState([]);
-  const [firebaseLoading, setFirebaseLoading] = useState(true);
-  const [firebaseError, setFirebaseError] = useState("");
 
-  useEffect(() => {
-    const unsubscribe = subscribeToNodes(
-      (firebaseNodes) => {
-        setNodes(firebaseNodes);
-        setFirebaseLoading(false);
-        setFirebaseError("");
-      },
-      (error) => {
-        setFirebaseError(error.message);
-        setFirebaseLoading(false);
-      },
-    );
+  const [page, setPage] = useState("dashboard");
 
-    return () => {
-      unsubscribe();
-    };
-  }, []);
-
-  async function handleCreateSampleNodes() {
-    try {
-      setFirebaseError("");
-      await createSampleNodes();
-    } catch (error) {
-      console.error(error);
-      setFirebaseError(error.message);
-    }
-  }
 
   return (
+
     <div className="app">
-      <Header firebaseConnected={!firebaseError} />
+
+      <Header />
+
+
+      {/* Navigation */}
+      <nav className="top-nav">
+
+        <button onClick={() => setPage("dashboard")}>
+          Dashboard
+        </button>
+
+
+        <button onClick={() => setPage("flood")}>
+          Flood
+        </button>
+
+
+        <button onClick={() => setPage("devices")}>
+          Devices
+        </button>
+
+
+        <button onClick={() => setPage("news")}>
+          News
+        </button>
+
+
+      </nav>
+
 
       <main className="main-content">
-        <MonitoringSection />
 
-        <div className="firebase-test-panel">
-          <div>
-            <strong>Firebase connection test</strong>
 
-            <p>
-              Create ten sample nodes in Realtime Database.
-            </p>
-          </div>
+        {page === "dashboard" && (
+          <MonitoringSection />
+        )}
 
-          <button
-            type="button"
-            className="firebase-test-button"
-            onClick={handleCreateSampleNodes}
-          >
-            Create sample nodes
-          </button>
-        </div>
 
-        <NodesSection
-          nodes={nodes}
-          loading={firebaseLoading}
-          error={firebaseError}
-        />
+        {page === "flood" && (
+          <FloodLevelSection />
+        )}
 
-        <FloodLevelSection />
-        <DeviceSection />
-        <NewsSection />
+
+        {page === "devices" && (
+          <DeviceSection />
+        )}
+
+
+        {page === "news" && (
+          <NewsSection />
+        )}
+
+
       </main>
 
+
       <Footer />
+
+
     </div>
+
   );
+
 }
+
 
 export default App;
