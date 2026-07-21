@@ -1,4 +1,4 @@
-function NewsSection() {
+function trafficherosection() {
   return (
     <section id="traffic" className="page-section">
       <div className="hero-panel">
@@ -54,4 +54,4 @@ function NewsSection() {
   );
 }
 
-export default NewsSection;
+export default trafficherosection;

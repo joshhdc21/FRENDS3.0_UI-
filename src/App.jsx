@@ -3,8 +3,9 @@ import { useState } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import MonitoringSection from "./components/MonitoringSection";
-import TrafficHeroSection from "./components/TrafficHeroSection";
+import trafficherosection from "./components/trafficherosection";
 import FloodLevelSection from "./components/FloodLevelSection";
+import NodeSection from "./components/NodeSection";
 import DeviceSection from "./components/DeviceSection";
 import NewsSection from "./components/NewsSection";
 
@@ -45,6 +46,14 @@ function App() {
 
         <button
           type="button"
+          className={page === "nodes" ? "active" : ""}
+          onClick={() => setPage("nodes")}
+        >
+          Nodes
+        </button>
+
+        <button
+          type="button"
           className={page === "devices" ? "active" : ""}
           onClick={() => setPage("devices")}
         >
@@ -63,9 +72,11 @@ function App() {
       <main className="main-content">
         {page === "dashboard" && <MonitoringSection />}
 
-        {page === "traffic" && <TrafficHeroSection />}
+        {page === "traffic" && <trafficherosection />}
 
         {page === "flood" && <FloodLevelSection />}
+
+        {page === "nodes" && <NodeSection />}
 
         {page === "devices" && <DeviceSection />}
 
