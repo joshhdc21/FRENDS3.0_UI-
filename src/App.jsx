@@ -3,106 +3,78 @@ import { useState } from "react";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import MonitoringSection from "./components/MonitoringSection";
-import trafficherosection from "./components/trafficherosection";
+import TrafficHeroSection from "./components/TrafficHeroSection";
 import FloodLevelSection from "./components/FloodLevelSection";
-import NodesSection from "./components/NodesSection";
 import DeviceSection from "./components/DeviceSection";
 import NewsSection from "./components/NewsSection";
 
 import "./App.css";
 
-
 function App() {
-
   const [page, setPage] = useState("dashboard");
- 
 
   return (
-
     <div className="app">
-
       <Header />
 
-
       {/* Navigation */}
-      <nav className="top-nav">
-
-        <button onClick={() => setPage("dashboard")}>
+      <nav className="top-nav" aria-label="Main navigation">
+        <button
+          type="button"
+          className={page === "dashboard" ? "active" : ""}
+          onClick={() => setPage("dashboard")}
+        >
           Dashboard
         </button>
 
-
-        <button onClick={() => setPage("traffic")}>
+        <button
+          type="button"
+          className={page === "traffic" ? "active" : ""}
+          onClick={() => setPage("traffic")}
+        >
           Traffic
         </button>
 
-
-        <button onClick={() => setPage("flood")}>
+        <button
+          type="button"
+          className={page === "flood" ? "active" : ""}
+          onClick={() => setPage("flood")}
+        >
           Flood
         </button>
 
-
-        <button onClick={() => setPage("devices")}>
+        <button
+          type="button"
+          className={page === "devices" ? "active" : ""}
+          onClick={() => setPage("devices")}
+        >
           Devices
         </button>
 
-        <button onClick={() => setPage("nodes")}>
-          Nodes
-        </button>
-
-
-        <button onClick={() => setPage("news")}>
+        <button
+          type="button"
+          className={page === "news" ? "active" : ""}
+          onClick={() => setPage("news")}
+        >
           News
         </button>
-
-
       </nav>
 
-
       <main className="main-content">
+        {page === "dashboard" && <MonitoringSection />}
 
+        {page === "traffic" && <TrafficHeroSection />}
 
-        {page === "dashboard" && (
-          <MonitoringSection />
-        )}
+        {page === "flood" && <FloodLevelSection />}
 
+        {page === "devices" && <DeviceSection />}
 
-        {page === "traffic" && (
-          <>
-            <trafficherosection />
-          </>
-        )}
-
-
-        {page === "flood" && (
-          <FloodLevelSection />
-        )}
-
-
-        {page === "devices" && (
-          <DeviceSection />
-        )}
-
-        {page === "nodes" && (
-          <NodesSection />
-        )}
-
-        {page === "news" && (
-          <NewsSection />
-        )}
-
-
+        {page === "news" && <NewsSection />}
       </main>
 
-
       <Footer />
-
-
     </div>
-
   );
-
 }
-
 
 export default App;
