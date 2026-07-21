@@ -4,6 +4,8 @@ import Header from "./components/Header";
 import Footer from "./components/Footer";
 import MonitoringSection from "./components/MonitoringSection";
 import FloodLevelSection from "./components/FloodLevelSection";
+import trafficherosection from "./components/trafficherosection";
+import TrafficSection from "./components/TrafficSection";
 import DeviceSection from "./components/DeviceSection";
 import NewsSection from "./components/NewsSection";
 
@@ -30,6 +32,11 @@ function App() {
         </button>
 
 
+        <button onClick={() => setPage("traffic")}>
+          Traffic
+        </button>
+
+
         <button onClick={() => setPage("flood")}>
           Flood
         </button>
@@ -53,6 +60,14 @@ function App() {
 
         {page === "dashboard" && (
           <MonitoringSection />
+        )}
+
+
+        {page === "traffic" && (
+          <>
+            <TrafficHeroSection />
+            <TrafficSection />
+          </>
         )}
 
 
