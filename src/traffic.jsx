@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import Header from "./components/trafficheader";
+import Header from "./components/Header";
 import HeroSection from "./components/trafficherosection";
 import TrafficSection from "./components/TrafficSection";
 import NodesSection from "./components/NodesSection";
@@ -13,7 +13,7 @@ import {
 
 import "./App.css";
 
-function App() {
+function trafficservice() {
   const [trafficData, setTrafficData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -65,4 +65,4 @@ function App() {
   );
 }
 
-export default App;
+export default trafficService;

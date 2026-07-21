@@ -5,6 +5,9 @@ import MonitoringSection from "./components/MonitoringSection";
 import NodesSection from "./components/NodesSection";
 import FloodLevelSection from "./components/FloodLevelSection";
 import DeviceSection from "./components/DeviceSection";
+import HeroSection from "./components/trafficherosection";
+import TrafficSection from "./components/TrafficSection";
+import NodesSection from "./components/NodesSection";
 import NewsSection from "./components/NewsSection";
 import Footer from "./components/Footer";
 
