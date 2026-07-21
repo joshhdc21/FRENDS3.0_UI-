@@ -1,7 +1,7 @@
-export default function HeroSection() {
+export default function TrafficHeroSection() {
   return (
     <section
-      id="home"
+      id="traffic"
       className="page-section"
     >
 
@@ -10,43 +10,72 @@ export default function HeroSection() {
         <div className="hero-content">
 
           <p className="eyebrow">
-            REAL-TIME TRAFFIC & FLOOD MONITORING
+            REAL-TIME TRAFFIC MONITORING SYSTEM
           </p>
 
           <h2>
-            Monitor Flood Levels,
+            Monitor Traffic Flow,
             <br />
-            Traffic Conditions,
+            Detect Congestion,
             <br />
-            and Navigate Safely.
+            and Find Safer Routes.
           </h2>
 
           <p className="hero-description">
-            FRENDS provides real-time traffic
-            conditions, flood monitoring,
-            weather updates, and road
-            information to help drivers
-            choose the safest route during
-            severe weather and heavy traffic.
+            FRENDS provides real-time traffic condition
+            monitoring using smart road data, helping
+            commuters avoid congested areas and make
+            better navigation decisions during heavy
+            traffic and severe weather conditions.
           </p>
+
+
+          {/* Traffic Summary Cards */}
+          <div className="traffic-summary">
+
+            <div className="traffic-summary-card">
+              <span>Current Traffic</span>
+              <strong>MODERATE</strong>
+            </div>
+
+
+            <div className="traffic-summary-card">
+              <span>Active Roads</span>
+              <strong>24</strong>
+            </div>
+
+
+            <div className="traffic-summary-card">
+              <span>Average Speed</span>
+              <strong>42 km/h</strong>
+            </div>
+
+          </div>
+
 
         </div>
 
+
+        {/* Traffic Status Panel */}
         <div className="system-status-card">
 
-          <span>System Status</span>
+          <span>Traffic System</span>
 
-          <strong>ONLINE</strong>
+          <strong>
+            ONLINE
+          </strong>
 
           <small>
-            Monitoring traffic, weather,
-            flood sensors, and Firebase
-            nodes in real time.
+            Monitoring road conditions,
+            congestion levels, vehicle flow,
+            and navigation updates.
           </small>
 
         </div>
 
+
       </div>
+
 
     </section>
   );
