@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import MonitoringSection from "./components/MonitoringSection";
 import trafficherosection from "./components/trafficherosection";
 import FloodLevelSection from "./components/FloodLevelSection";
+import NodesSection from "./components/NodesSection";
 import DeviceSection from "./components/DeviceSection";
 import NewsSection from "./components/NewsSection";
 
@@ -45,6 +46,10 @@ function App() {
           Devices
         </button>
 
+        <button onClick={() => setPage("nodes")}>
+          Nodes
+        </button>
+
 
         <button onClick={() => setPage("news")}>
           News
@@ -78,6 +83,9 @@ function App() {
           <DeviceSection />
         )}
 
+        {page === "nodes" && (
+          <NodesSection />
+        )}
 
         {page === "news" && (
           <NewsSection />

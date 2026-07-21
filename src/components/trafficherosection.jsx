@@ -1,312 +1,115 @@
-import React from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-} from "react-native";
-
-
-export default function TrafficHeroSection() {
-
+export default function trafficherosection() {
   return (
+    <section
+      id="traffic"
+      className="page-section"
+    >
 
-    <View style={styles.pageSection}>
+      <div className="hero-panel">
 
+        <div className="hero-content">
 
-      <View style={styles.heroPanel}>
-
-
-        <View style={styles.heroContent}>
-
-
-          <Text style={styles.eyebrow}>
+          <p className="eyebrow">
             REAL-TIME TRAFFIC MONITORING SYSTEM
-          </Text>
+          </p>
 
 
-          <Text style={styles.title}>
+          <h2>
             Monitor Traffic Flow,
-            {"\n"}
+            <br />
             Detect Congestion,
-            {"\n"}
+            <br />
             and Find Safer Routes.
-          </Text>
+          </h2>
 
 
-          <Text style={styles.description}>
-            FRENDS provides real-time traffic condition
-            monitoring using smart road data, helping
-            commuters avoid congested areas and make
-            better navigation decisions during heavy
-            traffic and severe weather conditions.
-          </Text>
-
+          <p className="hero-description">
+            FRENDS provides real-time traffic condition monitoring using
+            smart road data, helping commuters avoid congested areas and
+            make better navigation decisions during heavy traffic and
+            severe weather conditions.
+          </p>
 
 
           {/* Traffic Summary Cards */}
 
-          <View style={styles.trafficSummary}>
+          <div className="traffic-summary">
 
 
-            <View style={styles.summaryCard}>
+            <div className="traffic-summary-card">
 
-              <Text style={styles.summaryLabel}>
+              <span>
                 Current Traffic
-              </Text>
+              </span>
 
-              <Text style={styles.summaryValue}>
+              <strong>
                 MODERATE
-              </Text>
+              </strong>
 
-            </View>
+            </div>
 
 
 
-            <View style={styles.summaryCard}>
+            <div className="traffic-summary-card">
 
-              <Text style={styles.summaryLabel}>
+              <span>
                 Active Roads
-              </Text>
+              </span>
 
-              <Text style={styles.summaryValue}>
+              <strong>
                 24
-              </Text>
+              </strong>
 
-            </View>
+            </div>
 
 
 
-            <View style={styles.summaryCard}>
+            <div className="traffic-summary-card">
 
-              <Text style={styles.summaryLabel}>
+              <span>
                 Average Speed
-              </Text>
+              </span>
 
-              <Text style={styles.summaryValue}>
+              <strong>
                 42 km/h
-              </Text>
+              </strong>
 
-            </View>
-
-
-          </View>
+            </div>
 
 
-        </View>
+          </div>
+
+
+        </div>
 
 
 
-        {/* Traffic System Status */}
+        {/* Traffic Status Panel */}
 
+        <div className="system-status-card">
 
-        <View style={styles.statusCard}>
-
-
-          <Text style={styles.statusLabel}>
+          <span>
             Traffic System
-          </Text>
+          </span>
 
 
-          <Text style={styles.statusOnline}>
+          <strong>
             ONLINE
-          </Text>
+          </strong>
 
 
-          <Text style={styles.statusDescription}>
-            Monitoring road conditions,
-            congestion levels, vehicle flow,
-            and navigation updates.
-          </Text>
+          <small>
+            Monitoring road conditions, congestion levels,
+            vehicle flow, and navigation updates.
+          </small>
 
 
-        </View>
+        </div>
 
 
+      </div>
 
-      </View>
 
-
-    </View>
-
+    </section>
   );
-
 }
-
-
-
-const styles = StyleSheet.create({
-
-
-  pageSection: {
-    marginBottom: 30,
-  },
-
-
-  heroPanel: {
-
-    padding: 25,
-
-    borderRadius: 28,
-
-    backgroundColor: "#ffffff",
-
-    shadowColor: "#184e8f",
-    shadowOpacity: 0.1,
-    shadowRadius: 15,
-
-    elevation: 5,
-
-  },
-
-
-  heroContent: {
-
-    width: "100%",
-
-  },
-
-
-  eyebrow: {
-
-    color: "#083b8a",
-
-    fontSize: 11,
-
-    fontWeight: "900",
-
-    letterSpacing: 1.5,
-
-    marginBottom: 10,
-
-  },
-
-
-  title: {
-
-    color: "#14213d",
-
-    fontSize: 34,
-
-    fontWeight: "900",
-
-    lineHeight: 40,
-
-  },
-
-
-  description: {
-
-    marginTop: 18,
-
-    color: "#667085",
-
-    fontSize: 16,
-
-    lineHeight: 24,
-
-  },
-
-
-  trafficSummary: {
-
-    flexDirection: "row",
-
-    flexWrap: "wrap",
-
-    gap: 12,
-
-    marginTop: 25,
-
-  },
-
-
-  summaryCard: {
-
-    width: 120,
-
-    padding: 15,
-
-    borderRadius: 15,
-
-    backgroundColor: "#ffffff",
-
-    borderWidth: 1,
-
-    borderColor: "#dbe4f0",
-
-  },
-
-
-  summaryLabel: {
-
-    color: "#667085",
-
-    fontSize: 11,
-
-    fontWeight: "800",
-
-  },
-
-
-  summaryValue: {
-
-    marginTop: 8,
-
-    color: "#083b8a",
-
-    fontSize: 18,
-
-    fontWeight: "900",
-
-  },
-
-
-  statusCard: {
-
-    marginTop: 25,
-
-    padding: 22,
-
-    borderRadius: 20,
-
-    backgroundColor: "#eef6ff",
-
-  },
-
-
-  statusLabel: {
-
-    color: "#667085",
-
-    fontSize: 12,
-
-  },
-
-
-  statusOnline: {
-
-    marginTop: 8,
-
-    color: "#198754",
-
-    fontSize: 22,
-
-    fontWeight: "900",
-
-  },
-
-
-  statusDescription: {
-
-    marginTop: 8,
-
-    color: "#667085",
-
-    fontSize: 13,
-
-    lineHeight: 20,
-
-  },
-
-
-});
