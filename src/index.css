@@ -1,44 +1,37 @@
 html {
-  min-width: 320px;
+  width: 100%;
   min-height: 100%;
   scroll-behavior: smooth;
 }
 
 body {
-  min-width: 320px;
-  min-height: 100vh;
   margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+
+  background:
+    radial-gradient(circle at 20% 20%, #90E6FC, transparent 60%),
+    radial-gradient(circle at 90% 10%, #A8EEFF, transparent 60%),
+    linear-gradient(135deg, #F5FBFF 0%, #EAF6FF 100%);
+
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-attachment: fixed;
+
+  font-family: "Inter", sans-serif;
 }
 
 #root {
+  width: 100%;
   min-height: 100vh;
-}
-
-
-.navigation {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.navigation button {
-  border: none;
   background: transparent;
-  color: #5c6784;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 10px 16px;
-  border-radius: 10px;
-  transition: 0.3s;
 }
 
-.navigation button:hover {
-  background: #eef6ff;
-  color: #0b5ed7;
-}
-
-.navigation button.active {
-  background: #0b5ed7;
-  color: #fff;
+.main-content {
+  width: 100%;
+  max-width: 1200px;   /* Limits width on desktops */
+  margin: 0 auto;      /* Centers the content */
+  padding: 20px;
+  padding-bottom: 110px;
+  box-sizing: border-box;
 }

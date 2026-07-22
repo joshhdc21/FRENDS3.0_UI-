@@ -8,6 +8,7 @@ import FloodLevelSection from "./components/FloodLevelSection";
 import NodesSection from "./components/NodesSection";
 import DeviceSection from "./components/DeviceSection";
 import NewsSection from "./components/NewsSection";
+import BottomNavigation from "./components/BottomNavigation";
 
 import "./App.css";
 
@@ -141,6 +142,11 @@ function App() {
         {page === "news" && <NewsSection />}
       </main>
 
+
+<BottomNavigation
+  page={page}
+  setPage={setPage}
+/>
       <Footer />
     </div>
   );

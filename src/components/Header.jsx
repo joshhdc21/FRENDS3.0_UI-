@@ -1,4 +1,4 @@
-function Header({ firebaseConnected, page, setPage }) {
+function Header({ firebaseConnected }) {
   return (
     <header className="topbar">
       <div className="brand">
@@ -12,62 +12,31 @@ function Header({ firebaseConnected, page, setPage }) {
         </div>
       </div>
 
-      <nav className="navigation" aria-label="Main navigation">
-        <button
-          className={page === "dashboard" ? "active" : ""}
-          onClick={() => setPage("dashboard")}
+      <div className="header-right">
+
+        <div className="weather-widget">
+          <span className="weather-icon">🌤️</span>
+
+          <div className="weather-info">
+            <h4>30°C</h4>
+            <p>Mostly Sunny</p>
+          </div>
+        </div>
+
+        <div
+          className={`connection-status ${
+            firebaseConnected ? "connected" : "disconnected"
+          }`}
         >
-          Dashboard
-        </button>
+          <span className="status-dot"></span>
 
-        <button
-          className={page === "traffic" ? "active" : ""}
-          onClick={() => setPage("traffic")}
-        >
-          Traffic
-        </button>
+          <span>
+            {firebaseConnected
+              ? "FirebaseConnected"
+              : "Firebase Disconnected"}
+          </span>
+        </div>
 
-        <button
-          className={page === "flood" ? "active" : ""}
-          onClick={() => setPage("flood")}
-        >
-          Flood
-        </button>
-
-        <button
-          className={page === "nodes" ? "active" : ""}
-          onClick={() => setPage("nodes")}
-        >
-          Nodes
-        </button>
-
-        <button
-          className={page === "devices" ? "active" : ""}
-          onClick={() => setPage("devices")}
-        >
-          Devices
-        </button>
-
-        <button
-          className={page === "news" ? "active" : ""}
-          onClick={() => setPage("news")}
-        >
-          News
-        </button>
-      </nav>
-
-      <div
-        className={`connection-status ${
-          firebaseConnected ? "connected" : "disconnected"
-        }`}
-      >
-        <span className="status-dot"></span>
-
-        <span>
-          {firebaseConnected
-            ? "Firebase connected"
-            : "Firebase disconnected"}
-        </span>
       </div>
     </header>
   );

@@ -38,9 +38,26 @@ html {
 
 body {
   margin: 0;
-  background: var(--background);
+
+  background:
+    radial-gradient(circle at 15% 20%, rgba(144, 230, 252, 0.45), transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(168, 238, 255, 0.40), transparent 45%),
+    radial-gradient(circle at 20% 85%, rgba(255, 255, 255, 0.25), transparent 50%),
+    radial-gradient(circle at 80% 75%, rgba(144, 230, 252, 0.20), transparent 50%),
+    linear-gradient(
+      135deg,
+      #90E6FC 0%,
+      #9AE9FD 25%,
+      #A8EEFF 50%,
+      #DDF8FF 75%,
+      #FFFFFF 100%
+    );
+
+  background-size: cover;
+  background-attachment: fixed;
+
   color: var(--ink);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Inter", "Segoe UI", sans-serif;
 }
 
 button,
@@ -1358,4 +1375,110 @@ a {
 
   font-size: 20px;
 
+}
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.weather-widget {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 8px 16px;
+
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 16px;
+
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.weather-icon {
+  font-size: 28px;
+}
+
+.weather-info h4 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1f3b57;
+}
+
+.weather-info p {
+  margin: 0;
+  font-size: 13px;
+  color: #60748a;
+}
+
+/* ========================================= */
+/* Bottom Navigation */
+/* ========================================= */
+
+.bottom-navigation {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+
+  width: calc(100% - 40px);
+  max-width: 700px;
+
+  height: 75px;
+
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+
+  padding: 0 12px;
+
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 24px;
+
+  box-shadow:
+    0 10px 35px rgba(0, 0, 0, 0.12),
+    0 2px 8px rgba(255, 255, 255, 0.35);
+
+  z-index: 9999;
+}
+
+/* Navigation Buttons */
+
+.bottom-navigation button {
+  flex: 1;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  border: none;
+  background: transparent;
+
+  cursor: pointer;
+
+  color: #1f2937; /* Soft black */
+  font-size: 14px;
+  font-weight: 600;
+
+  transition: all 0.25s ease;
+}
+
+.bottom-navigation button small {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bottom-navigation button.active {
+  color: #fff;
+  background: linear-gradient(135deg, #2fa4ff, #64c8ff);
+  border-radius: 14px;
 }
