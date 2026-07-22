@@ -84,20 +84,30 @@ a {
 
 .topbar {
   position: sticky;
-  top: 0;
+  top: 15px;
   z-index: 100;
 
-  display: grid;
-  grid-template-columns: auto 1fr auto;
+  width: calc(100% - 40px);
+  max-width: 1450px;
+
+  margin: 0 auto;
+
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 36px;
 
-  min-height: 86px;
-  padding: 16px clamp(20px, 5vw, 72px);
+  padding: 16px 28px;
 
-  background: rgba(255, 255, 255, 0.96);
-  border-bottom: 1px solid var(--border);
-  backdrop-filter: blur(16px);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+
+  border: 1px solid rgba(255,255,255,.5);
+  border-radius: 30px;
+
+  box-shadow:
+    0 12px 35px rgba(0,0,0,.08),
+    inset 0 1px 0 rgba(255,255,255,.7);
 }
 
 .brand {
@@ -1481,4 +1491,32 @@ a {
   color: #fff;
   background: linear-gradient(135deg, #2fa4ff, #64c8ff);
   border-radius: 14px;
+}
+
+
+
+
+
+
+.live-date {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 10px 18px;
+  border-radius: 12px;
+
+  background: linear-gradient(
+    135deg,
+    var(--primary),
+    var(--blue)
+  );
+
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  box-shadow: 0 4px 12px rgba(21, 119, 216, 0.3);
+
+  white-space: nowrap;
 }

@@ -1,4 +1,32 @@
+import { useState, useEffect } from "react";
+
 function Header({ firebaseConnected }) {
+  const [currentDate, setCurrentDate] = useState("");
+
+  useEffect(() => {
+    const updateDate = () => {
+      const now = new Date();
+
+      const options = {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      };
+
+      setCurrentDate(now.toLocaleString("en-US", options));
+    };
+
+    updateDate(); // Initial update
+
+    const interval = setInterval(updateDate, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <header className="topbar">
       <div className="brand">
@@ -14,15 +42,12 @@ function Header({ firebaseConnected }) {
 
       <div className="header-right">
 
-        <div className="weather-widget">
-          <span className="weather-icon">🌤️</span>
-
-          <div className="weather-info">
-            <h4>30°C</h4>
-            <p>Mostly Sunny</p>
-          </div>
+        {/* Live Date */}
+        <div className="live-date">
+          <span>{currentDate}</span>
         </div>
 
+        {/* Firebase Status */}
         <div
           className={`connection-status ${
             firebaseConnected ? "connected" : "disconnected"
@@ -32,7 +57,7 @@ function Header({ firebaseConnected }) {
 
           <span>
             {firebaseConnected
-              ? "FirebaseConnected"
+              ? "Firebase Connected"
               : "Firebase Disconnected"}
           </span>
         </div>
