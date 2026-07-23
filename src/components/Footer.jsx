@@ -3,21 +3,41 @@ function Footer() {
 
   return (
     <footer className="site-footer">
-      <div>
-        <strong>Frends 3.0</strong>
-        <p>Multi-node smart flood monitoring system</p>
+      {/* Project Information */}
+      <div className="footer-brand">
+        <h2>Frends 3.0</h2>
+
+        <p className="footer-subtitle">
+          Multi-node Smart Flood Monitoring System
+        </p>
+
+        <small>
+          Frends 3.0 is a web-based flood monitoring platform that provides
+          real-time water level monitoring, traffic updates, and route guidance
+          using smart sensor nodes and cloud-based data synchronization.
+        </small>
       </div>
 
-      <div className="footer-links">
-        <a href="#monitoring">Overview</a>
-        <a href="#nodes">Nodes</a>
-        <a href="#flood-level">Flood Guide</a>
-        <a href="#device">Devices</a>
+      {/* System Information */}
+      <div className="footer-info">
+        <h4>System Information</h4>
+
+        <p><strong>Version:</strong> 3.0</p>
+        <p><strong>Status:</strong> Operational</p>
+        
       </div>
 
-      <p className="copyright">
-        © {currentYear} Frends 3.0
-      </p>
+      {/* Copyright */}
+      <div className="footer-copy">
+        <h4>Project</h4>
+
+        <p>Technological University of the Philippines – Manila</p>
+
+        <br />
+
+        <p>© {currentYear} Frends 3.0</p>
+        <small>All Rights Reserved.</small>
+      </div>
     </footer>
   );
 }

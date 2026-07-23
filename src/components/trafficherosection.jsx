@@ -41,7 +41,7 @@ function TrafficHeroSection() {
           </div>
         </div>
 
-        {/* Traffic Status Panel */}
+        {/* Traffic Status */}
         <div className="system-status-card">
           <span>Traffic System</span>
           <strong>ONLINE</strong>
@@ -49,6 +49,44 @@ function TrafficHeroSection() {
             Monitoring road conditions, congestion levels, vehicle flow, and
             navigation updates.
           </small>
+        </div>
+      </div>
+
+      {/* Live Traffic Information */}
+      <div className="section-heading">
+        <h3>Live Traffic Conditions</h3>
+        <span className="last-update">
+          Updated: Just Now
+        </span>
+      </div>
+
+      <div className="traffic-live-grid">
+        <div className="traffic-live-card">
+          <h4>Road 1</h4>
+          <p><strong>Status:</strong> Heavy Traffic</p>
+          <p><strong>Average Speed:</strong> 18 km/h</p>
+          <p><strong>Flood Status:</strong> Passable</p>
+        </div>
+
+        <div className="traffic-live-card">
+          <h4>Roadc2</h4>
+          <p><strong>Status:</strong> Moderate</p>
+          <p><strong>Average Speed:</strong> 35 km/h</p>
+          <p><strong>Flood Status:</strong> Clear</p>
+        </div>
+
+        <div className="traffic-live-card">
+          <h4>Road 3</h4>
+          <p><strong>Status:</strong> Light Traffic</p>
+          <p><strong>Average Speed:</strong> 52 km/h</p>
+          <p><strong>Flood Status:</strong> Clear</p>
+        </div>
+
+        <div className="traffic-live-card">
+          <h4>Road 4</h4>
+          <p><strong>Status:</strong> Severe Congestion</p>
+          <p><strong>Average Speed:</strong> 12 km/h</p>
+          <p><strong>Flood Status:</strong> Caution</p>
         </div>
       </div>
     </section>
