@@ -4,8 +4,20 @@ function NewsSection() {
   const [newsItems, setNewsItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState("");
+  const [nextRefresh, setNextRefresh] = useState("");
 
   const API_KEY = "21604dffca378c5d621f8cf55ff15c08";
+  const TRUSTED_SOURCES = [
+  "gma",
+  "abs-cbn",
+  "inquirer",
+  "philstar",
+  "manila bulletin",
+  "manilabulletin",
+  "rappler",
+  "pagasa",
+  "mmda",
+];
 
 const fetchNews = () => {
   console.log("Fetching latest news...");
@@ -15,48 +27,125 @@ const fetchNews = () => {
   const random = Math.floor(Math.random() * 999999);
 
 
-  fetch(
-    `https://gnews.io/api/v4/search?q=(flood OR traffic OR weather OR typhoon OR rainfall OR MMDA OR PAGASA)&lang=en&country=ph&max=10&sortby=publishedAt&apikey=${API_KEY}&_=${random}`
-  )
-    .then((res) => {
-      console.log("Status:", res.status);
-      return res.json();
-    })
+  const floodRequest = fetch(
+  `https://gnews.io/api/v4/search?q=flood OR flooding&country=ph&lang=en&max=10&sortby=publishedAt&apikey=${API_KEY}&_=${random}`
+);
 
-    .then((data) => {
+const trafficRequest = fetch(
+  `https://gnews.io/api/v4/search?q=traffic OR mmda OR road OR accident&country=ph&lang=en&max=10&sortby=publishedAt&apikey=${API_KEY}&_=${random}`
+);
 
-      console.log("Response:", data);
+const weatherRequest = fetch(
+  `https://gnews.io/api/v4/search?q=weather OR pagasa OR rainfall OR typhoon&country=ph&lang=en&max=10&sortby=publishedAt&apikey=${API_KEY}&_=${random}`
+);
+
+Promise.all([
+  floodRequest,
+  trafficRequest,
+  weatherRequest
+])
+  .then((responses) => Promise.all(responses.map((res) => res.json())))
+  .then(([floodData, trafficData, weatherData]) => {
+
+    console.log("Flood Data:", floodData);
+    console.log("Traffic Data:", trafficData);
+    console.log("Weather Data:", weatherData);
 
 
-      if (data.articles) {
+      const allArticles = [
+  ...(floodData.articles || []),
+  ...(trafficData.articles || []),
+  ...(weatherData.articles || [])
+];
 
+// Debug logs
+console.log("Flood Articles:", floodData.articles?.length);
+console.log("Traffic Articles:", trafficData.articles?.length);
+console.log("Weather Articles:", weatherData.articles?.length);
+console.log("Total Articles:", allArticles.length);
 
-        const filtered = data.articles.filter((article) => {
+if (allArticles.length > 0) {
 
-          const text =
-            (
-              (article.title || "") +
-              " " +
-              (article.description || "")
-            ).toLowerCase();
+  const filtered = allArticles.filter((article) => {
 
+  const text =
+    (
+      (article.title || "") +
+      " " +
+      (article.description || "")
+    ).toLowerCase();
 
-          return (
-            text.includes("flood") ||
-            text.includes("rain") ||
-            text.includes("weather") ||
-            text.includes("traffic") ||
-            text.includes("road") ||
-            text.includes("mmda") ||
-            text.includes("pagasa") ||
-            text.includes("typhoon")
-          );
+  const source =
+    (article.source?.name || "").toLowerCase();
+
+  const isRelevant =
+  text.includes("flood") ||
+  text.includes("flooding") ||
+  text.includes("rain") ||
+  text.includes("rainfall") ||
+  text.includes("weather") ||
+  text.includes("traffic") ||
+  text.includes("road") ||
+  text.includes("expressway") ||
+  text.includes("highway") ||
+  text.includes("accident") ||
+  text.includes("collision") ||
+  text.includes("congestion") ||
+  text.includes("vehicle") ||
+  text.includes("commuter") ||
+  text.includes("typhoon") ||
+  text.includes("storm") ||
+  text.includes("pagasa") ||
+  text.includes("mmda") ||
+  text.includes("lto") ||
+  text.includes("ltfrb");
+
+  const isTrusted =
+    TRUSTED_SOURCES.some((name) =>
+      source.includes(name)
+    );
+
+ return isRelevant;
 
         });
 
 
 
-        const formatted = filtered.map((article,index)=>{
+        const uniqueArticles = filtered.filter(
+  (article, index, self) =>
+    index ===
+    self.findIndex(
+      (a) =>
+        a.title === article.title ||
+        a.url === article.url
+    )
+);
+
+// Debug logs
+console.log("Filtered Articles:", filtered.length);
+console.log("Unique Articles:", uniqueArticles.length);
+
+uniqueArticles.sort((a, b) => {
+  const trustedA = TRUSTED_SOURCES.some((name) =>
+    (a.source?.name || "").toLowerCase().includes(name)
+  );
+
+
+  const trustedB = TRUSTED_SOURCES.some((name) =>
+    (b.source?.name || "").toLowerCase().includes(name)
+  );
+
+  // Trusted sources come first
+  if (trustedA && !trustedB) return -1;
+  if (!trustedA && trustedB) return 1;
+
+  // If both are trusted (or both are not),
+  // show the newest article first
+  return new Date(b.publishedAt) - new Date(a.publishedAt);
+
+});
+
+const formatted = uniqueArticles.map((article, index) => {
 
 
           const text =
@@ -68,7 +157,7 @@ const fetchNews = () => {
 
 
 
-          let category="📰 General News";
+          let category="General News";
 
 
           if(
@@ -78,7 +167,7 @@ const fetchNews = () => {
             text.includes("river")
           ){
 
-            category="🌊 Flood Advisory";
+            category="Flood Advisory";
 
           }
 
@@ -90,7 +179,7 @@ const fetchNews = () => {
             text.includes("congestion")
           ){
 
-            category="🚗 Traffic Advisory";
+            category="Traffic Advisory";
 
           }
 
@@ -103,7 +192,7 @@ const fetchNews = () => {
             text.includes("pagasa")
           ){
 
-            category="🌦 Weather Advisory";
+            category="Weather Advisory";
 
           }
 
@@ -111,41 +200,45 @@ const fetchNews = () => {
 
           return {
 
-            id:
-            article.url || index,
+  id:
+  article.url || index,
 
-            category,
+  category,
 
-            date:
-            new Date(article.publishedAt)
-            .toLocaleString(),
+  source:
+  article.source?.name || "Unknown Source",
 
-            title:
-            article.title,
+  date:
+  new Date(article.publishedAt)
+  .toLocaleString(),
 
-            description:
-            article.description ||
-            "No description available.",
+  title:
+  article.title,
 
-            image:
-            article.image,
+  description:
+  article.description ||
+  "No description available.",
 
-            url:
-            article.url
+  image:
+  article.image,
 
-          };
+  url:
+  article.url
 
+};
 
         });
 
-
-
-        setNewsItems(formatted);
+        setNewsItems(formatted.slice(0, 9));
 
 
         setLastUpdated(
           new Date().toLocaleString()
         );
+
+        const next = new Date(Date.now() + 5 * 60 * 1000);
+
+setNextRefresh(next.toLocaleTimeString());
 
       }
 
@@ -173,7 +266,7 @@ useEffect(() => {
   fetchNews();
 
   // Refresh every 15 minutes 
-  const interval = setInterval(fetchNews, 15 * 60 * 1000);
+  const interval = setInterval(fetchNews, 5 * 60 * 1000);
 
   // Clean up the timer when leaving the page
   return () => clearInterval(interval);
@@ -186,18 +279,11 @@ useEffect(() => {
     <p className="eyebrow">LIVE NEWS</p>
     <h3>Latest Flood, Traffic & Weather Updates</h3>
 
-    <p className="last-updated">
-      Last Updated: {lastUpdated || "Loading..."}
-    </p>
+    <p className="next-refresh">
+  Next Refresh: {nextRefresh || "Calculating..."}
+</p>
   </div>
 
-  <button
-    type="button"
-    className="secondary-button"
-    onClick={fetchNews}
-  >
-    🔄 Refresh Updates
-  </button>
 </div>
 
       {loading ? (
@@ -215,8 +301,9 @@ useEffect(() => {
               )}
 
               <div className="news-meta">
-                <span>{news.category}</span>
-                <time>{news.date}</time>
+               <span>{news.category}</span>
+               <span>{news.source}</span>
+               <time>{news.date}</time>
               </div>
 
               <h4>{news.title}</h4>
