@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { ref, onValue } from "firebase/database";
+import { database } from "./firebase/firebaseConfig";
 
 import Header from "./components/Header";
 import Footer from "./components/Footer";
@@ -15,104 +17,41 @@ import "./App.css";
 function App() {
   const [page, setPage] = useState("dashboard");
 
-  // Temporary data for NodesSection
-  const [nodes] = useState([
-  {
-    id: "NODE-01",
-    location: "Area 1 - North Entrance",
-    waterLevel: 4,
-    pressure: 1013.2,
-    battery: 8.1,
-    status: "online",
-    timestamp: Date.now(),
-  },
-  {
-    id: "NODE-02",
-    location: "Area 2 - Main Road",
-    waterLevel: 13,
-    pressure: 1014.1,
-    battery: 7.9,
-    status: "online",
-    timestamp: Date.now(),
-  },
-  {
-    id: "NODE-03",
-    location: "Area 3 - Bridge",
-    waterLevel: 28,
-    pressure: 1015.4,
-    battery: 7.8,
-    status: "online",
-    timestamp: Date.now(),
-  },
-  {
-    id: "NODE-04",
-    location: "Area 4 - Riverside",
-    waterLevel: 56,
-    pressure: 1017.2,
-    battery: 7.5,
-    status: "online",
-    timestamp: Date.now(),
-  },
-  {
-    id: "NODE-05",
-    location: "Area 5 - Market Road",
-    waterLevel: 9,
-    pressure: 1013.8,
-    battery: 8.0,
-    status: "online",
-    timestamp: Date.now(),
-  },
-  {
-    id: "NODE-06",
-    location: "Area 6 - School Zone",
-    waterLevel: 18,
-    pressure: 1014.7,
-    battery: 7.7,
-    status: "online",
-    timestamp: Date.now(),
-  },
-  {
-    id: "NODE-07",
-    location: "Area 7 - Residential Road",
-    waterLevel: 35,
-    pressure: 1016.3,
-    battery: 7.6,
-    status: "online",
-    timestamp: Date.now(),
-  },
-  {
-    id: "NODE-08",
-    location: "Area 8 - Drainage Channel",
-    waterLevel: 7,
-    pressure: 1013.5,
-    battery: 8.2,
-    status: "online",
-    timestamp: Date.now(),
-  },
-  {
-    id: "NODE-09",
-    location: "Area 9 - Low-Lying Road",
-    waterLevel: 48,
-    pressure: 1016.8,
-    battery: 7.4,
-    status: "online",
-    timestamp: Date.now(),
-  },
-  {
-    id: "NODE-10",
-    location: "Area 10 - South Entrance",
-    waterLevel: 0,
-    pressure: 0,
-    battery: 0,
-    status: "offline",
-    timestamp: Date.now(),
-  },
-]);
-  const [loading] = useState(false);
-  const [error] = useState(null);
+  // Live Firebase data
+  const [nodes, setNodes] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Temporary Firebase connection status
-  const [firebaseConnected] = useState(false);
+  // Firebase connection status
+  const [firebaseConnected, setFirebaseConnected] = useState(false);
+
+  useEffect(() => {
+    const nodesRef = ref(database, "nodes");
+
+    const unsubscribe = onValue(
+      nodesRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setNodes(snapshot.val());
+          setFirebaseConnected(true);
+          setLoading(false);
+          setError(null);
+        } else {
+          setNodes({});
+          setFirebaseConnected(false);
+          setLoading(false);
+        }
+      },
+      (err) => {
+        console.error("Firebase Error:", err);
+        setError(err.message);
+        setFirebaseConnected(false);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <div className="app">
@@ -131,7 +70,7 @@ function App() {
 
         {page === "nodes" && (
           <NodesSection
-            nodes={nodes}
+            nodes={Object.values(nodes)}
             loading={loading}
             error={error}
           />
@@ -142,11 +81,11 @@ function App() {
         {page === "news" && <NewsSection />}
       </main>
 
+      <BottomNavigation
+        page={page}
+        setPage={setPage}
+      />
 
-<BottomNavigation
-  page={page}
-  setPage={setPage}
-/>
       <Footer />
     </div>
   );
