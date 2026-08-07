@@ -55,7 +55,7 @@ export default function MapSection() {
 
     // 1. Initialize Pure Leaflet Map on Mount
     useEffect(() => {
-        if (!mapInstanceRef.current) {
+        if (!mapInstanceRef.current && mapRef.current) {
             const map = L.map(mapRef.current, {
                 center: mapCenter,
                 zoom: 15,
@@ -116,10 +116,13 @@ export default function MapSection() {
         }
     }, []);
 
-    // Update Map Center Dynamically
+    // Update Map Center Dynamically & Invalidate Size to prevent shifting
     useEffect(() => {
         if (mapInstanceRef.current) {
             mapInstanceRef.current.setView(mapCenter, 16);
+            setTimeout(() => {
+                mapInstanceRef.current.invalidateSize();
+            }, 100);
         }
     }, [mapCenter]);
 
@@ -336,8 +339,8 @@ export default function MapSection() {
     };
 
     return (
-        <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-            <div className="glass-panel">
+        <div style={{ position: 'relative', width: '100%', maxWidth: '1200px', height: '580px', margin: '20px auto', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }}>
+            <div className="glass-panel" style={{ position: 'absolute', top: '15px', left: '15px', zIndex: 1000 }}>
                 <div className="panel-header">
                     <div>
                         <h2>FRENDS</h2>
@@ -409,7 +412,7 @@ export default function MapSection() {
                 </div>
             </div>
 
-            <div className={`route-info ${routeInfo ? 'show' : ''}`}>
+            <div className={`route-info ${routeInfo ? 'show' : ''}`} style={{ zIndex: 1000 }}>
                 {routeInfo && (
                     <>
                         <div className="stat-group">
@@ -425,8 +428,8 @@ export default function MapSection() {
                 )}
             </div>
 
-            {/* Pure Leaflet Dom Container */}
-            <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
+            {/* Pure Leaflet Dom Container - Fixed inside bounds */}
+            <div ref={mapRef} style={{ width: '100%', height: '100%', zIndex: 1 }} />
         </div>
     );
 }
