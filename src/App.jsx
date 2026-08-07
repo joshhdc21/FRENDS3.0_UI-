@@ -11,6 +11,7 @@ import NodesSection from "./components/NodesSection";
 import DeviceSection from "./components/DeviceSection";
 import NewsSection from "./components/NewsSection";
 import BottomNavigation from "./components/BottomNavigation";
+import MapSection from "./components/MapSection";
 
 import "./App.css";
 
@@ -79,6 +80,8 @@ function App() {
         {page === "devices" && <DeviceSection />}
 
         {page === "news" && <NewsSection />}
+
+        {page === "map" && <MapSection />}
       </main>
 
       <BottomNavigation

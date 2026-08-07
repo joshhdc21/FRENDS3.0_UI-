@@ -6,7 +6,7 @@ function BottomNavigation({ page, setPage }) {
         className={page === "dashboard" ? "active" : ""}
         onClick={() => setPage("dashboard")}
       >
-        <small>Homey</small>
+        <small>Home</small>
       </button>
 
       <button
@@ -21,6 +21,13 @@ function BottomNavigation({ page, setPage }) {
         onClick={() => setPage("flood")}
       >
         <small>Flood</small>
+      </button>
+
+      <button
+        className={page === "map" ? "active" : ""}
+        onClick={() => setPage("map")}
+      >
+        <small>Map</small>
       </button>
 
       <button
