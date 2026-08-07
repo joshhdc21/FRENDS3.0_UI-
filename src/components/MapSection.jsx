@@ -1,14 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import "../MapSection.css";
-
-// 1. IMPORT FIREBASE MODULAR FUNCTIONS HERE
 import { ref, onValue, update } from "firebase/database";
 import { database } from "../firebase/firebaseConfig";
 
-// Custom Leaflet Icons Fix for React
+// Custom Leaflet Icons Fix
 const greenIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -20,68 +17,6 @@ const redIcon = new L.Icon({
     iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
 });
 
-// Component to dynamically pan/zoom map
-function MapViewController({ center }) {
-    const map = useMap();
-    useEffect(() => {
-        if (center) map.setView(center, 16);
-    }, [center, map]);
-    return null;
-}
-
-// 🌟 Component handling all advanced Map Clicks
-function MapEventsHandler({ isNavigatingRef, originRef, setOrigin, setDestination, setLiveLocation, setOriginQuery, setDestQuery }) {
-    useMapEvents({
-        click: (e) => {
-            // 1. SHIFT+CLICK: Teleport Hack
-            if (e.originalEvent.shiftKey) {
-                if (isNavigatingRef.current) {
-                    const latlng = [e.latlng.lat, e.latlng.lng];
-                    setLiveLocation(latlng);
-                    if (originRef.current) {
-                        setOrigin(prev => ({ ...prev, latlng }));
-                    }
-                    console.log("🚗 Teleported car to:", latlng);
-                } else {
-                    alert("⚠️ Click 'Start Navigation' first before trying to teleport!");
-                }
-                return;
-            }
-
-            // 2. ALT+CLICK: Admin Add Node (FIXED FOR FIREBASE V9)
-            if (e.originalEvent.altKey) {
-                const lat = e.latlng.lat;
-                const lng = e.latlng.lng;
-                const nodeId = window.prompt(`ADMIN TOOL\n\nYou clicked at ${lat.toFixed(5)}, ${lng.toFixed(5)}.\nEnter the Node ID to PLACE here (e.g., node-01):`);
-                if (nodeId) {
-                    update(ref(database, 'nodes/' + nodeId), { lat, lng })
-                    .catch(() => alert("Failed to update Firebase."));
-                }
-                return;
-            }
-
-            // 3. NORMAL CLICK: Drop Pins
-            const latlng = [e.latlng.lat, e.latlng.lng];
-            if (!originRef.current) {
-                setOrigin({ latlng, title: "Dropped Pin" });
-                setOriginQuery("Dropped Pin");
-            } else {
-                setDestination({ latlng, title: "Dropped Pin" });
-                setDestQuery("Dropped Pin");
-            }
-        },
-        contextmenu: (e) => {
-            // 4. RIGHT-CLICK: Admin Remove Node (FIXED FOR FIREBASE V9)
-            const nodeId = window.prompt("ADMIN REMOVAL TOOL\n\nEnter the Node ID you want to REMOVE from the map:");
-            if (nodeId && window.confirm(`Are you sure you want to hide ${nodeId} from the map?`)) {
-                update(ref(database, 'nodes/' + nodeId), { lat: null, lng: null })
-                .catch(() => alert("Failed to remove node from Firebase."));
-            }
-        }
-    });
-    return null;
-}
-
 export default function MapSection() {
     const TOMTOM_API_KEY = 'ADEP30hUNYnI2MVpGaRsqNACvNdK7Gpi';
 
@@ -90,7 +25,6 @@ export default function MapSection() {
     const [destination, setDestination] = useState(null); 
     const [vehicleLayer, setVehicleLayer] = useState("LOW");
     
-    // 🌟 REFS FOR BULLETPROOF REROUTING
     const originRef = useRef(origin);
     const destRef = useRef(destination);
     const isNavigatingRef = useRef(false);
@@ -98,30 +32,165 @@ export default function MapSection() {
     useEffect(() => { originRef.current = origin; }, [origin]);
     useEffect(() => { destRef.current = destination; }, [destination]);
 
-    // Search Inputs State
     const [originQuery, setOriginQuery] = useState("");
     const [originSuggestions, setOriginSuggestions] = useState([]);
     const [destQuery, setDestQuery] = useState("");
     const [destSuggestions, setDestSuggestions] = useState([]);
 
-    // Navigation States
     const [routeSegments, setRouteSegments] = useState([]);
     const [routeInfo, setRouteInfo] = useState(null); 
     const [isNavigating, setIsNavigating] = useState(false);
     const [liveLocation, setLiveLocation] = useState(null);
     const [isCalculating, setIsCalculating] = useState(false);
 
-    // Sync isNavigating to Ref
     useEffect(() => { isNavigatingRef.current = isNavigating; }, [isNavigating]);
 
-    // Firebase Nodes State
     const [firebaseNodes, setFirebaseNodes] = useState({});
     const nodeBlockStates = useRef({});
 
-    // 1. Firebase Listener (FIXED FOR FIREBASE V9)
+    // Leaflet Native Map Refs
+    const mapRef = useRef(null);
+    const mapInstanceRef = useRef(null);
+    const layerGroupRef = useRef(null);
+
+    // 1. Initialize Pure Leaflet Map on Mount
+    useEffect(() => {
+        if (!mapInstanceRef.current) {
+            const map = L.map(mapRef.current, {
+                center: mapCenter,
+                zoom: 15,
+                zoomControl: false
+            });
+
+            // Base Layers & TomTom Traffic
+            L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png", { maxZoom: 19 }).addTo(map);
+            L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`, { maxZoom: 19, opacity: 0.85, tileSize: 128, zoomOffset: 1 }).addTo(map);
+            L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png", { maxZoom: 19, zIndex: 1000 }).addTo(map);
+
+            // Layer group for dynamic markers/routes so we can clear them easily
+            const layerGroup = L.layerGroup().addTo(map);
+            layerGroupRef.current = layerGroup;
+
+            // Map Click Events (Shift+Click Teleport, Alt+Click Admin Node, Normal Click Pins)
+            map.on('click', (e) => {
+                if (e.originalEvent.shiftKey) {
+                    if (isNavigatingRef.current) {
+                        const latlng = [e.latlng.lat, e.latlng.lng];
+                        setLiveLocation(latlng);
+                        if (originRef.current) setOrigin(prev => ({ ...prev, latlng }));
+                    } else {
+                        alert("⚠️ Click 'Start Navigation' first!");
+                    }
+                    return;
+                }
+
+                if (e.originalEvent.altKey) {
+                    const lat = e.latlng.lat;
+                    const lng = e.latlng.lng;
+                    const nodeId = window.prompt(`ADMIN TOOL\n\nPlace Node at ${lat.toFixed(5)}, ${lng.toFixed(5)}:`);
+                    if (nodeId) {
+                        update(ref(database, 'nodes/' + nodeId), { lat, lng }).catch(() => alert("Failed."));
+                    }
+                    return;
+                }
+
+                const latlng = [e.latlng.lat, e.latlng.lng];
+                if (!originRef.current) {
+                    setOrigin({ latlng, title: "Dropped Pin" });
+                    setOriginQuery("Dropped Pin");
+                } else {
+                    setDestination({ latlng, title: "Dropped Pin" });
+                    setDestQuery("Dropped Pin");
+                }
+            });
+
+            // Right-Click Remove Node
+            map.on('contextmenu', () => {
+                const nodeId = window.prompt("ADMIN REMOVAL TOOL\n\nEnter Node ID to remove:");
+                if (nodeId && window.confirm(`Hide ${nodeId}?`)) {
+                    update(ref(database, 'nodes/' + nodeId), { lat: null, lng: null }).catch(() => alert("Failed."));
+                }
+            });
+
+            mapInstanceRef.current = map;
+        }
+    }, []);
+
+    // Update Map Center Dynamically
+    useEffect(() => {
+        if (mapInstanceRef.current) {
+            mapInstanceRef.current.setView(mapCenter, 16);
+        }
+    }, [mapCenter]);
+
+    // 2. Render Markers & Routes dynamically into the Leaflet layer group
+    useEffect(() => {
+        const mapGroup = layerGroupRef.current;
+        if (!mapGroup) return;
+
+        mapGroup.clearLayers();
+
+        // Origin Marker
+        if (origin) {
+            L.marker(origin.latlng, { icon: greenIcon }).addTo(mapGroup).bindPopup(origin.title);
+        }
+        // Destination Marker
+        if (destination) {
+            L.marker(destination.latlng, { icon: redIcon }).addTo(mapGroup).bindPopup(destination.title);
+        }
+        // Live Location Dot
+        if (liveLocation) {
+            L.circleMarker(liveLocation, { radius: 8, fillColor: "#3b82f6", color: "#ffffff", weight: 3, fillOpacity: 1 }).addTo(mapGroup);
+        }
+
+        // Firebase Nodes
+        Object.keys(firebaseNodes).forEach(nodeId => {
+            const nodeContainer = firebaseNodes[nodeId];
+            if (!nodeContainer || typeof nodeContainer !== 'object') return;
+            const childKeys = Object.keys(nodeContainer);
+            if (childKeys.length === 0) return;
+            
+            const latestData = nodeContainer[childKeys[childKeys.length - 1]];
+            const lat = latestData?.lat || nodeContainer.lat;
+            const lng = latestData?.lng || nodeContainer.lng;
+            const floodDepth = latestData?.waterLevel || 0;
+            const battery = latestData?.battery || 'N/A';
+            const status = latestData?.status || 'UNKNOWN';
+
+            if (!lat || !lng) return;
+
+            let color = "#10b981";
+            if (floodDepth >= 50) color = "#ef4444";
+            else if (floodDepth >= 30) color = "#f59e0b";
+            else if (floodDepth >= 15) color = "#eab308";
+
+            const popupContent = `
+                <div style="font-family: Inter, sans-serif;">
+                    <b style="font-size: 14px; color: #0f172a;">Node: ${nodeId}</b><br />
+                    <span style="font-size: 13px; color: #475569;">
+                        Flood Depth: <b style="color: ${color};">${floodDepth} cm</b><br />
+                        Battery: <b>${battery}V</b><br />
+                        Status: <b style="color: ${status === 'ONLINE' ? '#10b981' : '#ef4444'};">${status}</b>
+                    </span>
+                </div>
+            `;
+
+            L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9 })
+                .addTo(mapGroup)
+                .bindPopup(popupContent);
+        });
+
+        // Route Segments Polylines
+        routeSegments.forEach(segment => {
+            const positions = segment.coords.map(c => [c.latitude, c.longitude]);
+            L.polyline(positions, { color: segment.color, weight: 6, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }).addTo(mapGroup);
+        });
+
+    }, [origin, destination, liveLocation, firebaseNodes, routeSegments]);
+
+    // Firebase Listener
     useEffect(() => {
         const nodesRef = ref(database, 'nodes');
-        
         const unsubscribe = onValue(nodesRef, (snapshot) => {
             const nodes = snapshot.val();
             if (nodes) {
@@ -129,13 +198,9 @@ export default function MapSection() {
                 checkFloodTriggers(nodes);
             }
         });
-
-        // Cleanup listener when component unmounts
         return () => unsubscribe();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [vehicleLayer]);
 
-    // 2. Geolocation Watcher
     const autoLocate = () => {
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition((position) => {
@@ -145,27 +210,11 @@ export default function MapSection() {
                 setOriginQuery("Current Location");
                 setMapCenter(latlng);
             });
-
-            navigator.geolocation.watchPosition(
-                (position) => {
-                    const latlng = [position.coords.latitude, position.coords.longitude];
-                    setLiveLocation(latlng);
-                    if (isNavigatingRef.current && originRef.current) {
-                        setOrigin(prev => ({ ...prev, latlng }));
-                    }
-                },
-                (error) => console.log("GPS Error:", error),
-                { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
-            );
         }
     };
 
-    useEffect(() => {
-        autoLocate();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    useEffect(() => { autoLocate(); }, []);
 
-    // 3. Flood Checking & Auto-Rerouting
     const checkFloodTriggers = (nodes) => {
         const limits = { "LOW": 15, "MID": 30, "HIGH": 50 };
         const myLimit = limits[vehicleLayer] || 15;
@@ -178,24 +227,20 @@ export default function MapSection() {
                 if (childKeys.length > 0) {
                     const latestData = nodeContainer[childKeys[childKeys.length - 1]];
                     const floodDepth = latestData?.waterLevel || 0;
-                    const isBlocked = floodDepth >= myLimit;
-
-                    if (isBlocked && nodeBlockStates.current[nodeId] !== 'blocked') {
+                    if (floodDepth >= myLimit && nodeBlockStates.current[nodeId] !== 'blocked') {
                         forceReroute = true;
                     }
-                    nodeBlockStates.current[nodeId] = isBlocked ? 'blocked' : 'clear';
+                    nodeBlockStates.current[nodeId] = floodDepth >= myLimit ? 'blocked' : 'clear';
                 }
             }
         });
 
         if (isNavigatingRef.current && forceReroute) {
-            console.log("🌊 Flood detected! Auto-rerouting...");
             alert("⚠️ Flood detected ahead from IoT sensor network! Recalculating route...");
             fetchRoute(true);
         }
     };
 
-    // 4. TomTom Search Autocomplete
     const handleSearchInput = async (query, isOrigin) => {
         if (isOrigin) setOriginQuery(query);
         else setDestQuery(query);
@@ -210,25 +255,20 @@ export default function MapSection() {
         try {
             const res = await fetch(url);
             const data = await res.json();
-            
             if (data.results) {
                 const sorted = data.results.sort((a, b) => (b.poi ? 1 : 0) - (a.poi ? 1 : 0));
-                
                 let results = sorted.map(r => ({
                     lat: r.position.lat,
                     lon: r.position.lon,
                     primary: r.poi ? r.poi.name : (r.address.streetName || r.address.freeformAddress),
                     secondary: r.address.freeformAddress || "Philippines"
                 }));
-
-                // Deduplicate
                 const unique = [];
                 const seen = new Set();
                 results.forEach(item => {
                     const key = `${item.primary.toLowerCase()}-${item.secondary.toLowerCase()}`;
                     if (!seen.has(key)) { seen.add(key); unique.push(item); }
                 });
-
                 if (isOrigin) setOriginSuggestions(unique.slice(0, 5));
                 else setDestSuggestions(unique.slice(0, 5));
             }
@@ -251,13 +291,11 @@ export default function MapSection() {
         setMapCenter(latlng);
     };
 
-    // 5. Fetch Route API Handler
     const fetchRoute = async (isAutoReroute = false) => {
         const currentOrigin = originRef.current;
         const currentDest = destRef.current;
-
         if (!currentOrigin || !currentDest) {
-            if (!isAutoReroute) alert("⚠️ Please ensure both Origin and Destination are set.");
+            if (!isAutoReroute) alert("⚠️ Please set Origin and Destination.");
             return;
         }
 
@@ -265,12 +303,9 @@ export default function MapSection() {
         setIsCalculating(true);
 
         const payload = {
-            origin_lat: currentOrigin.latlng[0],
-            origin_lon: currentOrigin.latlng[1],
-            dest_lat: currentDest.latlng[0],
-            dest_lon: currentDest.latlng[1],
-            vehicle_type: vehicleLayer,
-            is_reroute: isAutoReroute
+            origin_lat: currentOrigin.latlng[0], origin_lon: currentOrigin.latlng[1],
+            dest_lat: currentDest.latlng[0], dest_lon: currentDest.latlng[1],
+            vehicle_type: vehicleLayer, is_reroute: isAutoReroute
         };
 
         try {
@@ -280,40 +315,28 @@ export default function MapSection() {
                 body: JSON.stringify(payload)
             });
             const data = await response.json();
-
             if (data.status === 'success') {
-                if (data.segments && data.segments.length > 0) {
-                    setRouteSegments(data.segments);
-                } else if (data.path) {
-                    setRouteSegments([{ coords: data.path, color: '#3b82f6' }]);
-                }
-                
+                if (data.segments && data.segments.length > 0) setRouteSegments(data.segments);
+                else if (data.path) setRouteSegments([{ coords: data.path, color: '#3b82f6' }]);
                 setRouteInfo({ distance: (data.distance / 1000).toFixed(2), time: Math.round(data.time / 60) });
             } else {
-                alert(`❌ Routing Error: ${data.message || "Unknown error"}`);
+                alert(`❌ Routing Error: ${data.message}`);
             }
         } catch (error) {
-            console.error("Routing API error:", error);
-            alert("Could not connect to Python backend server.");
+            console.error("API error:", error);
         } finally {
             setIsCalculating(false);
         }
     };
 
     const clearMap = () => {
-        setOrigin(null);
-        setDestination(null);
-        setOriginQuery("");
-        setDestQuery("");
-        setRouteSegments([]);
-        setRouteInfo(null);
-        setIsNavigating(false);
+        setOrigin(null); setDestination(null); setOriginQuery(""); setDestQuery("");
+        setRouteSegments([]); setRouteInfo(null); setIsNavigating(false);
         nodeBlockStates.current = {};
     };
 
     return (
         <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden' }}>
-            
             <div className="glass-panel">
                 <div className="panel-header">
                     <div>
@@ -336,9 +359,6 @@ export default function MapSection() {
                             <ul className="suggestions-list">
                                 {originSuggestions.map((item, idx) => (
                                     <li key={idx} onClick={() => selectLocationItem(item, true)}>
-                                        <div className="sugg-icon">
-                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                        </div>
                                         <div className="sugg-text">
                                             <div className="sugg-primary">{item.primary}</div>
                                             <div className="sugg-secondary">{item.secondary}</div>
@@ -359,9 +379,6 @@ export default function MapSection() {
                             <ul className="suggestions-list">
                                 {destSuggestions.map((item, idx) => (
                                     <li key={idx} onClick={() => selectLocationItem(item, false)}>
-                                        <div className="sugg-icon">
-                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                        </div>
                                         <div className="sugg-text">
                                             <div className="sugg-primary">{item.primary}</div>
                                             <div className="sugg-secondary">{item.secondary}</div>
@@ -408,68 +425,8 @@ export default function MapSection() {
                 )}
             </div>
 
-            <MapContainer center={mapCenter} zoom={15} zoomControl={false} style={{ width: '100%', height: '100%' }}>
-                <MapViewController center={mapCenter} />
-                <MapEventsHandler 
-                    isNavigatingRef={isNavigatingRef} 
-                    originRef={originRef} 
-                    setOrigin={setOrigin} 
-                    setDestination={setDestination} 
-                    setLiveLocation={setLiveLocation}
-                    setOriginQuery={setOriginQuery}
-                    setDestQuery={setDestQuery}
-                />
-                
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png" maxZoom={19} />
-                <TileLayer url={`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`} maxZoom={19} opacity={0.85} tileSize={128} zoomOffset={1} />
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png" maxZoom={19} zIndex={1000} />
-
-                {origin && <Marker position={origin.latlng} icon={greenIcon}><Popup>{origin.title}</Popup></Marker>}
-                {destination && <Marker position={destination.latlng} icon={redIcon}><Popup>{destination.title}</Popup></Marker>}
-                {liveLocation && <CircleMarker center={liveLocation} radius={8} fillColor="#3b82f6" color="#ffffff" weight={3} fillOpacity={1} />}
-
-                {Object.keys(firebaseNodes).map(nodeId => {
-                    const nodeContainer = firebaseNodes[nodeId];
-                    if (!nodeContainer || typeof nodeContainer !== 'object') return null;
-                    const childKeys = Object.keys(nodeContainer);
-                    if (childKeys.length === 0) return null;
-                    
-                    // Fetch latest append entry
-                    const latestData = nodeContainer[childKeys[childKeys.length - 1]];
-                    const lat = latestData?.lat || nodeContainer.lat;
-                    const lng = latestData?.lng || nodeContainer.lng;
-                    const floodDepth = latestData?.waterLevel || 0;
-                    const battery = latestData?.battery || 'N/A';
-                    const status = latestData?.status || 'UNKNOWN';
-
-                    if (!lat || !lng) return null;
-
-                    let color = "#10b981";
-                    if (floodDepth >= 50) color = "#ef4444";
-                    else if (floodDepth >= 30) color = "#f59e0b";
-                    else if (floodDepth >= 15) color = "#eab308";
-
-                    return (
-                        <CircleMarker key={nodeId} center={[lat, lng]} radius={8} fillColor={color} color="#ffffff" weight={2} fillOpacity={0.9}>
-                            <Popup>
-                                <div style={{ fontFamily: 'Inter, sans-serif' }}>
-                                    <b style={{ fontSize: 14, color: '#0f172a' }}>Node: {nodeId}</b><br />
-                                    <span style={{ fontSize: 13, color: '#475569' }}>
-                                        Flood Depth: <b style={{ color }}>{floodDepth} cm</b><br />
-                                        Battery: <b>{battery}V</b><br />
-                                        Status: <b style={{ color: status === 'ONLINE' ? '#10b981' : '#ef4444' }}>{status}</b>
-                                    </span>
-                                </div>
-                            </Popup>
-                        </CircleMarker>
-                    );
-                })}
-
-                {routeSegments.map((segment, idx) => {
-                    const positions = segment.coords.map(c => [c.latitude, c.longitude]);
-                    return <Polyline key={idx} positions={positions} pathOptions={{ color: segment.color, weight: 6, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }} />;
-                })}
-            </MapContainer>
+            {/* Pure Leaflet Dom Container */}
+            <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
         </div>
     );
 }
