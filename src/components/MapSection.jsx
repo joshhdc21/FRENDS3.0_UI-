@@ -2,9 +2,11 @@ import React, { useEffect, useState, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Polyline, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import './MapSection.css';
-// Ensure this path matches where you initialize your Firebase app
-import { database } from '../firebase/firebase'; 
+import "../MapSection.css";
+
+// 1. IMPORT FIREBASE MODULAR FUNCTIONS HERE
+import { ref, onValue, update } from "firebase/database";
+import { database } from "../firebase/firebaseConfig";
 
 // Custom Leaflet Icons Fix for React
 const greenIcon = new L.Icon({
@@ -27,7 +29,7 @@ function MapViewController({ center }) {
     return null;
 }
 
-// 🌟 Component handling all advanced Map Clicks (Teleport, Add Node, Delete Node)
+// 🌟 Component handling all advanced Map Clicks
 function MapEventsHandler({ isNavigatingRef, originRef, setOrigin, setDestination, setLiveLocation, setOriginQuery, setDestQuery }) {
     useMapEvents({
         click: (e) => {
@@ -46,13 +48,13 @@ function MapEventsHandler({ isNavigatingRef, originRef, setOrigin, setDestinatio
                 return;
             }
 
-            // 2. ALT+CLICK: Admin Add Node
+            // 2. ALT+CLICK: Admin Add Node (FIXED FOR FIREBASE V9)
             if (e.originalEvent.altKey) {
                 const lat = e.latlng.lat;
                 const lng = e.latlng.lng;
                 const nodeId = window.prompt(`ADMIN TOOL\n\nYou clicked at ${lat.toFixed(5)}, ${lng.toFixed(5)}.\nEnter the Node ID to PLACE here (e.g., node-01):`);
                 if (nodeId) {
-                    database.ref('nodes/' + nodeId).update({ lat, lng })
+                    update(ref(database, 'nodes/' + nodeId), { lat, lng })
                     .catch(() => alert("Failed to update Firebase."));
                 }
                 return;
@@ -69,10 +71,10 @@ function MapEventsHandler({ isNavigatingRef, originRef, setOrigin, setDestinatio
             }
         },
         contextmenu: (e) => {
-            // 4. RIGHT-CLICK: Admin Remove Node
+            // 4. RIGHT-CLICK: Admin Remove Node (FIXED FOR FIREBASE V9)
             const nodeId = window.prompt("ADMIN REMOVAL TOOL\n\nEnter the Node ID you want to REMOVE from the map:");
             if (nodeId && window.confirm(`Are you sure you want to hide ${nodeId} from the map?`)) {
-                database.ref('nodes/' + nodeId).update({ lat: null, lng: null })
+                update(ref(database, 'nodes/' + nodeId), { lat: null, lng: null })
                 .catch(() => alert("Failed to remove node from Firebase."));
             }
         }
@@ -116,17 +118,20 @@ export default function MapSection() {
     const [firebaseNodes, setFirebaseNodes] = useState({});
     const nodeBlockStates = useRef({});
 
-    // 1. Firebase Listener (Append-Safe)
+    // 1. Firebase Listener (FIXED FOR FIREBASE V9)
     useEffect(() => {
-        const nodesRef = database.ref('nodes');
-        nodesRef.on('value', (snapshot) => {
+        const nodesRef = ref(database, 'nodes');
+        
+        const unsubscribe = onValue(nodesRef, (snapshot) => {
             const nodes = snapshot.val();
             if (nodes) {
                 setFirebaseNodes(nodes);
                 checkFloodTriggers(nodes);
             }
         });
-        return () => nodesRef.off();
+
+        // Cleanup listener when component unmounts
+        return () => unsubscribe();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [vehicleLayer]);
 
@@ -277,7 +282,6 @@ export default function MapSection() {
             const data = await response.json();
 
             if (data.status === 'success') {
-                // If the backend returns segments, use them. Otherwise, map the path array.
                 if (data.segments && data.segments.length > 0) {
                     setRouteSegments(data.segments);
                 } else if (data.path) {
