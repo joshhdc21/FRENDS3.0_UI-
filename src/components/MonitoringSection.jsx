@@ -78,28 +78,191 @@ function MonitoringSection() {
         />
       </div>
 
-      {/* Live Map */}
-      <div className="section-heading" style={{ marginTop: "40px" }}>
-        <div>
-          <p className="eyebrow">LIVE MAP</p>
-          <h3>Live Map Viewing</h3>
+            {/* =========================================
+          FRENDS HOMEPAGE INFORMATION
+      ========================================= */}
+
+      <div className="frends-home-info-section">
+
+        <div className="frends-home-info-header">
+
+          <p className="eyebrow">
+            ABOUT FRENDS
+          </p>
+
+          <h2>
+            Your Smart Guide for Safer Journeys
+          </h2>
+
+          <p>
+            FRENDS connects real-time flood monitoring,
+            traffic information, weather conditions, and
+            navigation assistance in one platform to help
+            users make safer and smarter travel decisions.
+          </p>
+
         </div>
+
+
+        <div className="frends-info-grid">
+
+          <article className="frends-info-card">
+
+            <div className="frends-info-icon">
+              🌊
+            </div>
+
+            <div>
+              <h3>Monitor Flood Conditions</h3>
+
+              <p>
+                Get real-time water-level readings and flood
+                status from connected monitoring devices.
+              </p>
+            </div>
+
+          </article>
+
+
+          <article className="frends-info-card">
+
+            <div className="frends-info-icon">
+              🚦
+            </div>
+
+            <div>
+              <h3>Check Traffic Conditions</h3>
+
+              <p>
+                View current traffic information on monitored
+                roads and understand how congestion may affect
+                your journey.
+              </p>
+            </div>
+
+          </article>
+
+
+          <article className="frends-info-card">
+
+            <div className="frends-info-icon">
+              ☁️
+            </div>
+
+            <div>
+              <h3>Stay Updated With Weather</h3>
+
+              <p>
+                Access current weather information to help
+                you prepare for changing road conditions.
+              </p>
+            </div>
+
+          </article>
+
+
+          <article className="frends-info-card">
+
+            <div className="frends-info-icon">
+              🗺️
+            </div>
+
+            <div>
+              <h3>Make Smarter Travel Decisions</h3>
+
+              <p>
+                Use flood, traffic, and weather information
+                to better understand current conditions before
+                starting your journey.
+              </p>
+            </div>
+
+          </article>
+
+        </div>
+
+
+        {/* HOW FRENDS WORKS */}
+
+        <div className="frends-how-section">
+
+          <div className="frends-how-content">
+
+            <p className="eyebrow">
+              HOW FRENDS WORKS
+            </p>
+
+            <h2>
+              From Real-Time Data to Better Decisions
+            </h2>
+
+            <p>
+              FRENDS collects information from connected
+              monitoring devices and external data sources,
+              processes the information, and presents it
+              in a simple interface that users can easily
+              understand.
+            </p>
+
+          </div>
+
+
+          <div className="frends-process-grid">
+
+            <div className="frends-process-card">
+              <span className="process-number">01</span>
+
+              <h4>Collect</h4>
+
+              <p>
+                Sensors collect real-time water-level and
+                environmental data.
+              </p>
+            </div>
+
+
+            <div className="frends-process-card">
+              <span className="process-number">02</span>
+
+              <h4>Process</h4>
+
+              <p>
+                FRENDS processes incoming information and
+                determines the current conditions.
+              </p>
+            </div>
+
+
+            <div className="frends-process-card">
+              <span className="process-number">03</span>
+
+              <h4>Inform</h4>
+
+              <p>
+                Users receive updated flood, traffic, and
+                weather information.
+              </p>
+            </div>
+
+
+            <div className="frends-process-card">
+              <span className="process-number">04</span>
+
+              <h4>Decide</h4>
+
+              <p>
+                Users can make safer and more informed
+                travel decisions.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
       </div>
 
-      <div className="map-container">
-        <iframe
-          title="LIVE MAP VIEWING"
-          src="https://www.google.com/maps?q=14.5995,120.9842&z=15&output=embed"
-          width="100%"
-          height="450"
-          style={{
-            border: 0,
-            borderRadius: "18px",
-          }}
-          loading="lazy"
-          allowFullScreen
-        ></iframe>
-      </div>
+    
     </section>
   );
 }

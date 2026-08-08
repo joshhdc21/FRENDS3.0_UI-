@@ -31,7 +31,7 @@ function FloodLevelSection() {
       <div className="section-heading">
         <div>
           <p className="eyebrow">FLOOD LEVEL GUIDE</p>
-          <h3>Flood warning classification</h3>
+          <h3>Flood Warning Classification</h3>
         </div>
       </div>
 

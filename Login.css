@@ -1,0 +1,501 @@
+/* =========================================
+   FRENDS LOGIN PAGE
+========================================= */
+
+.login-page {
+  min-height: 100vh;
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 24px;
+  box-sizing: border-box;
+
+  background: linear-gradient(
+    135deg,
+    #eef8ff 0%,
+    #dff4ff 50%,
+    #f7fcff 100%
+  );
+
+  font-family: "Inter", Arial, sans-serif;
+}
+
+
+/* =========================================
+   LOGIN CARD
+========================================= */
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+
+  padding: 40px;
+
+  box-sizing: border-box;
+
+  background: #ffffff;
+
+  border: 1px solid #e1edf5;
+
+  border-radius: 24px;
+
+  box-shadow:
+    0 20px 50px rgba(8, 59, 138, 0.12),
+    0 5px 15px rgba(47, 164, 255, 0.06);
+}
+
+
+/* =========================================
+   LOGIN HEADER
+========================================= */
+
+.login-header {
+  text-align: center;
+
+  margin-bottom: 30px;
+}
+
+
+/* LOGO */
+
+.login-logo {
+  width: 64px;
+  height: 64px;
+
+  margin: 0 auto 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 18px;
+
+  background: linear-gradient(
+    135deg,
+    #2fa4ff,
+    #16b8e5
+  );
+
+  color: #ffffff;
+
+  font-size: 30px;
+  font-weight: 800;
+
+  box-shadow:
+    0 10px 25px rgba(47, 164, 255, 0.25);
+}
+
+
+/* TITLE */
+
+.login-header h1 {
+  margin: 0;
+
+  color: #083b8a;
+
+  font-size: 27px;
+  font-weight: 800;
+
+  letter-spacing: -0.5px;
+}
+
+
+/* DESCRIPTION */
+
+.login-header p {
+  margin: 9px 0 0;
+
+  color: #718096;
+
+  font-size: 14px;
+
+  line-height: 1.5;
+}
+
+
+/* =========================================
+   FORM
+========================================= */
+
+.login-field {
+  margin-bottom: 18px;
+}
+
+
+/* LABEL */
+
+.login-field label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #1f2937;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+
+/* INPUT */
+
+.login-field input {
+  width: 100%;
+  height: 48px;
+
+  padding: 0 15px;
+
+  box-sizing: border-box;
+
+  border: 1px solid #d8e7f1;
+
+  border-radius: 12px;
+
+  outline: none;
+
+  background: #fbfdff;
+
+  color: #1f2937;
+
+  font-size: 14px;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+
+/* PLACEHOLDER */
+
+.login-field input::placeholder {
+  color: #9aa8b5;
+}
+
+
+/* INPUT FOCUS */
+
+.login-field input:focus {
+  border-color: #2fa4ff;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 0 0 3px rgba(47, 164, 255, 0.12);
+}
+
+
+/* DISABLED INPUT */
+
+.login-field input:disabled {
+  background: #f1f5f9;
+
+  opacity: 0.7;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================
+   ERROR MESSAGE
+========================================= */
+
+.login-error {
+  margin: 8px 0 15px;
+
+  padding: 11px 13px;
+
+  border: 1px solid #fecaca;
+
+  border-radius: 10px;
+
+  background: #fff5f5;
+
+  color: #dc2626;
+
+  font-size: 13px;
+
+  line-height: 1.4;
+
+  text-align: center;
+}
+
+
+/* =========================================
+   LOGIN BUTTON
+========================================= */
+
+.login-button {
+  width: 100%;
+  height: 48px;
+
+  border: none;
+
+  border-radius: 12px;
+
+  background: linear-gradient(
+    135deg,
+    #2fa4ff,
+    #1577d8
+  );
+
+  color: #ffffff;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+
+/* HOVER */
+
+.login-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 8px 20px rgba(21, 119, 216, 0.25);
+}
+
+
+/* ACTIVE */
+
+.login-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+
+/* DISABLED */
+
+.login-button:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================
+   DIVIDER
+========================================= */
+
+.login-divider {
+  width: 100%;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  margin: 25px 0;
+}
+
+
+.login-divider span {
+  flex: 1;
+
+  height: 1px;
+
+  background: #e5edf3;
+}
+
+
+.login-divider p {
+  margin: 0;
+
+  color: #9aa8b5;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 0.5px;
+}
+
+
+/* =========================================
+   GOOGLE LOGIN BUTTON
+========================================= */
+
+.google-login-button {
+  width: 100%;
+  height: 48px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 10px;
+
+  border: 1px solid #d8e3eb;
+
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  color: #374151;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+/* GOOGLE HOVER */
+
+.google-login-button:hover:not(:disabled) {
+  background: #f8fbff;
+
+  border-color: #b9d7ef;
+
+  box-shadow:
+    0 5px 15px rgba(47, 164, 255, 0.08);
+
+  transform: translateY(-1px);
+}
+
+
+/* GOOGLE ACTIVE */
+
+.google-login-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+
+/* GOOGLE DISABLED */
+
+.google-login-button:disabled {
+  opacity: 0.6;
+
+  cursor: not-allowed;
+}
+
+
+/* =========================================
+   GOOGLE ICON
+========================================= */
+
+.google-icon {
+  width: 25px;
+  height: 25px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  color: #4285f4;
+
+  font-size: 18px;
+  font-weight: 800;
+
+  font-family: Arial, sans-serif;
+}
+
+
+/* =========================================
+   FOOTER
+========================================= */
+
+.login-footer {
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+
+  gap: 5px;
+
+  margin-top: 28px;
+
+  padding-top: 20px;
+
+  border-top: 1px solid #edf2f7;
+}
+
+
+.login-footer span {
+  color: #1577d8;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  letter-spacing: 1.5px;
+}
+
+
+.login-footer small {
+  color: #9aa8b5;
+
+  font-size: 11px;
+
+  text-align: center;
+}
+
+
+/* =========================================
+   MOBILE RESPONSIVE
+========================================= */
+
+@media (max-width: 480px) {
+
+  .login-page {
+    padding: 16px;
+  }
+
+  .login-card {
+    padding: 30px 22px;
+
+    border-radius: 20px;
+  }
+
+  .login-logo {
+    width: 58px;
+    height: 58px;
+
+    font-size: 27px;
+  }
+
+  .login-header h1 {
+    font-size: 23px;
+  }
+
+  .login-header p {
+    font-size: 13px;
+  }
+
+}
+
+
+/* =========================================
+   VERY SMALL SCREEN
+========================================= */
+
+@media (max-width: 350px) {
+
+  .login-card {
+    padding: 25px 18px;
+  }
+
+  .login-header h1 {
+    font-size: 21px;
+  }
+
+  .login-button,
+  .google-login-button {
+    height: 45px;
+  }
+
+}

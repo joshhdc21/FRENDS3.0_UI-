@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { ref, onValue } from "firebase/database";
 import { database } from "./firebase/firebaseConfig";
 
+
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import MonitoringSection from "./components/MonitoringSection";
