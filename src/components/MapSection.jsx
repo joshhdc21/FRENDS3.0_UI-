@@ -28,6 +28,7 @@ export default function MapSection() {
     const originRef = useRef(origin);
     const destRef = useRef(destination);
     const isNavigatingRef = useRef(false);
+    const searchTimeoutRef = useRef(null);
     
     useEffect(() => { originRef.current = origin; }, [origin]);
     useEffect(() => { destRef.current = destination; }, [destination]);
@@ -244,10 +245,18 @@ export default function MapSection() {
         }
     };
 
-    const handleSearchInput = async (query, isOrigin) => {
-        if (isOrigin) setOriginQuery(query);
-        else setDestQuery(query);
+    const handleSearchInput = (query, isOrigin) => {
+    // 1. Immediately update the text box so the UI feels fast and responsive
+    if (isOrigin) setOriginQuery(query);
+    else setDestQuery(query);
 
+    // 2. If the user types another letter, cancel the previous countdown
+    if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+    }
+
+    // 3. Start a fresh 500ms countdown before fetching from TomTom
+    searchTimeoutRef.current = setTimeout(async () => {
         if (query.trim().length < 2) {
             if (isOrigin) setOriginSuggestions([]);
             else setDestSuggestions([]);
@@ -278,7 +287,8 @@ export default function MapSection() {
         } catch (err) {
             console.error("Search error:", err);
         }
-    };
+    }, 500); // 500ms delay
+};
 
     const selectLocationItem = (item, isOrigin) => {
         const latlng = [item.lat, item.lon];
