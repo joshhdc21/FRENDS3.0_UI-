@@ -354,20 +354,6 @@ export default function MapSection() {
         nodeBlockStates.current = {};
     };
 
-    const autoLocate = () => {
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const latlng = [position.coords.latitude, position.coords.longitude];
-                setLiveLocation(latlng);
-                setOrigin({ latlng, title: "Current Location" });
-                setOriginQuery("Current Location");
-                setMapCenter(latlng);
-            });
-        }
-    };
-
-    useEffect(() => { autoLocate(); }, []);
-
     return (
         <div style={{ 
             position: 'relative', 
@@ -425,11 +411,6 @@ export default function MapSection() {
                         <h2 style={{ fontSize: isMobile ? '20px' : '24px' }}>FRENDS</h2>
                         <p>Dynamic Routing</p>
                     </div>
-                    <button className="locate-btn" onClick={autoLocate} title="Find My Location">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                        </svg>
-                    </button>
                 </div>
 
                 <div className="input-group">
