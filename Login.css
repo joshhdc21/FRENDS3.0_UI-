@@ -59,7 +59,9 @@
 }
 
 
-/* LOGO */
+/* =========================================
+   LOGO
+========================================= */
 
 .login-logo {
   width: 64px;
@@ -75,8 +77,8 @@
 
   background: linear-gradient(
     135deg,
-    #2fa4ff,
-    #16b8e5
+    #0d57bd,
+    #2fa4ff
   );
 
   color: #ffffff;
@@ -85,11 +87,13 @@
   font-weight: 800;
 
   box-shadow:
-    0 10px 25px rgba(47, 164, 255, 0.25);
+    0 10px 25px rgba(13, 87, 189, 0.22);
 }
 
 
-/* TITLE */
+/* =========================================
+   TITLE
+========================================= */
 
 .login-header h1 {
   margin: 0;
@@ -103,7 +107,9 @@
 }
 
 
-/* DESCRIPTION */
+/* =========================================
+   DESCRIPTION
+========================================= */
 
 .login-header p {
   margin: 9px 0 0;
@@ -125,7 +131,9 @@
 }
 
 
-/* LABEL */
+/* =========================================
+   LABEL
+========================================= */
 
 .login-field label {
   display: block;
@@ -139,7 +147,9 @@
 }
 
 
-/* INPUT */
+/* =========================================
+   INPUT
+========================================= */
 
 .login-field input {
   width: 100%;
@@ -159,6 +169,8 @@
 
   color: #1f2937;
 
+  font-family: inherit;
+
   font-size: 14px;
 
   transition:
@@ -168,26 +180,32 @@
 }
 
 
-/* PLACEHOLDER */
+/* =========================================
+   PLACEHOLDER
+========================================= */
 
 .login-field input::placeholder {
   color: #9aa8b5;
 }
 
 
-/* INPUT FOCUS */
+/* =========================================
+   INPUT FOCUS
+========================================= */
 
 .login-field input:focus {
-  border-color: #2fa4ff;
+  border-color: #0d57bd;
 
   background: #ffffff;
 
   box-shadow:
-    0 0 0 3px rgba(47, 164, 255, 0.12);
+    0 0 0 3px rgba(13, 87, 189, 0.12);
 }
 
 
-/* DISABLED INPUT */
+/* =========================================
+   DISABLED INPUT
+========================================= */
 
 .login-field input:disabled {
   background: #f1f5f9;
@@ -231,53 +249,180 @@
   width: 100%;
   height: 48px;
 
-  border: none;
+  margin-top: 4px;
+  padding: 0 16px;
 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+
+  border: none;
   border-radius: 12px;
 
-  background: linear-gradient(
-    135deg,
-    #2fa4ff,
-    #1577d8
-  );
+  background: #0d57bd;
 
   color: #ffffff;
+
+  font-family: inherit;
 
   font-size: 14px;
   font-weight: 700;
 
   cursor: pointer;
 
+  outline: none;
+
+  box-shadow:
+    0 5px 14px rgba(13, 87, 189, 0.18);
+
   transition:
-    transform 0.2s ease,
+    background 0.2s ease,
     box-shadow 0.2s ease,
-    opacity 0.2s ease;
+    transform 0.2s ease;
 }
 
 
-/* HOVER */
+/* LOGIN HOVER */
 
 .login-button:hover:not(:disabled) {
+  background: #0a4da8;
+
   transform: translateY(-1px);
 
   box-shadow:
-    0 8px 20px rgba(21, 119, 216, 0.25);
+    0 8px 20px rgba(13, 87, 189, 0.25);
 }
 
 
-/* ACTIVE */
+/* LOGIN ACTIVE */
 
 .login-button:active:not(:disabled) {
   transform: translateY(0);
+
+  box-shadow:
+    0 4px 10px rgba(13, 87, 189, 0.18);
 }
 
 
-/* DISABLED */
+/* LOGIN FOCUS */
+
+.login-button:focus-visible {
+  box-shadow:
+    0 0 0 3px rgba(13, 87, 189, 0.15),
+    0 5px 14px rgba(13, 87, 189, 0.18);
+}
+
+
+/* LOGIN DISABLED */
 
 .login-button:disabled {
-  opacity: 0.6;
+  background: #94a3b8;
 
   cursor: not-allowed;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+
+/* =========================================
+   CREATE ACCOUNT BUTTON
+========================================= */
+
+.create-account-button {
+  width: 100%;
+  height: 48px;
+
+  margin-top: 12px;
+  padding: 0 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-sizing: border-box;
+
+  border: 1.5px solid #0d57bd;
+  border-radius: 12px;
+
+  background: #ffffff;
+
+  color: #0d57bd;
+
+  font-family: inherit;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  text-decoration: none;
+
+  cursor: pointer;
+
+  outline: none;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+/* CREATE ACCOUNT HOVER */
+
+.create-account-button:hover {
+  background: #eef6ff;
+
+  border-color: #0a4da8;
+
+  color: #0a4da8;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 6px 16px rgba(13, 87, 189, 0.12);
+}
+
+
+/* CREATE ACCOUNT ACTIVE */
+
+.create-account-button:active {
+  transform: translateY(0);
+
+  background: #e5f0ff;
+
+  box-shadow: none;
+}
+
+
+/* CREATE ACCOUNT FOCUS */
+
+.create-account-button:focus-visible {
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(13, 87, 189, 0.15);
+}
+
+
+/* CREATE ACCOUNT DISABLED */
+
+.create-account-button:disabled {
+  background: #f1f5f9;
+
+  border-color: #cbd5e1;
+
+  color: #94a3b8;
+
+  cursor: not-allowed;
+
+  transform: none;
+
+  box-shadow: none;
 }
 
 
@@ -297,6 +442,8 @@
 }
 
 
+/* DIVIDER LINES */
+
 .login-divider span {
   flex: 1;
 
@@ -306,12 +453,15 @@
 }
 
 
+/* DIVIDER TEXT */
+
 .login-divider p {
   margin: 0;
 
   color: #9aa8b5;
 
   font-size: 11px;
+
   font-weight: 700;
 
   letter-spacing: 0.5px;
@@ -326,11 +476,15 @@
   width: 100%;
   height: 48px;
 
+  padding: 0 16px;
+
   display: flex;
   align-items: center;
   justify-content: center;
 
   gap: 10px;
+
+  box-sizing: border-box;
 
   border: 1px solid #d8e3eb;
 
@@ -340,10 +494,14 @@
 
   color: #374151;
 
+  font-family: inherit;
+
   font-size: 14px;
   font-weight: 600;
 
   cursor: pointer;
+
+  outline: none;
 
   transition:
     background 0.2s ease,
@@ -371,6 +529,20 @@
 
 .google-login-button:active:not(:disabled) {
   transform: translateY(0);
+
+  background: #f1f5f9;
+
+  box-shadow: none;
+}
+
+
+/* GOOGLE FOCUS */
+
+.google-login-button:focus-visible {
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(47, 164, 255, 0.12);
 }
 
 
@@ -380,6 +552,8 @@
   opacity: 0.6;
 
   cursor: not-allowed;
+
+  transform: none;
 }
 
 
@@ -395,11 +569,12 @@
   align-items: center;
   justify-content: center;
 
-  border-radius: 50%;
+  flex-shrink: 0;
 
   color: #4285f4;
 
   font-size: 18px;
+
   font-weight: 800;
 
   font-family: Arial, sans-serif;
@@ -426,15 +601,20 @@
 }
 
 
+/* FOOTER BRAND */
+
 .login-footer span {
-  color: #1577d8;
+  color: #0d57bd;
 
   font-size: 13px;
+
   font-weight: 800;
 
   letter-spacing: 1.5px;
 }
 
+
+/* FOOTER DESCRIPTION */
 
 .login-footer small {
   color: #9aa8b5;
@@ -442,6 +622,8 @@
   font-size: 11px;
 
   text-align: center;
+
+  line-height: 1.4;
 }
 
 
@@ -466,6 +648,12 @@
     height: 58px;
 
     font-size: 27px;
+
+    border-radius: 16px;
+  }
+
+  .login-header {
+    margin-bottom: 26px;
   }
 
   .login-header h1 {
@@ -476,6 +664,15 @@
     font-size: 13px;
   }
 
+  .login-field input {
+    height: 46px;
+  }
+
+  .login-button,
+  .create-account-button,
+  .google-login-button {
+    height: 46px;
+  }
 }
 
 
@@ -485,17 +682,40 @@
 
 @media (max-width: 350px) {
 
+  .login-page {
+    padding: 12px;
+  }
+
   .login-card {
     padding: 25px 18px;
+
+    border-radius: 18px;
+  }
+
+  .login-logo {
+    width: 54px;
+    height: 54px;
+
+    font-size: 25px;
   }
 
   .login-header h1 {
     font-size: 21px;
   }
 
-  .login-button,
-  .google-login-button {
-    height: 45px;
+  .login-header p {
+    font-size: 12px;
   }
 
+  .login-divider {
+    margin: 20px 0;
+  }
+
+  .login-button,
+  .create-account-button,
+  .google-login-button {
+    height: 45px;
+
+    font-size: 13px;
+  }
 }

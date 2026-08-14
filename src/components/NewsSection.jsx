@@ -161,8 +161,7 @@ const formatted = uniqueArticles.map((article, index) => {
 
 
           if(
-            text.includes("flood") ||
-            text.includes("flooding") ||
+           text.includes("flooding") ||
             text.includes("water level") ||
             text.includes("river")
           ){
