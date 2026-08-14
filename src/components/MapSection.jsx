@@ -328,7 +328,7 @@ export default function MapSection() {
         };
 
         try {
-            const response = await fetch('https://frends-3-backend.onrender.com/api/route', {
+            const response = await fetch('https://frends-3-backend.onrender.com', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
