@@ -104,7 +104,7 @@ export default function MapSection() {
                     const lng = e.latlng.lng;
                     const nodeId = window.prompt(`ADMIN TOOL\n\nPlace Node at ${lat.toFixed(5)}, ${lng.toFixed(5)}:`);
                     if (nodeId) {
-                        update(ref(database, 'nodes/' + nodeId), { lat, lng, waterLevel: 0, battery: 4.2, status: "ONLINE" }).catch(() => alert("Failed."));
+                        update(ref(database, 'nodes/' + nodeId), { lat, lng, waterLevel: 50, battery: 4.2, status: "ONLINE" }).catch(() => alert("Failed."));
                     }
                     return;
                 }
