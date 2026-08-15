@@ -18,7 +18,7 @@ const redIcon = new L.Icon({
 });
 
 export default function MapSection() {
-    const TOMTOM_API_KEY = 'ADEP30hUNYnI2MVpGaRsqNACvNdK7Gpi';
+    const TOMTOM_API_KEY = import.meta.env.VITEE_TOMTOM_API_KEY;;
 
     const [mapCenter, setMapCenter] = useState([14.5648, 120.9932]);
     const [origin, setOrigin] = useState(null); 
