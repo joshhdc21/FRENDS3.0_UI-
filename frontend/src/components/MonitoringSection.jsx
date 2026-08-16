@@ -26,13 +26,20 @@ function SensorCard({ title, value, unit, icon, type }) {
 ========================================= */
 
 function MonitoringSection() {
+
   const [newsItems, setNewsItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState("");
   const [nextRefresh, setNextRefresh] = useState("");
 
-  const API_KEY =
-    "21604dffca378c5d621f8cf55ff15c08";
+  const API_KEY = "21604dffca378c5d621f8cf55ff15c08";
+
+  // =====================================================
+  // APPROVED PHILIPPINE NEWS SOURCES
+  //
+  // These sources are prioritized, but are NOT required.
+  // The article itself must still be about the Philippines.
+  // =====================================================
 
   const TRUSTED_SOURCES = [
     "gma",
@@ -44,395 +51,704 @@ function MonitoringSection() {
     "rappler",
     "pagasa",
     "mmda",
+
+    // Additional Philippine publications
+    "manila times",
+    "the manila times",
+    "manilatimes",
+
+    "sunstar",
+    "sun star",
+
+    "manila standard",
+    "manilastandard",
+
+    "daily tribune",
+    "tribune",
+
+    "businessworld",
+    "business world",
+
+    "businessmirror",
+    "business mirror",
+
+    "pna",
+    "philippine news agency",
+
+    "pia",
+    "philippine information agency",
+
+    "interaksyon",
+
+    "news5",
+    "tv5",
+
+    "one news",
+    "onenews",
+
+    "bombo radyo",
+
+    "abante",
+
+    "tempo",
+
+    "the freeman",
+
+    "cebu daily news",
+
+    "panay news",
   ];
 
-  /* =========================================
-     FETCH NEWS
-  ========================================= */
+  // =====================================================
+  // PHILIPPINE LOCATIONS
+  // =====================================================
+
+  const PHILIPPINE_LOCATIONS = [
+    // Country
+    "philippines",
+    "philippine",
+    "pilipinas",
+
+    // Metro Manila
+    "metro manila",
+    "manila",
+    "quezon city",
+    "caloocan",
+    "pasig",
+    "makati",
+    "taguig",
+    "marikina",
+    "parañaque",
+    "paranaque",
+    "pasay",
+    "malabon",
+    "navotas",
+    "valenzuela",
+    "mandaluyong",
+    "muntinlupa",
+    "las piñas",
+    "las pinas",
+    "san juan",
+
+    // Luzon
+    "luzon",
+    "northern luzon",
+    "central luzon",
+    "southern luzon",
+
+    // Provinces / cities
+    "bulacan",
+    "pampanga",
+    "tarlac",
+    "bataan",
+    "zambales",
+    "pangasinan",
+    "la union",
+    "ilocos",
+    "cagayan",
+    "isabela",
+    "batanes",
+    "aurora",
+    "quezon province",
+    "laguna",
+    "cavite",
+    "batangas",
+    "rizal",
+    "bicol",
+    "albay",
+    "sorsogon",
+    "catanduanes",
+    "camarines norte",
+    "camarines sur",
+
+    // Visayas
+    "visayas",
+    "cebu",
+    "iloilo",
+    "leyte",
+    "eastern visayas",
+    "western visayas",
+    "central visayas",
+    "samar",
+    "bohol",
+    "negros",
+    "negros occidental",
+    "negros oriental",
+    "panay",
+    "aklan",
+    "antique",
+    "capiz",
+
+    // Mindanao
+    "mindanao",
+    "davao",
+    "davao city",
+    "cagayan de oro",
+    "zamboanga",
+    "cotabato",
+    "misamis",
+    "bukidnon",
+    "surigao",
+    "caraga",
+    "basilan",
+    "sulu",
+    "tawi-tawi",
+
+    // Philippine agencies
+    "pagasa",
+    "dost-pagasa",
+    "ndrrmc",
+    "mmda",
+  ];
+
+  // =====================================================
+  // FOREIGN LOCATIONS
+  //
+  // Used to reject clearly foreign typhoon stories.
+  // =====================================================
+
+  const FOREIGN_LOCATIONS = [
+    "hawaii",
+    "hawai’i",
+    "hawai'i",
+
+    "united states",
+    "usa",
+    "u.s.",
+    "america",
+
+    "japan",
+    "taiwan",
+    "china",
+    "hong kong",
+
+    "vietnam",
+    "thailand",
+    "malaysia",
+    "indonesia",
+
+    "australia",
+    "india",
+    "bangladesh",
+
+    "south korea",
+    "korea",
+
+    "mexico",
+
+    "florida",
+    "california",
+    "texas",
+    "new york",
+
+    "atlantic ocean",
+    "caribbean",
+
+    "guam",
+
+    "palau",
+
+    "micronesia",
+
+    "fiji",
+
+    "samoa",
+  ];
+
+  // =====================================================
+  // CHECK TRUSTED PHILIPPINE SOURCE
+  // =====================================================
+
+  const isTrustedSource = (article) => {
+    const source = (
+      article.source?.name || ""
+    )
+      .toLowerCase()
+      .trim();
+
+    return TRUSTED_SOURCES.some(
+      (name) =>
+        source.includes(name)
+    );
+  };
+
+  // =====================================================
+  // CHECK PHILIPPINE LOCATION
+  // =====================================================
+
+  const containsPhilippineLocation = (
+    text
+  ) => {
+    return PHILIPPINE_LOCATIONS.some(
+      (location) =>
+        text.includes(location)
+    );
+  };
+
+  // =====================================================
+  // CHECK FOREIGN LOCATION
+  // =====================================================
+
+  const containsForeignLocation = (
+    text
+  ) => {
+    return FOREIGN_LOCATIONS.some(
+      (location) =>
+        text.includes(location)
+    );
+  };
+
+  // =====================================================
+  // CHECK TYPHOON / WEATHER KEYWORDS
+  // =====================================================
+
+  const containsTyphoonKeyword = (
+    text
+  ) => {
+    const keywords = [
+      "typhoon",
+      "bagyo",
+      "tropical cyclone",
+      "tropical storm",
+      "tropical depression",
+      "cyclone",
+      "pagasa",
+
+      "storm signal",
+      "wind signal",
+      "signal no.",
+      "signal number",
+
+      "rainfall alert",
+      "rainfall warning",
+
+      "yellow alert",
+      "orange alert",
+      "red alert",
+
+      "heavy rainfall",
+      "heavy rain",
+
+      "torrential rain",
+
+      "flood warning",
+      "flood alert",
+
+      "landfall",
+      "storm surge",
+    ];
+
+    return keywords.some(
+      (keyword) =>
+        text.includes(keyword)
+    );
+  };
+
+  // =====================================================
+  // FINAL PHILIPPINE TYPHOON CHECK
+  // =====================================================
+
+  const isPhilippineTyphoonNews = (
+    article
+  ) => {
+    const title = (
+      article.title || ""
+    ).toLowerCase();
+
+    const description = (
+      article.description || ""
+    ).toLowerCase();
+
+    const content = (
+      article.content || ""
+    ).toLowerCase();
+
+    const text =
+      `${title} ${description} ${content}`;
+
+    // -----------------------------------------------
+    // Must contain typhoon/weather keyword
+    // -----------------------------------------------
+
+    const hasTyphoonKeyword =
+      containsTyphoonKeyword(
+        text
+      );
+
+    if (!hasTyphoonKeyword) {
+      return false;
+    }
+
+    // -----------------------------------------------
+    // Check Philippine location
+    // -----------------------------------------------
+
+    const hasPhilippineLocation =
+      containsPhilippineLocation(
+        text
+      );
+
+    // -----------------------------------------------
+    // Check foreign location
+    // -----------------------------------------------
+
+    const hasForeignLocation =
+      containsForeignLocation(
+        text
+      );
+
+    // -----------------------------------------------
+    // Trusted Philippine publication
+    // -----------------------------------------------
+
+    const trustedSource =
+      isTrustedSource(article);
+
+    // -----------------------------------------------
+    // PAGASA / MMDA automatically counts
+    // as Philippine context
+    // -----------------------------------------------
+
+    const sourceName = (
+      article.source?.name || ""
+    ).toLowerCase();
+
+    const officialPhilippineSource =
+      sourceName.includes(
+        "pagasa"
+      ) ||
+      sourceName.includes(
+        "mmda"
+      );
+
+    // -----------------------------------------------
+    // FINAL DECISION
+    // -----------------------------------------------
+    //
+    // Accept if:
+    //
+    // 1. Typhoon/weather keyword exists
+    //
+    // AND
+    //
+    // 2. Philippine location exists
+    //
+    // OR trusted Philippine source
+    //
+    // AND
+    //
+    // 3. It is NOT clearly foreign
+    //
+    // -----------------------------------------------
+
+    const isPhilippineNews =
+      hasPhilippineLocation ||
+      trustedSource ||
+      officialPhilippineSource;
+
+    if (
+      hasTyphoonKeyword &&
+      isPhilippineNews &&
+      !hasForeignLocation
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+
+  // =====================================================
+  // FETCH NEWS
+  // =====================================================
 
   const fetchNews = async () => {
-    console.log("Fetching latest news...");
+    console.log(
+      "========================================"
+    );
+
+    console.log(
+      "Fetching Philippine typhoon news..."
+    );
+
+    console.log(
+      "========================================"
+    );
 
     setLoading(true);
 
-    const random =
-      Math.floor(Math.random() * 999999);
-
     try {
-      /* =========================================
-         FLOOD NEWS
-      ========================================= */
+      const random =
+        Math.floor(
+          Math.random() * 999999
+        );
 
-      const floodRequest = fetch(
-        `https://gnews.io/api/v4/search?q=flood OR flooding&country=ph&lang=en&max=10&sortby=publishedAt&apikey=${API_KEY}&_=${random}`
-      );
+      // =================================================
+      // ONE GNEWS REQUEST
+      // =================================================
 
-      /* =========================================
-         TRAFFIC NEWS
-      ========================================= */
+      const query =
+        'typhoon OR bagyo OR "tropical cyclone" OR "tropical storm" OR "tropical depression" OR PAGASA';
 
-      const trafficRequest = fetch(
-        `https://gnews.io/api/v4/search?q=traffic OR mmda OR road OR accident&country=ph&lang=en&max=10&sortby=publishedAt&apikey=${API_KEY}&_=${random}`
-      );
-
-      /* =========================================
-         WEATHER NEWS
-      ========================================= */
-
-      const weatherRequest = fetch(
-        `https://gnews.io/api/v4/search?q=weather OR pagasa OR rainfall OR typhoon&country=ph&lang=en&max=10&sortby=publishedAt&apikey=${API_KEY}&_=${random}`
-      );
-
-      /* =========================================
-         GET ALL RESPONSES
-      ========================================= */
-
-      const responses = await Promise.all([
-        floodRequest,
-        trafficRequest,
-        weatherRequest,
-      ]);
-
-      const [
-        floodData,
-        trafficData,
-        weatherData,
-      ] = await Promise.all(
-        responses.map((response) =>
-          response.json()
-        )
-      );
+      const url =
+        `https://gnews.io/api/v4/search?` +
+        `q=${encodeURIComponent(query)}` +
+        `&country=ph` +
+        `&lang=en` +
+        `&max=10` +
+        `&sortby=publishedAt` +
+        `&apikey=${API_KEY}` +
+        `&_=${random}`;
 
       console.log(
-        "Flood Data:",
-        floodData
+        "Sending one GNews request..."
       );
 
+      const response =
+        await fetch(url);
+
+      // =================================================
+      // RATE LIMIT
+      // =================================================
+
+      if (
+        response.status === 429
+      ) {
+        console.error(
+          "GNews API rate limit reached (429)."
+        );
+
+        setLoading(false);
+
+        return;
+      }
+
+      // =================================================
+      // OTHER API ERROR
+      // =================================================
+
+      if (!response.ok) {
+        throw new Error(
+          `GNews API Error: ${response.status}`
+        );
+      }
+
+      // =================================================
+      // READ RESPONSE
+      // =================================================
+
+      const data =
+        await response.json();
+
       console.log(
-        "Traffic Data:",
-        trafficData
+        "GNews response:",
+        data
       );
 
-      console.log(
-        "Weather Data:",
-        weatherData
-      );
-
-      /* =========================================
-         COMBINE ARTICLES
-      ========================================= */
-
-      const allArticles = [
-        ...(floodData.articles || []),
-        ...(trafficData.articles || []),
-        ...(weatherData.articles || []),
-      ];
+      const allArticles =
+        data.articles || [];
 
       console.log(
-        "Flood Articles:",
-        floodData.articles?.length
-      );
-
-      console.log(
-        "Traffic Articles:",
-        trafficData.articles?.length
-      );
-
-      console.log(
-        "Weather Articles:",
-        weatherData.articles?.length
-      );
-
-      console.log(
-        "Total Articles:",
+        "Articles returned:",
         allArticles.length
       );
 
-      /* =========================================
-         FILTER ARTICLES
-      ========================================= */
+      // =================================================
+      // FILTER ARTICLES
+      // =================================================
 
-      if (allArticles.length > 0) {
-        const filtered =
-          allArticles.filter((article) => {
-            const text = (
-              (article.title || "") +
-              " " +
-              (article.description || "")
-            ).toLowerCase();
-
-            const source = (
-              article.source?.name || ""
-            ).toLowerCase();
-
-            const isRelevant =
-              text.includes("flood") ||
-              text.includes("flooding") ||
-              text.includes("rain") ||
-              text.includes("rainfall") ||
-              text.includes("weather") ||
-              text.includes("traffic") ||
-              text.includes("road") ||
-              text.includes("expressway") ||
-              text.includes("highway") ||
-              text.includes("accident") ||
-              text.includes("collision") ||
-              text.includes("congestion") ||
-              text.includes("vehicle") ||
-              text.includes("commuter") ||
-              text.includes("typhoon") ||
-              text.includes("storm") ||
-              text.includes("pagasa") ||
-              text.includes("mmda") ||
-              text.includes("lto") ||
-              text.includes("ltfrb");
-
-            const isTrusted =
-              TRUSTED_SOURCES.some(
-                (name) =>
-                  source.includes(name)
+      const filteredArticles =
+        allArticles.filter(
+          (article) => {
+            const result =
+              isPhilippineTyphoonNews(
+                article
               );
 
-            return (
-              isRelevant ||
-              isTrusted
+            console.log(
+              "--------------------------------"
             );
-          });
 
-        console.log(
-          "Filtered Articles:",
-          filtered.length
-        );
-
-        /* =========================================
-           REMOVE DUPLICATES
-        ========================================= */
-
-        const uniqueArticles =
-          filtered.filter(
-            (
-              article,
-              index,
-              self
-            ) =>
-              index ===
-              self.findIndex(
-                (a) =>
-                  a.title ===
-                    article.title ||
-                  a.url ===
-                    article.url
-              )
-          );
-
-        console.log(
-          "Unique Articles:",
-          uniqueArticles.length
-        );
-
-        /* =========================================
-           SORT ARTICLES
-           TRUSTED SOURCES FIRST
-        ========================================= */
-
-        uniqueArticles.sort(
-          (a, b) => {
-            const trustedA =
-              TRUSTED_SOURCES.some(
-                (name) =>
-                  (
-                    a.source?.name ||
-                    ""
-                  )
-                    .toLowerCase()
-                    .includes(name)
-              );
-
-            const trustedB =
-              TRUSTED_SOURCES.some(
-                (name) =>
-                  (
-                    b.source?.name ||
-                    ""
-                  )
-                    .toLowerCase()
-                    .includes(name)
-              );
-
-            if (
-              trustedA &&
-              !trustedB
-            ) {
-              return -1;
-            }
-
-            if (
-              !trustedA &&
-              trustedB
-            ) {
-              return 1;
-            }
-
-            return (
-              new Date(
-                b.publishedAt
-              ) -
-              new Date(
-                a.publishedAt
-              )
+            console.log(
+              "Title:",
+              article.title
             );
+
+            console.log(
+              "Source:",
+              article.source?.name
+            );
+
+            console.log(
+              "Published:",
+              article.publishedAt
+            );
+
+            console.log(
+              "Philippine Typhoon News:",
+              result
+            );
+
+            return result;
           }
         );
 
-        /* =========================================
-           FORMAT ARTICLES
-        ========================================= */
+      console.log(
+        "Filtered Philippine Typhoon Articles:",
+        filteredArticles.length
+      );
 
-        const formatted =
-          uniqueArticles.map(
-            (
-              article,
-              index
-            ) => {
-              const text = (
-                (article.title || "") +
-                " " +
-                (article.description || "")
-              ).toLowerCase();
+      // =================================================
+      // REMOVE DUPLICATES
+      // =================================================
 
-              let category =
-                "General News";
-
-              /* =========================================
-                 FLOOD CATEGORY
-              ========================================= */
-
-              if (
-                text.includes("flood") ||
-                text.includes("flooding") ||
-                text.includes("water level") ||
-                text.includes("river")
-              ) {
-                category =
-                  "Flood Advisory";
-              }
-
-              /* =========================================
-                 TRAFFIC CATEGORY
-              ========================================= */
-
-              else if (
-                text.includes("traffic") ||
-                text.includes("road") ||
-                text.includes("mmda") ||
-                text.includes("congestion") ||
-                text.includes("accident") ||
-                text.includes("commuter")
-              ) {
-                category =
-                  "Traffic Advisory";
-              }
-
-              /* =========================================
-                 WEATHER CATEGORY
-              ========================================= */
-
-              else if (
-                text.includes("weather") ||
-                text.includes("rain") ||
-                text.includes("rainfall") ||
-                text.includes("storm") ||
-                text.includes("typhoon") ||
-                text.includes("pagasa")
-              ) {
-                category =
-                  "Weather Advisory";
-              }
-
-              return {
-                id:
+      const uniqueArticles =
+        filteredArticles.filter(
+          (article, index, self) =>
+            index ===
+            self.findIndex(
+              (other) =>
+                other.url ===
                   article.url ||
-                  index,
-
-                category,
-
-                source:
-                  article.source?.name ||
-                  "Unknown Source",
-
-                date:
-                  new Date(
-                    article.publishedAt
-                  ).toLocaleString(),
-
-                title:
-                  article.title ||
-                  "Untitled Article",
-
-                description:
-                  article.description ||
-                  "No description available.",
-
-                image:
-                  article.image,
-
-                url:
-                  article.url,
-              };
-            }
-          );
-
-        /* =========================================
-           SHOW ONLY 3 ARTICLES
-        ========================================= */
-
-        setNewsItems(
-          formatted.slice(0, 3)
+                other.title ===
+                  article.title
+            )
         );
 
-        /* =========================================
-           LAST UPDATED
-        ========================================= */
+      console.log(
+        "Unique Articles:",
+        uniqueArticles.length
+      );
 
-        setLastUpdated(
-          new Date().toLocaleString()
-        );
+      // =================================================
+      // SORT NEWEST FIRST
+      // =================================================
 
-        /* =========================================
-           NEXT REFRESH
-        ========================================= */
-
-        const next =
+      uniqueArticles.sort(
+        (a, b) =>
           new Date(
-            Date.now() +
-              5 * 60 * 1000
-          );
+            b.publishedAt
+          ) -
+          new Date(
+            a.publishedAt
+          )
+      );
 
-        setNextRefresh(
-          next.toLocaleTimeString()
+      // =================================================
+      // FORMAT ARTICLES
+      // =================================================
+
+      const formatted =
+        uniqueArticles.map(
+          (
+            article,
+            index
+          ) => ({
+            id:
+              article.url ||
+              `philippine-typhoon-${index}`,
+
+            category:
+              "Typhoon Advisory",
+
+            source:
+              article.source?.name ||
+              "Philippine News",
+
+            date:
+              new Date(
+                article.publishedAt
+              ).toLocaleString(
+                "en-PH",
+                {
+                  timeZone:
+                    "Asia/Manila",
+                }
+              ),
+
+            title:
+              article.title,
+
+            description:
+              article.description ||
+              "No description available.",
+
+            image:
+              article.image,
+
+            url:
+              article.url,
+          })
         );
 
-      } else {
-        setNewsItems([]);
-      }
+      // =================================================
+      // SHOW MAXIMUM 9 ARTICLES
+      // =================================================
 
+      setNewsItems(
+        formatted.slice(0, 6)
+      );
+
+      // =================================================
+      // LAST UPDATED
+      // =================================================
+
+      setLastUpdated(
+        new Date().toLocaleString(
+          "en-PH",
+          {
+            timeZone:
+              "Asia/Manila",
+          }
+        )
+      );
+
+      // =================================================
+      // NEXT REFRESH
+      // =================================================
+
+      const next =
+        new Date(
+          Date.now() +
+            5 * 60 * 1000
+        );
+
+      setNextRefresh(
+        next.toLocaleTimeString(
+          "en-PH",
+          {
+            timeZone:
+              "Asia/Manila",
+          }
+        )
+      );
+
+      // =================================================
+      // NO RESULTS
+      // =================================================
+
+      if (
+        formatted.length === 0
+      ) {
+        console.log(
+          "No Philippine typhoon news found."
+        );
+      }
     } catch (error) {
       console.error(
-        "News Fetch Error:",
+        "Philippine Typhoon News Error:",
         error
       );
 
       setNewsItems([]);
-
     } finally {
       setLoading(false);
     }
   };
 
-  /* =========================================
-     LOAD NEWS AUTOMATICALLY
-     EVERY 5 MINUTES
-  ========================================= */
+  // =====================================================
+  // INITIAL FETCH
+  // + REFRESH EVERY 5 MINUTES
+  // =====================================================
 
   useEffect(() => {
     fetchNews();
@@ -443,8 +759,9 @@ function MonitoringSection() {
         5 * 60 * 1000
       );
 
-    return () =>
+    return () => {
       clearInterval(interval);
+    };
   }, []);
 
   /* =========================================

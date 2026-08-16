@@ -17,7 +17,6 @@ import TrafficHeroSection from "./components/trafficherosection";
 import FloodLevelSection from "./components/FloodLevelSection";
 import NodesSection from "./components/NodesSection";
 import DeviceSection from "./components/DeviceSection";
-import NewsSection from "./components/NewsSection";
 import BottomNavigation from "./components/BottomNavigation";
 import MapSection from "./components/MapSection";
 
@@ -204,10 +203,6 @@ function App() {
 
         {page === "devices" && (
           <DeviceSection />
-        )}
-
-        {page === "news" && (
-          <NewsSection />
         )}
 
         {page === "map" && (

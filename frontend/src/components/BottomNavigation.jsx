@@ -44,13 +44,7 @@ function BottomNavigation({ page, setPage }) {
         <small>Devices</small>
       </button>
 
-      <button
-        className={page === "news" ? "active" : ""}
-        onClick={() => setPage("news")}
-      >
-        <small>News</small>
-      </button>
-
+      
     </nav>
   );
 }
