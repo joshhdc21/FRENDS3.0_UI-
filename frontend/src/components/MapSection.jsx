@@ -364,7 +364,7 @@ export default function MapSection() {
             {/* Google Maps Style Floating Search Panel */}
             <div style={{
                 position: 'absolute',
-                top: isMobile ? '10px' : '20px',
+                top: isMobile ? '100px' : '110px',
                 left: isMobile ? '50%' : '20px',
                 transform: isMobile ? 'translateX(-50%)' : 'none',
                 width: isMobile ? '95%' : '360px',
