@@ -25,7 +25,6 @@ export default function MapSection() {
     const [destination, setDestination] = useState(null); 
     const [vehicleLayer, setVehicleLayer] = useState("LOW");
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-    const [panelOpen, setPanelOpen] = useState(!window.innerWidth <= 768);
     
     const originRef = useRef(origin);
     const destRef = useRef(destination);
@@ -67,7 +66,7 @@ export default function MapSection() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Initialize Map
+    // Initialize Map - FULL SCREEN
     useEffect(() => {
         if (!mapInstanceRef.current && mapRef.current) {
             const map = L.map(mapRef.current, {
@@ -349,39 +348,40 @@ export default function MapSection() {
         <div style={{ 
             position: 'relative', 
             width: '100%', 
-            height: isMobile ? '100vh' : '600px', 
-            borderRadius: isMobile ? '0' : '8px', 
-            overflow: 'hidden', 
-            boxShadow: isMobile ? 'none' : '0 2px 8px rgba(0,0,0,0.12)',
-            backgroundColor: '#f0f0f0',
+            height: '100vh',
+            overflow: 'hidden',
             fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
         }}>
-            {/* Searchbox Container - Google Maps Style */}
+            {/* Full Screen Map */}
+            <div ref={mapRef} style={{ width: '100%', height: '100%', zIndex: 1 }} />
+
+            {/* FLOATING HEADER - Search & Options */}
             <div style={{
                 position: 'absolute',
-                top: isMobile ? '12px' : '16px',
-                left: isMobile ? '12px' : '16px',
+                top: '16px',
+                left: '16px',
                 right: isMobile ? '56px' : 'auto',
                 zIndex: 1001,
-                width: isMobile ? 'auto' : '360px',
+                width: isMobile ? 'auto' : '380px',
+                maxHeight: 'calc(100vh - 120px)',
+                overflow: 'auto',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px',
-                maxHeight: 'calc(100% - 80px)',
-                overflow: isMobile && panelOpen ? 'auto' : 'visible'
+                gap: '12px'
             }}>
                 {/* Origin Search */}
                 <div style={{
                     background: '#ffffff',
                     borderRadius: '8px',
-                    boxShadow: '0 1px 5px rgba(0,0,0,0.15)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                     display: 'flex',
                     alignItems: 'center',
                     paddingLeft: '12px',
-                    transition: 'box-shadow 0.2s'
+                    transition: 'box-shadow 0.2s',
+                    position: 'relative'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 5px rgba(0,0,0,0.15)'}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'}
                 >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" strokeWidth="2">
                         <circle cx="11" cy="11" r="8"></circle>
@@ -419,7 +419,7 @@ export default function MapSection() {
                             margin: '4px 0 0 0',
                             padding: '8px 0',
                             listStyle: 'none',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                             zIndex: 2000
                         }}>
                             {originSuggestions.map((item, idx) => (
@@ -445,14 +445,15 @@ export default function MapSection() {
                 <div style={{
                     background: '#ffffff',
                     borderRadius: '8px',
-                    boxShadow: '0 1px 5px rgba(0,0,0,0.15)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                     display: 'flex',
                     alignItems: 'center',
                     paddingLeft: '12px',
-                    transition: 'box-shadow 0.2s'
+                    transition: 'box-shadow 0.2s',
+                    position: 'relative'
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'}
-                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 5px rgba(0,0,0,0.15)'}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.15)'}
                 >
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="#d33b27" strokeWidth="2">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
@@ -489,7 +490,7 @@ export default function MapSection() {
                             margin: '4px 0 0 0',
                             padding: '8px 0',
                             listStyle: 'none',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                             zIndex: 2000
                         }}>
                             {destSuggestions.map((item, idx) => (
@@ -511,35 +512,46 @@ export default function MapSection() {
                     )}
                 </div>
 
-                {/* Options & Buttons */}
+                {/* Vehicle Type Options Card - TIED TO BACKEND */}
                 {(origin || destination) && (
                     <div style={{
                         background: '#ffffff',
                         borderRadius: '8px',
-                        padding: '12px',
-                        boxShadow: '0 1px 5px rgba(0,0,0,0.15)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '12px'
+                        padding: '16px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                     }}>
-                        <div>
-                            <label style={{ fontSize: '12px', fontWeight: 600, color: '#5f6368', display: 'block', marginBottom: '8px' }}>Vehicle Type</label>
-                            <select value={vehicleLayer} onChange={(e) => setVehicleLayer(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '8px 12px',
-                                    border: '1px solid #dadce0',
-                                    borderRadius: '4px',
-                                    fontSize: '13px',
-                                    color: '#202124',
+                        <label style={{ fontSize: '12px', fontWeight: 700, color: '#202124', display: 'block', marginBottom: '12px' }}>Vehicle Clearance Layer</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {[
+                                { value: 'LOW', label: 'Low (Sedan / Hatchback)', icon: '🚗' },
+                                { value: 'MID', label: 'Mid (SUV / Pick-up)', icon: '🚙' },
+                                { value: 'HIGH', label: 'High (Truck / Bus)', icon: '🚚' }
+                            ].map(option => (
+                                <label key={option.value} style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    padding: '10px 12px',
+                                    borderRadius: '6px',
                                     cursor: 'pointer',
-                                    outline: 'none'
+                                    background: vehicleLayer === option.value ? '#e0e7ff' : '#f8f9fa',
+                                    border: vehicleLayer === option.value ? '2px solid #2563eb' : '1px solid #dadce0',
+                                    transition: 'all 0.2s'
                                 }}
-                            >
-                                <option value="LOW">🚗 Sedan / Hatchback</option>
-                                <option value="MID">🚙 SUV / Pick-up</option>
-                                <option value="HIGH">🚚 Truck / Bus</option>
-                            </select>
+                                onMouseEnter={(e) => !isMobile && (e.currentTarget.style.background = '#f0f0f0')}
+                                onMouseLeave={(e) => (e.currentTarget.style.background = vehicleLayer === option.value ? '#e0e7ff' : '#f8f9fa')}
+                                >
+                                    <input 
+                                        type="radio" 
+                                        name="vehicle" 
+                                        value={option.value}
+                                        checked={vehicleLayer === option.value}
+                                        onChange={(e) => setVehicleLayer(e.target.value)}
+                                        style={{ marginRight: '10px', width: '16px', height: '16px', cursor: 'pointer' }}
+                                    />
+                                    <span style={{ fontSize: '14px', marginRight: '8px' }}>{option.icon}</span>
+                                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#202124' }}>{option.label}</span>
+                                </label>
+                            ))}
                         </div>
 
                         <button 
@@ -548,10 +560,11 @@ export default function MapSection() {
                             style={{
                                 width: '100%',
                                 padding: '12px',
+                                marginTop: '12px',
                                 background: isCalculating ? '#dadce0' : '#1f2937',
                                 color: '#ffffff',
                                 border: 'none',
-                                borderRadius: '4px',
+                                borderRadius: '6px',
                                 fontSize: '14px',
                                 fontWeight: 600,
                                 cursor: isCalculating ? 'default' : 'pointer',
@@ -569,10 +582,11 @@ export default function MapSection() {
                             style={{
                                 width: '100%',
                                 padding: '10px',
+                                marginTop: '8px',
                                 background: '#f8f9fa',
                                 color: '#202124',
                                 border: '1px solid #dadce0',
-                                borderRadius: '4px',
+                                borderRadius: '6px',
                                 fontSize: '13px',
                                 fontWeight: 600,
                                 cursor: 'pointer',
@@ -587,10 +601,48 @@ export default function MapSection() {
                 )}
             </div>
 
+            {/* FLOATING FOOTER - Route Info */}
+            {routeInfo && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: '24px',
+                    left: isMobile ? '12px' : '16px',
+                    right: isMobile ? '12px' : 'auto',
+                    zIndex: 1000,
+                    background: '#ffffff',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    maxWidth: isMobile ? 'auto' : '360px'
+                }}>
+                    <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '12px', color: '#5f6368', marginBottom: '8px', fontWeight: 600 }}>Route Summary</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: '#5f6368', marginBottom: '4px' }}>DISTANCE</div>
+                                <div style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937' }}>
+                                    {routeInfo.distance}
+                                    <span style={{ fontSize: '14px', marginLeft: '4px', color: '#5f6368' }}>km</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: '#5f6368', marginBottom: '4px' }}>EST. TIME</div>
+                                <div style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937' }}>
+                                    {routeInfo.time}
+                                    <span style={{ fontSize: '14px', marginLeft: '4px', color: '#5f6368' }}>min</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#5f6368', fontStyle: 'italic', paddingTop: '12px', borderTop: '1px solid #f0f0f0' }}>
+                        🌊 Route avoids flooded areas based on {vehicleLayer === 'LOW' ? 'sedan' : vehicleLayer === 'MID' ? 'SUV' : 'truck'} clearance
+                    </div>
+                </div>
+            )}
+
             {/* Mobile Menu Toggle */}
             {isMobile && (
                 <button 
-                    onClick={() => setPanelOpen(!panelOpen)}
                     style={{
                         position: 'absolute',
                         top: '12px',
@@ -599,56 +651,20 @@ export default function MapSection() {
                         background: '#ffffff',
                         border: 'none',
                         borderRadius: '50%',
-                        width: '40px',
-                        height: '40px',
+                        width: '44px',
+                        height: '44px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 1px 5px rgba(0,0,0,0.15)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                     }}
                 >
-                    <svg width="20" height="20" fill="none" stroke="#202124" strokeWidth="2" viewBox="0 0 24 24">
+                    <svg width="24" height="24" fill="none" stroke="#202124" strokeWidth="2" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
                 </button>
             )}
-
-            {/* Route Info Card - Google Maps Style */}
-            {routeInfo && (
-                <div style={{
-                    position: 'absolute',
-                    bottom: isMobile ? '20px' : '24px',
-                    left: isMobile ? '12px' : 'auto',
-                    right: isMobile ? '12px' : '16px',
-                    zIndex: 1000,
-                    background: '#ffffff',
-                    borderRadius: '8px',
-                    padding: '16px',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                    maxWidth: isMobile ? 'auto' : '320px'
-                }}>
-                    <div style={{ marginBottom: '12px' }}>
-                        <div style={{ fontSize: '12px', color: '#5f6368', marginBottom: '4px' }}>Route Summary</div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                            <div>
-                                <div style={{ fontSize: '12px', fontWeight: 600, color: '#5f6368' }}>Distance</div>
-                                <div style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937' }}>{routeInfo.distance}<span style={{ fontSize: '14px', marginLeft: '4px' }}>km</span></div>
-                            </div>
-                            <div>
-                                <div style={{ fontSize: '12px', fontWeight: 600, color: '#5f6368' }}>Est. Time</div>
-                                <div style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937' }}>{routeInfo.time}<span style={{ fontSize: '14px', marginLeft: '4px' }}>min</span></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div style={{ fontSize: '12px', color: '#5f6368', fontStyle: 'italic' }}>
-                        🌊 Route avoids flooded areas based on vehicle clearance
-                    </div>
-                </div>
-            )}
-
-            {/* Map Container */}
-            <div ref={mapRef} style={{ width: '100%', height: '100%', zIndex: 1 }} />
         </div>
     );
 }
