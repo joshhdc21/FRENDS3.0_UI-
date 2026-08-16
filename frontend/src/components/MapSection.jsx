@@ -18,7 +18,7 @@ const redIcon = new L.Icon({
 });
 
 export default function MapSection() {
-    const TOMTOM_API_KEY = import.meta.env.VITE_MAPAPI_TOMTOM_API_KEY;;
+    const TOMTOM_API_KEY = import.meta.env.VITE_MAPAPI_TOMTOM_API_KEY;
 
     const [mapCenter, setMapCenter] = useState([14.5648, 120.9932]);
     const [origin, setOrigin] = useState(null); 
@@ -74,7 +74,7 @@ export default function MapSection() {
             const map = L.map(mapRef.current, {
                 center: mapCenter,
                 zoom: 15,
-                zoomControl: false
+                zoomControl: false // We hide the default zoom to keep it clean
             });
 
             // Base Layers & TomTom Traffic
@@ -152,7 +152,7 @@ export default function MapSection() {
             L.marker(destination.latlng, { icon: redIcon }).addTo(mapGroup).bindPopup(destination.title);
         }
         if (liveLocation) {
-            L.circleMarker(liveLocation, { radius: 8, fillColor: "#3b82f6", color: "#ffffff", weight: 3, fillOpacity: 1 }).addTo(mapGroup);
+            L.circleMarker(liveLocation, { radius: 8, fillColor: "#1a73e8", color: "#ffffff", weight: 3, fillOpacity: 1 }).addTo(mapGroup);
         }
 
         // Firebase Nodes
@@ -205,7 +205,7 @@ export default function MapSection() {
         // Route Segments
         routeSegments.forEach(segment => {
             const positions = segment.coords.map(c => [c.latitude, c.longitude]);
-            L.polyline(positions, { color: segment.color, weight: 6, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }).addTo(mapGroup);
+            L.polyline(positions, { color: segment.color, weight: 6, opacity: 0.8, lineCap: 'round', lineJoin: 'round' }).addTo(mapGroup);
         });
 
     }, [origin, destination, liveLocation, firebaseNodes, routeSegments]);
@@ -336,7 +336,7 @@ export default function MapSection() {
             const data = await response.json();
             if (data.status === 'SUCCESS' || data.status === 'success') {
                 if (data.segments && data.segments.length > 0) setRouteSegments(data.segments);
-                else if (data.path) setRouteSegments([{ coords: data.path, color: '#3b82f6' }]);
+                else if (data.path) setRouteSegments([{ coords: data.path, color: '#1a73e8' }]); // Google Maps Blue
                 setRouteInfo({ distance: (data.distance / 1000).toFixed(2), time: Math.round(data.time / 60) });
             } else {
                 alert(`❌ Routing Error: ${data.message}`);
@@ -355,194 +355,136 @@ export default function MapSection() {
     };
 
     return (
-        <div style={{ 
-            position: 'relative', 
-            width: '100%', 
-            height: isMobile ? '100vh' : '580px', 
-            borderRadius: isMobile ? '0' : '12px', 
-            overflow: 'hidden', 
-            boxShadow: isMobile ? 'none' : '0 4px 20px rgba(0,0,0,0.08)',
-            backgroundColor: '#e2e8f0'
-        }}>
-            {/* Mobile Panel Toggle Button */}
-            {isMobile && (
-                <button 
-                    onClick={() => setPanelOpen(!panelOpen)}
-                    style={{
-                        position: 'absolute',
-                        top: '12px',
-                        right: '12px',
-                        zIndex: 1100,
-                        background: '#ffffff',
-                        border: '1px solid #e2e8f0',
-                        borderRadius: '50%',
-                        width: '44px',
-                        height: '44px',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                    }}
-                >
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/>
-                    </svg>
-                </button>
-            )}
+        // Wrapper now spans the entire viewport
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}>
+            
+            {/* The Map Container */}
+            <div ref={mapRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }} />
 
-            {/* Glass Panel */}
-            <div className="glass-panel" style={{ 
-                position: 'absolute', 
-                top: isMobile ? (panelOpen ? '0' : '-100%') : '12px', 
-                left: isMobile ? '0' : '12px', 
-                right: isMobile ? '0' : 'auto',
-                width: isMobile ? '100%' : '340px',
-                maxHeight: isMobile ? (panelOpen ? '75vh' : '0') : 'calc(100% - 24px)',
+            {/* Google Maps Style Floating Search Panel */}
+            <div style={{
+                position: 'absolute',
+                top: isMobile ? '10px' : '20px',
+                left: isMobile ? '50%' : '20px',
+                transform: isMobile ? 'translateX(-50%)' : 'none',
+                width: isMobile ? '95%' : '360px',
+                backgroundColor: '#ffffff',
+                borderRadius: '8px',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
                 zIndex: 1000,
-                borderRadius: isMobile ? '0 0 16px 16px' : '24px',
-                transition: isMobile ? 'top 0.3s ease' : 'none',
-                overflow: isMobile && panelOpen ? 'auto' : 'hidden',
-                padding: isMobile ? '20px' : '24px',
-                gap: '16px',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
             }}>
-                <div className="panel-header">
-                    <div>
-                        <h2 style={{ fontSize: isMobile ? '20px' : '24px' }}>FRENDS</h2>
-                        <p>Dynamic Routing</p>
-                    </div>
-                </div>
-
-                <div className="input-group">
-                    <label>Origin</label>
-                    <div className="search-wrapper">
-                        <svg className="input-icon" style={{color: 'var(--primary)'}} fill="currentColor" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4"/></svg>
+                
+                {/* Search Inputs Container */}
+                <div style={{ padding: '16px 16px 8px 16px', borderBottom: '1px solid #e8eaed' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', position: 'relative' }}>
+                        <div style={{ width: '16px', display: 'flex', justifyContent: 'center', marginRight: '12px' }}>
+                            <div style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #1a73e8' }}></div>
+                        </div>
                         <input 
                             type="text" 
-                            className="search-input" 
                             value={originQuery} 
                             onChange={(e) => handleSearchInput(e.target.value, true)} 
-                            placeholder="Search starting point..." 
-                            style={{ fontSize: isMobile ? '16px' : '14px' }}
+                            placeholder="Choose starting point" 
+                            style={{ flex: 1, border: 'none', background: '#f1f3f4', padding: '10px 12px', borderRadius: '4px', fontSize: '14px', outline: 'none' }}
                         />
+                        {/* Suggestions Dropdown for Origin */}
                         {originSuggestions.length > 0 && (
-                            <ul className="suggestions-list">
+                            <div style={{ position: 'absolute', top: '100%', left: '28px', right: 0, background: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', borderRadius: '4px', zIndex: 1001, maxHeight: '200px', overflowY: 'auto' }}>
                                 {originSuggestions.map((item, idx) => (
-                                    <li key={idx} onClick={() => selectLocationItem(item, true)}>
-                                        <div className="sugg-text">
-                                            <div className="sugg-primary">{item.primary}</div>
-                                            <div className="sugg-secondary">{item.secondary}</div>
-                                        </div>
-                                    </li>
+                                    <div key={idx} onClick={() => selectLocationItem(item, true)} style={{ padding: '10px 12px', borderBottom: '1px solid #f1f3f4', cursor: 'pointer' }}>
+                                        <div style={{ fontSize: '14px', fontWeight: '500', color: '#202124' }}>{item.primary}</div>
+                                        <div style={{ fontSize: '12px', color: '#5f6368' }}>{item.secondary}</div>
+                                    </div>
                                 ))}
-                            </ul>
+                            </div>
                         )}
                     </div>
-                </div>
 
-                <div className="input-group">
-                    <label>Destination</label>
-                    <div className="search-wrapper">
-                        <svg className="input-icon" style={{color: 'var(--danger)'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <div style={{ display: 'flex', alignItems: 'center', position: 'relative' }}>
+                        <div style={{ width: '16px', display: 'flex', justifyContent: 'center', marginRight: '12px' }}>
+                            <svg width="12" height="16" viewBox="0 0 12 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M6 0C2.686 0 0 2.686 0 6C0 10.5 6 16 6 16C6 16 12 10.5 12 6C12 2.686 9.314 0 6 0ZM6 8.5C4.619 8.5 3.5 7.381 3.5 6C3.5 4.619 4.619 3.5 6 3.5C7.381 3.5 8.5 4.619 8.5 6C8.5 7.381 7.381 8.5 6 8.5Z" fill="#ea4335"/>
+                            </svg>
+                        </div>
                         <input 
                             type="text" 
-                            className="search-input" 
                             value={destQuery} 
                             onChange={(e) => handleSearchInput(e.target.value, false)} 
-                            placeholder="Search destination..."
-                            style={{ fontSize: isMobile ? '16px' : '14px' }}
+                            placeholder="Choose destination"
+                            style={{ flex: 1, border: 'none', background: '#f1f3f4', padding: '10px 12px', borderRadius: '4px', fontSize: '14px', outline: 'none' }}
                         />
+                        {/* Suggestions Dropdown for Destination */}
                         {destSuggestions.length > 0 && (
-                            <ul className="suggestions-list">
+                            <div style={{ position: 'absolute', top: '100%', left: '28px', right: 0, background: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', borderRadius: '4px', zIndex: 1001, maxHeight: '200px', overflowY: 'auto' }}>
                                 {destSuggestions.map((item, idx) => (
-                                    <li key={idx} onClick={() => selectLocationItem(item, false)}>
-                                        <div className="sugg-text">
-                                            <div className="sugg-primary">{item.primary}</div>
-                                            <div className="sugg-secondary">{item.secondary}</div>
-                                        </div>
-                                    </li>
+                                    <div key={idx} onClick={() => selectLocationItem(item, false)} style={{ padding: '10px 12px', borderBottom: '1px solid #f1f3f4', cursor: 'pointer' }}>
+                                        <div style={{ fontSize: '14px', fontWeight: '500', color: '#202124' }}>{item.primary}</div>
+                                        <div style={{ fontSize: '12px', color: '#5f6368' }}>{item.secondary}</div>
+                                    </div>
                                 ))}
-                            </ul>
+                            </div>
                         )}
                     </div>
                 </div>
 
-                <div className="input-group">
-                    <label>Vehicle Clearance</label>
-                    <div className="select-wrapper">
-                        <select value={vehicleLayer} onChange={(e) => setVehicleLayer(e.target.value)} style={{ fontSize: isMobile ? '16px' : '14px' }}>
-                            <option value="LOW">Low (Sedan / Hatchback)</option>
-                            <option value="MID">Mid (SUV / Pick-up)</option>
-                            <option value="HIGH">High (Truck / Bus)</option>
+                {/* Options & Action Buttons */}
+                <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: '#fafafa' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: '13px', color: '#5f6368', fontWeight: '500' }}>Vehicle Type</span>
+                        <select 
+                            value={vehicleLayer} 
+                            onChange={(e) => setVehicleLayer(e.target.value)} 
+                            style={{ border: '1px solid #dadce0', borderRadius: '4px', padding: '6px 8px', fontSize: '13px', color: '#202124', backgroundColor: '#fff', cursor: 'pointer', outline: 'none' }}
+                        >
+                            <option value="LOW">Sedan / Hatchback</option>
+                            <option value="MID">SUV / Pick-up</option>
+                            <option value="HIGH">Truck / Bus</option>
                         </select>
                     </div>
-                </div>
 
-                <div className="button-group">
-                    <button 
-                        className="action-btn btn-primary" 
-                        onClick={() => fetchRoute(false)} 
-                        disabled={isCalculating}
-                        style={{
-                            padding: isMobile ? '14px' : '16px',
-                            fontSize: isMobile ? '15px' : '14px',
-                            minHeight: isMobile ? '48px' : 'auto',
-                        }}
-                    >
-                        {isCalculating ? 'Calculating...' : 'Start Navigation'}
-                    </button>
-                    <button 
-                        className="action-btn btn-clear" 
-                        onClick={clearMap}
-                        style={{
-                            padding: isMobile ? '12px' : '14px',
-                            fontSize: isMobile ? '14px' : '13px',
-                            minHeight: isMobile ? '44px' : 'auto',
-                        }}
-                    >
-                        Clear Map
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                            onClick={() => fetchRoute(false)} 
+                            disabled={isCalculating}
+                            style={{
+                                flex: 1, backgroundColor: '#1a73e8', color: 'white', border: 'none', borderRadius: '20px', padding: '10px', fontSize: '14px', fontWeight: '500', cursor: isCalculating ? 'not-allowed' : 'pointer', transition: 'background 0.2s'
+                            }}
+                            onMouseOver={(e) => e.target.style.backgroundColor = '#1557b0'}
+                            onMouseOut={(e) => e.target.style.backgroundColor = '#1a73e8'}
+                        >
+                            {isCalculating ? 'Calculating...' : 'Directions'}
+                        </button>
+                        <button 
+                            onClick={clearMap}
+                            style={{
+                                padding: '10px 16px', backgroundColor: '#fff', color: '#3c4043', border: '1px solid #dadce0', borderRadius: '20px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'background 0.2s'
+                            }}
+                            onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
+                            onMouseOut={(e) => e.target.style.backgroundColor = '#fff'}
+                        >
+                            Clear
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* Route Info Pill */}
-            <div className={`route-info ${routeInfo ? 'show' : ''}`} style={{ 
-                position: 'absolute',
-                bottom: isMobile ? '20px' : '40px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 1000,
-                background: '#ffffff',
-                borderRadius: '50px',
-                padding: isMobile ? '12px 24px' : '16px 32px',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: isMobile ? '20px' : '32px',
-                fontSize: isMobile ? '12px' : '14px',
-                transition: 'bottom 0.3s ease',
-            }}>
-                {routeInfo && (
-                    <>
-                        <div className="stat-group" style={{ textAlign: 'center' }}>
-                            <span className="stat-label" style={{ fontSize: isMobile ? '11px' : '12px' }}>Distance</span>
-                            <div className="stat-value" style={{ fontSize: isMobile ? '18px' : '22px' }}>
-                                <span>{routeInfo.distance}</span> <span style={{ fontSize: isMobile ? '14px' : '16px', marginLeft: '4px' }}>km</span>
-                            </div>
-                        </div>
-                        <div className="stat-divider" style={{ width: isMobile ? '0px' : '1px', height: isMobile ? '1px' : '36px', background: '#e2e8f0' }}></div>
-                        <div className="stat-group" style={{ textAlign: 'center' }}>
-                            <span className="stat-label" style={{ fontSize: isMobile ? '11px' : '12px' }}>Est. Time</span>
-                            <div className="stat-value" style={{ fontSize: isMobile ? '18px' : '22px' }}>
-                                <span>{routeInfo.time}</span> <span style={{ fontSize: isMobile ? '14px' : '16px', marginLeft: '4px' }}>min</span>
-                            </div>
-                        </div>
-                    </>
-                )}
-            </div>
-
-            {/* Map Container */}
-            <div ref={mapRef} style={{ width: '100%', height: '100%', zIndex: 1 }} />
+            {/* Floating Route Info Pill (Bottom Center) */}
+            {routeInfo && (
+                <div style={{ 
+                    position: 'absolute', bottom: isMobile ? '30px' : '40px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: '#ffffff', borderRadius: '24px', padding: '12px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '24px'
+                }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a73e8' }}>{routeInfo.time} <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#5f6368' }}>min</span></span>
+                    </div>
+                    <div style={{ width: '1px', height: '24px', background: '#dadce0' }}></div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                        <span style={{ fontSize: '16px', color: '#202124', fontWeight: '500' }}>{routeInfo.distance} <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#5f6368' }}>km</span></span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
