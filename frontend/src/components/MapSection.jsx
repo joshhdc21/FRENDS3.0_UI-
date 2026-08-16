@@ -5,7 +5,7 @@ import "../MapSection.css";
 import { ref, onValue, update } from "firebase/database";
 import { database } from "../firebase/firebaseConfig";
 
-// Custom Leaflet Icons Fix
+// Custom Leaflet Icons
 const greenIcon = new L.Icon({
     iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
     shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -18,14 +18,14 @@ const redIcon = new L.Icon({
 });
 
 export default function MapSection() {
-    const TOMTOM_API_KEY = import.meta.env.VITE_MAPAPI_TOMTOM_API_KEY;;
+    const TOMTOM_API_KEY = import.meta.env.VITE_MAPAPI_TOMTOM_API_KEY;
 
     const [mapCenter, setMapCenter] = useState([14.5648, 120.9932]);
     const [origin, setOrigin] = useState(null); 
     const [destination, setDestination] = useState(null); 
     const [vehicleLayer, setVehicleLayer] = useState("LOW");
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-    const [panelOpen, setPanelOpen] = useState(true);
+    const [panelOpen, setPanelOpen] = useState(!window.innerWidth <= 768);
     
     const originRef = useRef(origin);
     const destRef = useRef(destination);
@@ -51,7 +51,6 @@ export default function MapSection() {
     const [firebaseNodes, setFirebaseNodes] = useState({});
     const nodeBlockStates = useRef({});
 
-    // Leaflet Native Map Refs
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const layerGroupRef = useRef(null);
@@ -68,7 +67,7 @@ export default function MapSection() {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // 1. Initialize Pure Leaflet Map on Mount
+    // Initialize Map
     useEffect(() => {
         if (!mapInstanceRef.current && mapRef.current) {
             const map = L.map(mapRef.current, {
@@ -77,24 +76,20 @@ export default function MapSection() {
                 zoomControl: false
             });
 
-            // Base Layers & TomTom Traffic
             L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png", { maxZoom: 19 }).addTo(map);
             L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`, { maxZoom: 19, opacity: 0.85, tileSize: 128, zoomOffset: 1 }).addTo(map);
             L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png", { maxZoom: 19, zIndex: 1000 }).addTo(map);
 
-            // Layer group for dynamic markers/routes
             const layerGroup = L.layerGroup().addTo(map);
             layerGroupRef.current = layerGroup;
 
-            // Map Click Events
             map.on('click', (e) => {
                 if (e.originalEvent.shiftKey) {
                     if (isNavigatingRef.current) {
                         const latlng = [e.latlng.lat, e.latlng.lng];
                         setLiveLocation(latlng);
-                        if (originRef.current) setOrigin(prev => ({ ...prev, latlng }));
                     } else {
-                        alert("⚠️ Click 'Start Navigation' first!");
+                        alert("⚠️ Start Navigation first!");
                     }
                     return;
                 }
@@ -102,9 +97,9 @@ export default function MapSection() {
                 if (e.originalEvent.altKey) {
                     const lat = e.latlng.lat;
                     const lng = e.latlng.lng;
-                    const nodeId = window.prompt(`ADMIN TOOL\n\nPlace Node at ${lat.toFixed(5)}, ${lng.toFixed(5)}:`);
+                    const nodeId = window.prompt(`Place Flood Node at\n${lat.toFixed(5)}, ${lng.toFixed(5)}\n\nNode ID:`);
                     if (nodeId) {
-                        update(ref(database, 'nodes/' + nodeId), { lat, lng, waterLevel: 50, battery: 4.2, status: "ONLINE" }).catch(() => alert("Failed."));
+                        update(ref(database, 'nodes/' + nodeId), { lat, lng, waterLevel: 50, battery: 4.2, status: "ONLINE" }).catch(() => alert("Failed"));
                     }
                     return;
                 }
@@ -120,9 +115,9 @@ export default function MapSection() {
             });
 
             map.on('contextmenu', () => {
-                const nodeId = window.prompt("ADMIN REMOVAL TOOL\n\nEnter Node ID to remove:");
-                if (nodeId && window.confirm(`Hide ${nodeId}?`)) {
-                    update(ref(database, 'nodes/' + nodeId), { lat: null, lng: null }).catch(() => alert("Failed."));
+                const nodeId = window.prompt("Remove Node\n\nNode ID:");
+                if (nodeId && window.confirm(`Remove ${nodeId}?`)) {
+                    update(ref(database, 'nodes/' + nodeId), { lat: null, lng: null }).catch(() => alert("Failed"));
                 }
             });
 
@@ -130,7 +125,6 @@ export default function MapSection() {
         }
     }, []);
 
-    // Update Map Center
     useEffect(() => {
         if (mapInstanceRef.current) {
             mapInstanceRef.current.setView(mapCenter, 16);
@@ -138,7 +132,6 @@ export default function MapSection() {
         }
     }, [mapCenter]);
 
-    // 2. Render Markers & Routes
     useEffect(() => {
         const mapGroup = layerGroupRef.current;
         if (!mapGroup) return;
@@ -155,14 +148,12 @@ export default function MapSection() {
             L.circleMarker(liveLocation, { radius: 8, fillColor: "#3b82f6", color: "#ffffff", weight: 3, fillOpacity: 1 }).addTo(mapGroup);
         }
 
-        // Firebase Nodes
         Object.keys(firebaseNodes).forEach(nodeId => {
             const nodeContainer = firebaseNodes[nodeId];
             if (!nodeContainer || typeof nodeContainer !== 'object') return;
             
             let lat, lng, floodDepth = 0, battery = 'N/A', status = 'UNKNOWN';
 
-            // Handle both .set() and .push() formats
             if (nodeContainer.lat !== undefined && nodeContainer.lng !== undefined) {
                 lat = nodeContainer.lat;
                 lng = nodeContainer.lng;
@@ -189,11 +180,13 @@ export default function MapSection() {
             else if (floodDepth >= 15) color = "#eab308";
 
             const popupContent = `
-                <div style="font-family: Inter, sans-serif; font-size: 13px;">
-                    <b style="color: #0f172a;">Node: ${nodeId}</b><br />
-                    Flood: <b style="color: ${color};">${floodDepth}cm</b><br />
-                    Battery: <b>${battery}V</b><br />
-                    Status: <b style="color: ${status === 'ONLINE' ? '#10b981' : '#ef4444'};">${status}</b>
+                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 13px; line-height: 1.5;">
+                    <b style="color: #202124; display: block; margin-bottom: 8px;">📍 ${nodeId}</b>
+                    <div style="color: #5f6368;">
+                        💧 Depth: <span style="color: ${color}; font-weight: 600;">${floodDepth}cm</span><br/>
+                        🔋 Battery: <span style="font-weight: 600;">${battery}V</span><br/>
+                        🟢 Status: <span style="font-weight: 600; color: ${status === 'ONLINE' ? '#0d652d' : '#d33b27'};">${status}</span>
+                    </div>
                 </div>
             `;
 
@@ -202,7 +195,6 @@ export default function MapSection() {
                 .bindPopup(popupContent);
         });
 
-        // Route Segments
         routeSegments.forEach(segment => {
             const positions = segment.coords.map(c => [c.latitude, c.longitude]);
             L.polyline(positions, { color: segment.color, weight: 6, opacity: 0.9, lineCap: 'round', lineJoin: 'round' }).addTo(mapGroup);
@@ -210,7 +202,6 @@ export default function MapSection() {
 
     }, [origin, destination, liveLocation, firebaseNodes, routeSegments]);
 
-    // Firebase Listener
     useEffect(() => {
         const nodesRef = ref(database, 'nodes');
         const unsubscribe = onValue(nodesRef, (snapshot) => {
@@ -251,7 +242,7 @@ export default function MapSection() {
         });
 
         if (isNavigatingRef.current && forceReroute) {
-            alert("⚠️ Flood detected ahead! Recalculating route...");
+            alert("⚠️ Flood detected! Recalculating route...");
             fetchRoute(true);
         }
     };
@@ -269,7 +260,7 @@ export default function MapSection() {
                 return;
             }
 
-            const url = `https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json?key=${TOMTOM_API_KEY}&lat=${mapCenter[0]}&lon=${mapCenter[1]}&radius=30000&countrySet=PH&limit=10&typeahead=true&idxSet=POI,PAD,Str`;
+            const url = `https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json?key=${TOMTOM_API_KEY}&lat=${mapCenter[0]}&lon=${mapCenter[1]}&radius=30000&countrySet=PH&limit=8&typeahead=true&idxSet=POI,PAD,Str`;
             try {
                 const res = await fetch(url);
                 const data = await res.json();
@@ -287,13 +278,13 @@ export default function MapSection() {
                         const key = `${item.primary.toLowerCase()}-${item.secondary.toLowerCase()}`;
                         if (!seen.has(key)) { seen.add(key); unique.push(item); }
                     });
-                    if (isOrigin) setOriginSuggestions(unique.slice(0, 5));
-                    else setDestSuggestions(unique.slice(0, 5));
+                    if (isOrigin) setOriginSuggestions(unique.slice(0, 6));
+                    else setDestSuggestions(unique.slice(0, 6));
                 }
             } catch (err) {
                 console.error("Search error:", err);
             }
-        }, 500);
+        }, 400);
     };
 
     const selectLocationItem = (item, isOrigin) => {
@@ -314,7 +305,7 @@ export default function MapSection() {
         const currentOrigin = originRef.current;
         const currentDest = destRef.current;
         if (!currentOrigin || !currentDest) {
-            if (!isAutoReroute) alert("⚠️ Please set Origin and Destination.");
+            if (!isAutoReroute) alert("⚠️ Set Origin & Destination");
             return;
         }
 
@@ -336,10 +327,10 @@ export default function MapSection() {
             const data = await response.json();
             if (data.status === 'SUCCESS' || data.status === 'success') {
                 if (data.segments && data.segments.length > 0) setRouteSegments(data.segments);
-                else if (data.path) setRouteSegments([{ coords: data.path, color: '#3b82f6' }]);
+                else if (data.path) setRouteSegments([{ coords: data.path, color: '#1f2937' }]);
                 setRouteInfo({ distance: (data.distance / 1000).toFixed(2), time: Math.round(data.time / 60) });
             } else {
-                alert(`❌ Routing Error: ${data.message}`);
+                alert(`Error: ${data.message}`);
             }
         } catch (error) {
             console.error("API error:", error);
@@ -358,13 +349,245 @@ export default function MapSection() {
         <div style={{ 
             position: 'relative', 
             width: '100%', 
-            height: isMobile ? '100vh' : '580px', 
-            borderRadius: isMobile ? '0' : '12px', 
+            height: isMobile ? '100vh' : '600px', 
+            borderRadius: isMobile ? '0' : '8px', 
             overflow: 'hidden', 
-            boxShadow: isMobile ? 'none' : '0 4px 20px rgba(0,0,0,0.08)',
-            backgroundColor: '#e2e8f0'
+            boxShadow: isMobile ? 'none' : '0 2px 8px rgba(0,0,0,0.12)',
+            backgroundColor: '#f0f0f0',
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
         }}>
-            {/* Mobile Panel Toggle Button */}
+            {/* Searchbox Container - Google Maps Style */}
+            <div style={{
+                position: 'absolute',
+                top: isMobile ? '12px' : '16px',
+                left: isMobile ? '12px' : '16px',
+                right: isMobile ? '56px' : 'auto',
+                zIndex: 1001,
+                width: isMobile ? 'auto' : '360px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                maxHeight: 'calc(100% - 80px)',
+                overflow: isMobile && panelOpen ? 'auto' : 'visible'
+            }}>
+                {/* Origin Search */}
+                <div style={{
+                    background: '#ffffff',
+                    borderRadius: '8px',
+                    boxShadow: '0 1px 5px rgba(0,0,0,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    paddingLeft: '12px',
+                    transition: 'box-shadow 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 5px rgba(0,0,0,0.15)'}
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#5f6368" strokeWidth="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                    <input 
+                        type="text" 
+                        value={originQuery} 
+                        onChange={(e) => handleSearchInput(e.target.value, true)} 
+                        placeholder="Starting point" 
+                        style={{
+                            flex: 1,
+                            border: 'none',
+                            padding: '12px',
+                            fontSize: isMobile ? '16px' : '14px',
+                            outline: 'none',
+                            background: 'transparent',
+                            color: '#202124'
+                        }}
+                    />
+                    {originQuery && (
+                        <button onClick={() => { setOriginQuery(''); setOriginSuggestions([]); }} 
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: '#5f6368' }}>
+                            ✕
+                        </button>
+                    )}
+                    {originSuggestions.length > 0 && (
+                        <ul style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '0',
+                            right: '0',
+                            background: '#ffffff',
+                            borderRadius: '0 0 8px 8px',
+                            margin: '4px 0 0 0',
+                            padding: '8px 0',
+                            listStyle: 'none',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            zIndex: 2000
+                        }}>
+                            {originSuggestions.map((item, idx) => (
+                                <li key={idx} onClick={() => selectLocationItem(item, true)}
+                                    style={{
+                                        padding: '12px 16px',
+                                        cursor: 'pointer',
+                                        borderBottom: idx < originSuggestions.length - 1 ? '1px solid #f0f0f0' : 'none',
+                                        transition: 'background 0.15s'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <div style={{ color: '#202124', fontSize: '14px', fontWeight: 500 }}>{item.primary}</div>
+                                    <div style={{ color: '#5f6368', fontSize: '12px', marginTop: '2px' }}>{item.secondary}</div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
+                {/* Destination Search */}
+                <div style={{
+                    background: '#ffffff',
+                    borderRadius: '8px',
+                    boxShadow: '0 1px 5px rgba(0,0,0,0.15)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    paddingLeft: '12px',
+                    transition: 'box-shadow 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = '0 1px 5px rgba(0,0,0,0.15)'}
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="#d33b27" strokeWidth="2">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/>
+                    </svg>
+                    <input 
+                        type="text" 
+                        value={destQuery} 
+                        onChange={(e) => handleSearchInput(e.target.value, false)} 
+                        placeholder="Destination" 
+                        style={{
+                            flex: 1,
+                            border: 'none',
+                            padding: '12px',
+                            fontSize: isMobile ? '16px' : '14px',
+                            outline: 'none',
+                            background: 'transparent',
+                            color: '#202124'
+                        }}
+                    />
+                    {destQuery && (
+                        <button onClick={() => { setDestQuery(''); setDestSuggestions([]); }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', color: '#5f6368' }}>
+                            ✕
+                        </button>
+                    )}
+                    {destSuggestions.length > 0 && (
+                        <ul style={{
+                            position: 'absolute',
+                            top: '100%',
+                            left: '0',
+                            right: '0',
+                            background: '#ffffff',
+                            borderRadius: '0 0 8px 8px',
+                            margin: '4px 0 0 0',
+                            padding: '8px 0',
+                            listStyle: 'none',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                            zIndex: 2000
+                        }}>
+                            {destSuggestions.map((item, idx) => (
+                                <li key={idx} onClick={() => selectLocationItem(item, false)}
+                                    style={{
+                                        padding: '12px 16px',
+                                        cursor: 'pointer',
+                                        borderBottom: idx < destSuggestions.length - 1 ? '1px solid #f0f0f0' : 'none',
+                                        transition: 'background 0.15s'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <div style={{ color: '#202124', fontSize: '14px', fontWeight: 500 }}>{item.primary}</div>
+                                    <div style={{ color: '#5f6368', fontSize: '12px', marginTop: '2px' }}>{item.secondary}</div>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+
+                {/* Options & Buttons */}
+                {(origin || destination) && (
+                    <div style={{
+                        background: '#ffffff',
+                        borderRadius: '8px',
+                        padding: '12px',
+                        boxShadow: '0 1px 5px rgba(0,0,0,0.15)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                    }}>
+                        <div>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: '#5f6368', display: 'block', marginBottom: '8px' }}>Vehicle Type</label>
+                            <select value={vehicleLayer} onChange={(e) => setVehicleLayer(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    border: '1px solid #dadce0',
+                                    borderRadius: '4px',
+                                    fontSize: '13px',
+                                    color: '#202124',
+                                    cursor: 'pointer',
+                                    outline: 'none'
+                                }}
+                            >
+                                <option value="LOW">🚗 Sedan / Hatchback</option>
+                                <option value="MID">🚙 SUV / Pick-up</option>
+                                <option value="HIGH">🚚 Truck / Bus</option>
+                            </select>
+                        </div>
+
+                        <button 
+                            onClick={() => fetchRoute(false)} 
+                            disabled={isCalculating || !origin || !destination}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                background: isCalculating ? '#dadce0' : '#1f2937',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '4px',
+                                fontSize: '14px',
+                                fontWeight: 600,
+                                cursor: isCalculating ? 'default' : 'pointer',
+                                transition: 'background 0.2s',
+                                opacity: (!origin || !destination) ? 0.5 : 1
+                            }}
+                            onMouseEnter={(e) => !isCalculating && (e.currentTarget.style.background = '#0f172a')}
+                            onMouseLeave={(e) => !isCalculating && (e.currentTarget.style.background = '#1f2937')}
+                        >
+                            {isCalculating ? '⏳ Calculating...' : '🧭 Navigate'}
+                        </button>
+
+                        <button 
+                            onClick={clearMap}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                background: '#f8f9fa',
+                                color: '#202124',
+                                border: '1px solid #dadce0',
+                                borderRadius: '4px',
+                                fontSize: '13px',
+                                fontWeight: 600,
+                                cursor: 'pointer',
+                                transition: 'background 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = '#ececec'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = '#f8f9fa'}
+                        >
+                            ✕ Clear
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Mobile Menu Toggle */}
             {isMobile && (
                 <button 
                     onClick={() => setPanelOpen(!panelOpen)}
@@ -374,172 +597,55 @@ export default function MapSection() {
                         right: '12px',
                         zIndex: 1100,
                         background: '#ffffff',
-                        border: '1px solid #e2e8f0',
+                        border: 'none',
                         borderRadius: '50%',
-                        width: '44px',
-                        height: '44px',
+                        width: '40px',
+                        height: '40px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        boxShadow: '0 1px 5px rgba(0,0,0,0.15)',
                     }}
                 >
-                    <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    <svg width="20" height="20" fill="none" stroke="#202124" strokeWidth="2" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
                     </svg>
                 </button>
             )}
 
-            {/* Glass Panel */}
-            <div className="glass-panel" style={{ 
-                position: 'absolute', 
-                top: isMobile ? (panelOpen ? '0' : '-100%') : '12px', 
-                left: isMobile ? '0' : '12px', 
-                right: isMobile ? '0' : 'auto',
-                width: isMobile ? '100%' : '340px',
-                maxHeight: isMobile ? (panelOpen ? '75vh' : '0') : 'calc(100% - 24px)',
-                zIndex: 1000,
-                borderRadius: isMobile ? '0 0 16px 16px' : '24px',
-                transition: isMobile ? 'top 0.3s ease' : 'none',
-                overflow: isMobile && panelOpen ? 'auto' : 'hidden',
-                padding: isMobile ? '20px' : '24px',
-                gap: '16px',
-            }}>
-                <div className="panel-header">
-                    <div>
-                        <h2 style={{ fontSize: isMobile ? '20px' : '24px' }}>FRENDS</h2>
-                        <p>Dynamic Routing</p>
-                    </div>
-                </div>
-
-                <div className="input-group">
-                    <label>Origin</label>
-                    <div className="search-wrapper">
-                        <svg className="input-icon" style={{color: 'var(--primary)'}} fill="currentColor" viewBox="0 0 16 16"><circle cx="8" cy="8" r="4"/></svg>
-                        <input 
-                            type="text" 
-                            className="search-input" 
-                            value={originQuery} 
-                            onChange={(e) => handleSearchInput(e.target.value, true)} 
-                            placeholder="Search starting point..." 
-                            style={{ fontSize: isMobile ? '16px' : '14px' }}
-                        />
-                        {originSuggestions.length > 0 && (
-                            <ul className="suggestions-list">
-                                {originSuggestions.map((item, idx) => (
-                                    <li key={idx} onClick={() => selectLocationItem(item, true)}>
-                                        <div className="sugg-text">
-                                            <div className="sugg-primary">{item.primary}</div>
-                                            <div className="sugg-secondary">{item.secondary}</div>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                </div>
-
-                <div className="input-group">
-                    <label>Destination</label>
-                    <div className="search-wrapper">
-                        <svg className="input-icon" style={{color: 'var(--danger)'}} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                        <input 
-                            type="text" 
-                            className="search-input" 
-                            value={destQuery} 
-                            onChange={(e) => handleSearchInput(e.target.value, false)} 
-                            placeholder="Search destination..."
-                            style={{ fontSize: isMobile ? '16px' : '14px' }}
-                        />
-                        {destSuggestions.length > 0 && (
-                            <ul className="suggestions-list">
-                                {destSuggestions.map((item, idx) => (
-                                    <li key={idx} onClick={() => selectLocationItem(item, false)}>
-                                        <div className="sugg-text">
-                                            <div className="sugg-primary">{item.primary}</div>
-                                            <div className="sugg-secondary">{item.secondary}</div>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
-                </div>
-
-                <div className="input-group">
-                    <label>Vehicle Clearance</label>
-                    <div className="select-wrapper">
-                        <select value={vehicleLayer} onChange={(e) => setVehicleLayer(e.target.value)} style={{ fontSize: isMobile ? '16px' : '14px' }}>
-                            <option value="LOW">Low (Sedan / Hatchback)</option>
-                            <option value="MID">Mid (SUV / Pick-up)</option>
-                            <option value="HIGH">High (Truck / Bus)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div className="button-group">
-                    <button 
-                        className="action-btn btn-primary" 
-                        onClick={() => fetchRoute(false)} 
-                        disabled={isCalculating}
-                        style={{
-                            padding: isMobile ? '14px' : '16px',
-                            fontSize: isMobile ? '15px' : '14px',
-                            minHeight: isMobile ? '48px' : 'auto',
-                        }}
-                    >
-                        {isCalculating ? 'Calculating...' : 'Start Navigation'}
-                    </button>
-                    <button 
-                        className="action-btn btn-clear" 
-                        onClick={clearMap}
-                        style={{
-                            padding: isMobile ? '12px' : '14px',
-                            fontSize: isMobile ? '14px' : '13px',
-                            minHeight: isMobile ? '44px' : 'auto',
-                        }}
-                    >
-                        Clear Map
-                    </button>
-                </div>
-            </div>
-
-            {/* Route Info Pill */}
-            <div className={`route-info ${routeInfo ? 'show' : ''}`} style={{ 
-                position: 'absolute',
-                bottom: isMobile ? '20px' : '40px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                zIndex: 1000,
-                background: '#ffffff',
-                borderRadius: '50px',
-                padding: isMobile ? '12px 24px' : '16px 32px',
-                boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: isMobile ? '20px' : '32px',
-                fontSize: isMobile ? '12px' : '14px',
-                transition: 'bottom 0.3s ease',
-            }}>
-                {routeInfo && (
-                    <>
-                        <div className="stat-group" style={{ textAlign: 'center' }}>
-                            <span className="stat-label" style={{ fontSize: isMobile ? '11px' : '12px' }}>Distance</span>
-                            <div className="stat-value" style={{ fontSize: isMobile ? '18px' : '22px' }}>
-                                <span>{routeInfo.distance}</span> <span style={{ fontSize: isMobile ? '14px' : '16px', marginLeft: '4px' }}>km</span>
+            {/* Route Info Card - Google Maps Style */}
+            {routeInfo && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: isMobile ? '20px' : '24px',
+                    left: isMobile ? '12px' : 'auto',
+                    right: isMobile ? '12px' : '16px',
+                    zIndex: 1000,
+                    background: '#ffffff',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    maxWidth: isMobile ? 'auto' : '320px'
+                }}>
+                    <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '12px', color: '#5f6368', marginBottom: '4px' }}>Route Summary</div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <div>
+                                <div style={{ fontSize: '12px', fontWeight: 600, color: '#5f6368' }}>Distance</div>
+                                <div style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937' }}>{routeInfo.distance}<span style={{ fontSize: '14px', marginLeft: '4px' }}>km</span></div>
+                            </div>
+                            <div>
+                                <div style={{ fontSize: '12px', fontWeight: 600, color: '#5f6368' }}>Est. Time</div>
+                                <div style={{ fontSize: '24px', fontWeight: 700, color: '#1f2937' }}>{routeInfo.time}<span style={{ fontSize: '14px', marginLeft: '4px' }}>min</span></div>
                             </div>
                         </div>
-                        <div className="stat-divider" style={{ width: isMobile ? '0px' : '1px', height: isMobile ? '1px' : '36px', background: '#e2e8f0' }}></div>
-                        <div className="stat-group" style={{ textAlign: 'center' }}>
-                            <span className="stat-label" style={{ fontSize: isMobile ? '11px' : '12px' }}>Est. Time</span>
-                            <div className="stat-value" style={{ fontSize: isMobile ? '18px' : '22px' }}>
-                                <span>{routeInfo.time}</span> <span style={{ fontSize: isMobile ? '14px' : '16px', marginLeft: '4px' }}>min</span>
-                            </div>
-                        </div>
-                    </>
-                )}
-            </div>
+                    </div>
+                    <div style={{ fontSize: '12px', color: '#5f6368', fontStyle: 'italic' }}>
+                        🌊 Route avoids flooded areas based on vehicle clearance
+                    </div>
+                </div>
+            )}
 
             {/* Map Container */}
             <div ref={mapRef} style={{ width: '100%', height: '100%', zIndex: 1 }} />
