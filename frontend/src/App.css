@@ -3969,3 +3969,105 @@ newssection
 }
 
 
+/* =========================================
+   BACK TO LOGIN BUTTON
+========================================= */
+
+.back-to-login-button {
+  width: auto;
+  height: 40px;
+
+  margin: 0 0 18px 0;
+  padding: 0;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #0d57bd;
+
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+/* =========================================
+   BACK ARROW
+========================================= */
+
+.back-to-login-button .back-arrow {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  margin-right: 7px;
+
+  font-size: 20px;
+  font-weight: 500;
+
+  line-height: 1;
+
+  transition:
+    transform 0.2s ease;
+}
+
+/* =========================================
+   HOVER
+========================================= */
+
+.back-to-login-button:hover {
+  color: #084a9e;
+
+  transform: translateX(-2px);
+}
+
+.back-to-login-button:hover .back-arrow {
+  transform: translateX(-3px);
+}
+
+/* =========================================
+   ACTIVE
+========================================= */
+
+.back-to-login-button:active {
+  transform: translateX(-1px);
+}
+
+/* =========================================
+   FOCUS
+========================================= */
+
+.back-to-login-button:focus-visible {
+  outline: 2px solid #0d57bd;
+  outline-offset: 4px;
+
+  border-radius: 5px;
+}
+
+/* =========================================
+   DISABLED
+========================================= */
+
+.back-to-login-button:disabled {
+  opacity: 0.5;
+
+  cursor: not-allowed;
+
+  transform: none;
+}
+
+.back-to-login-button:disabled .back-arrow {
+  transform: none;
+}

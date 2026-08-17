@@ -2,9 +2,7 @@ import { useState } from "react";
 
 import {
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signInWithPopup,
-  signOut,
 } from "firebase/auth";
 
 import {
@@ -12,18 +10,21 @@ import {
   googleProvider,
 } from "../firebase/firebaseConfig";
 
+import CreateAccount from "./CreateAccount";
+
 import "../../Login.css";
 
 function Login() {
+
   // =========================================
-  // LOGIN / REGISTER MODE
+  // CREATE ACCOUNT PAGE
   // =========================================
 
-  const [isRegistering, setIsRegistering] =
+  const [showCreateAccount, setShowCreateAccount] =
     useState(false);
 
   // =========================================
-  // FORM
+  // LOGIN FORM
   // =========================================
 
   const [email, setEmail] = useState("");
@@ -45,10 +46,11 @@ function Login() {
     useState(false);
 
   // =========================================
-  // EMAIL LOGIN / CREATE ACCOUNT
+  // LOGIN
   // =========================================
 
-  async function handleSubmit(e) {
+  async function handleLogin(e) {
+
     e.preventDefault();
 
     setError("");
@@ -56,46 +58,6 @@ function Login() {
     setLoading(true);
 
     try {
-      // =======================================
-      // CREATE ACCOUNT
-      // =======================================
-
-      if (isRegistering) {
-
-        // Create Firebase account
-        await createUserWithEmailAndPassword(
-          auth,
-          email,
-          password
-        );
-
-        // IMPORTANT:
-        // Firebase automatically signs the
-        // newly created account in.
-        //
-        // We immediately sign it out because
-        // the user must LOGIN manually afterward.
-
-        await signOut(auth);
-
-        // Clear form
-        setEmail("");
-        setPassword("");
-
-        // Return to LOGIN interface
-        setIsRegistering(false);
-
-        // Show success message
-        setSuccess(
-          "Account created successfully! Please log in with your new account."
-        );
-
-        return;
-      }
-
-      // =======================================
-      // LOGIN
-      // =======================================
 
       await signInWithEmailAndPassword(
         auth,
@@ -103,21 +65,16 @@ function Login() {
         password
       );
 
-      // App.jsx will detect the authenticated
-      // user through onAuthStateChanged().
+      // App.jsx will detect the authenticated user.
 
     } catch (error) {
 
       console.error(
-        "Authentication error:",
+        "Login error:",
         error
       );
 
       switch (error.code) {
-
-        // =====================================
-        // LOGIN ERRORS
-        // =====================================
 
         case "auth/invalid-credential":
           setError(
@@ -137,45 +94,11 @@ function Login() {
           );
           break;
 
-        // =====================================
-        // EMAIL
-        // =====================================
-
         case "auth/invalid-email":
           setError(
             "Please enter a valid email address."
           );
           break;
-
-        // =====================================
-        // CREATE ACCOUNT
-        // =====================================
-
-        case "auth/email-already-in-use":
-          setError(
-            "An account already exists with this email."
-          );
-          break;
-
-        case "auth/weak-password":
-          setError(
-            "Password must be at least 6 characters."
-          );
-          break;
-
-        // =====================================
-        // PROVIDER DISABLED
-        // =====================================
-
-        case "auth/operation-not-allowed":
-          setError(
-            "Email/Password authentication is not enabled in Firebase."
-          );
-          break;
-
-        // =====================================
-        // TOO MANY REQUESTS
-        // =====================================
 
         case "auth/too-many-requests":
           setError(
@@ -183,9 +106,11 @@ function Login() {
           );
           break;
 
-        // =====================================
-        // DEFAULT
-        // =====================================
+        case "auth/operation-not-allowed":
+          setError(
+            "Email/Password authentication is not enabled in Firebase."
+          );
+          break;
 
         default:
           setError(
@@ -195,7 +120,9 @@ function Login() {
       }
 
     } finally {
+
       setLoading(false);
+
     }
   }
 
@@ -215,9 +142,6 @@ function Login() {
         auth,
         googleProvider
       );
-
-      // Google login directly enters the app.
-      // App.jsx detects the authenticated user.
 
     } catch (error) {
 
@@ -271,25 +195,54 @@ function Login() {
       }
 
     } finally {
+
       setGoogleLoading(false);
+
     }
   }
 
   // =========================================
-  // SWITCH LOGIN / CREATE ACCOUNT
+  // OPEN CREATE ACCOUNT
   // =========================================
 
-  function toggleMode() {
+  function openCreateAccount() {
 
-    setIsRegistering(
-      (previousMode) => !previousMode
-    );
+    setError("");
+    setSuccess("");
+
+    setEmail("");
+    setPassword("");
+
+    setShowCreateAccount(true);
+  }
+
+  // =========================================
+  // RETURN TO LOGIN
+  // =========================================
+
+  function backToLogin() {
+
+    setShowCreateAccount(false);
 
     setEmail("");
     setPassword("");
 
     setError("");
     setSuccess("");
+  }
+
+  // =========================================
+  // SHOW CREATE ACCOUNT PAGE
+  // =========================================
+
+  if (showCreateAccount) {
+
+    return (
+      <CreateAccount
+        onBackToLogin={backToLogin}
+      />
+    );
+
   }
 
   // =========================================
@@ -301,7 +254,7 @@ function Login() {
     googleLoading;
 
   // =========================================
-  // INTERFACE
+  // LOGIN INTERFACE
   // =========================================
 
   return (
@@ -320,9 +273,7 @@ function Login() {
           </div>
 
           <h1>
-            {isRegistering
-              ? "Create your FRENDS Account"
-              : "Welcome to FRENDS"}
+            Welcome to FRENDS
           </h1>
 
           <p>
@@ -332,10 +283,10 @@ function Login() {
         </div>
 
         {/* =====================================
-            FORM
+            LOGIN FORM
         ===================================== */}
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleLogin}>
 
           {/* EMAIL */}
 
@@ -379,18 +330,12 @@ function Login() {
               required
               minLength={6}
               disabled={isLoading}
-              autoComplete={
-                isRegistering
-                  ? "new-password"
-                  : "current-password"
-              }
+              autoComplete="current-password"
             />
 
           </div>
 
-          {/* ===================================
-              ERROR
-          =================================== */}
+          {/* ERROR */}
 
           {error && (
             <p className="login-error">
@@ -398,9 +343,7 @@ function Login() {
             </p>
           )}
 
-          {/* ===================================
-              SUCCESS
-          =================================== */}
+          {/* SUCCESS */}
 
           {success && (
             <p className="login-success">
@@ -408,9 +351,7 @@ function Login() {
             </p>
           )}
 
-          {/* ===================================
-              BUTTON
-          =================================== */}
+          {/* LOGIN BUTTON */}
 
           <button
             type="submit"
@@ -419,37 +360,29 @@ function Login() {
           >
 
             {loading
-              ? isRegistering
-                ? "Creating account..."
-                : "Signing in..."
-              : isRegistering
-                ? "Create Account"
-                : "Login"}
+              ? "Signing in..."
+              : "Login"}
 
           </button>
 
         </form>
 
         {/* =====================================
-            SWITCH LOGIN / REGISTER
+            CREATE ACCOUNT
         ===================================== */}
 
         <div className="login-switch">
 
           <span>
-            {isRegistering
-              ? "Already have an account?"
-              : "Don't have an account?"}
+            Don't have an account?
           </span>
 
           <button
             type="button"
-            onClick={toggleMode}
+            onClick={openCreateAccount}
             disabled={isLoading}
           >
-            {isRegistering
-              ? "Login"
-              : "Create Account"}
+            Create Account
           </button>
 
         </div>
