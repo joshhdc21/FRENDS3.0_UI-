@@ -12,12 +12,15 @@ import {
 
 import CreateAccount from "./CreateAccount";
 
+// FRENDS LOGO
+import frendsLogo from "../assets/frendslogo.png";
+
 import "../../Login.css";
 
 function Login() {
 
   // =========================================
-  // INTRO / LOADING SCREEN
+  // INTRO SCREEN
   // =========================================
 
   const [introFinished, setIntroFinished] = useState(false);
@@ -57,13 +60,11 @@ function Login() {
   const [googleLoading, setGoogleLoading] = useState(false);
 
   // =========================================
-  // START UP BUTTON
+  // START UP
   // =========================================
 
   function handleStartUp() {
-
     setIntroFinished(true);
-
   }
 
   // =========================================
@@ -87,6 +88,9 @@ function Login() {
       );
 
       setSuccess("Login successful!");
+
+      // App.jsx will detect
+      // the authenticated user.
 
     } catch (error) {
 
@@ -249,6 +253,7 @@ function Login() {
         default:
 
           setError(
+            error.message ||
             "Unable to sign in with Google."
           );
       }
@@ -275,7 +280,6 @@ function Login() {
     setShowPassword(false);
 
     setShowCreateAccount(true);
-
   }
 
   // =========================================
@@ -293,11 +297,10 @@ function Login() {
 
     setError("");
     setSuccess("");
-
   }
 
   // =========================================
-  // CREATE ACCOUNT PAGE
+  // SHOW CREATE ACCOUNT PAGE
   // =========================================
 
   if (showCreateAccount) {
@@ -311,7 +314,7 @@ function Login() {
   }
 
   // =========================================
-  // LOGIN LOADING
+  // LOADING
   // =========================================
 
   const isLoading =
@@ -319,7 +322,7 @@ function Login() {
     googleLoading;
 
   // =========================================
-  // MAIN PAGE
+  // MAIN INTERFACE
   // =========================================
 
   return (
@@ -335,7 +338,7 @@ function Login() {
     >
 
       {/* =====================================
-          BACKGROUND
+          ANIMATED BACKGROUND
       ===================================== */}
 
       <div className="login-background">
@@ -354,7 +357,7 @@ function Login() {
 
 
       {/* =====================================
-          FRENDS LOADING / SPLASH SCREEN
+          INTRO / START SCREEN
       ===================================== */}
 
       <div
@@ -373,20 +376,12 @@ function Login() {
 
         <div className="intro-logo">
 
-          <span>
-            F
-          </span>
+          <img
+            src={frendsLogo}
+            alt="FRENDS Logo"
+          />
 
         </div>
-
-
-        {/* ===================================
-            FRENDS NAME
-        =================================== */}
-
-        <h2>
-          FRENDS
-        </h2>
 
 
         {/* ===================================
@@ -394,19 +389,8 @@ function Login() {
         =================================== */}
 
         <p>
-          Smart Flood &amp; Traffic Monitoring
+          Flood Road Eye and Navigation Detection System
         </p>
-
-
-        {/* ===================================
-            LOADING LINE
-        =================================== */}
-
-        <div className="intro-loading">
-
-          <span></span>
-
-        </div>
 
 
         {/* ===================================
@@ -423,11 +407,26 @@ function Login() {
             START UP
           </span>
 
-          <span className="start-button-arrow">
+          <span className="start-arrow">
             →
           </span>
 
         </button>
+
+
+        {/* ===================================
+            SYSTEM STATUS
+        =================================== */}
+
+        <div className="intro-status">
+
+          <span className="status-dot"></span>
+
+          <span>
+            Monitoring System Ready
+          </span>
+
+        </div>
 
       </div>
 
@@ -448,20 +447,17 @@ function Login() {
 
         {/* ===================================
             HEADER
+            FRENDS LOGO REMOVED HERE
         =================================== */}
 
         <div className="login-header">
-
-          <div className="login-logo">
-            F
-          </div>
 
           <h1>
             Welcome to FRENDS
           </h1>
 
           <p>
-            Smart Flood &amp; Traffic Monitoring
+             Flood Road Eye and Navigation Detection System
           </p>
 
         </div>
@@ -509,6 +505,7 @@ function Login() {
               Email
             </label>
 
+
             <div className="input-wrapper">
 
               <span
@@ -517,6 +514,7 @@ function Login() {
               >
                 ✉
               </span>
+
 
               <input
                 id="email"
@@ -560,6 +558,7 @@ function Login() {
               Password
             </label>
 
+
             <div className="input-wrapper">
 
               <span
@@ -568,6 +567,7 @@ function Login() {
               >
                 🔒
               </span>
+
 
               <input
                 id="password"
@@ -738,12 +738,15 @@ function Login() {
             Don't have an account?
           </span>
 
+
           <button
             type="button"
             onClick={openCreateAccount}
             disabled={isLoading}
           >
+
             Create Account
+
           </button>
 
         </div>
@@ -848,7 +851,9 @@ function Login() {
 
             <span className="status-dot"></span>
 
-            System Ready
+            <span>
+              System Ready
+            </span>
 
           </div>
 

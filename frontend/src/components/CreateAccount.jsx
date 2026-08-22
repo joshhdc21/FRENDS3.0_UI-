@@ -17,9 +17,9 @@ import "../../Login.css";
 
 function CreateAccount({ onBackToLogin }) {
 
-  // =========================================
+  // =========================================================
   // FORM DATA
-  // =========================================
+  // =========================================================
 
   const [name, setName] = useState("");
   const [birthName, setBirthName] = useState("");
@@ -27,40 +27,40 @@ function CreateAccount({ onBackToLogin }) {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // =========================================
+  // =========================================================
   // PASSWORD VISIBILITY
-  // =========================================
+  // =========================================================
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // =========================================
+  // =========================================================
   // MESSAGES
-  // =========================================
+  // =========================================================
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // =========================================
+  // =========================================================
   // LOADING
-  // =========================================
+  // =========================================================
 
   const [loading, setLoading] = useState(false);
 
-  // =========================================
+  // =========================================================
   // CREATE ACCOUNT
-  // =========================================
+  // =========================================================
 
   async function handleCreateAccount(e) {
-
     e.preventDefault();
 
+    // Clear previous messages
     setError("");
     setSuccess("");
 
-    // =========================================
+    // =======================================================
     // CHECK REQUIRED FIELDS
-    // =========================================
+    // =======================================================
 
     if (
       !name.trim() ||
@@ -69,47 +69,38 @@ function CreateAccount({ onBackToLogin }) {
       !password ||
       !confirmPassword
     ) {
-
-      setError(
-        "Please complete all fields."
-      );
-
+      setError("Please complete all fields.");
       return;
     }
 
-    // =========================================
-    // CHECK PASSWORD
-    // =========================================
+    // =======================================================
+    // CHECK PASSWORD LENGTH
+    // =======================================================
 
     if (password.length < 6) {
-
-      setError(
-        "Password must be at least 6 characters."
-      );
-
+      setError("Password must be at least 6 characters.");
       return;
     }
 
-    // =========================================
-    // CONFIRM PASSWORD
-    // =========================================
+    // =======================================================
+    // CHECK PASSWORD MATCH
+    // =======================================================
 
     if (password !== confirmPassword) {
-
-      setError(
-        "Passwords do not match."
-      );
-
+      setError("Passwords do not match.");
       return;
     }
 
-    try {
+    // =======================================================
+    // START LOADING
+    // =======================================================
 
+    try {
       setLoading(true);
 
-      // =========================================
+      // =====================================================
       // CREATE FIREBASE AUTH ACCOUNT
-      // =========================================
+      // =====================================================
 
       const userCredential =
         await createUserWithEmailAndPassword(
@@ -118,57 +109,51 @@ function CreateAccount({ onBackToLogin }) {
           password
         );
 
-      const user =
-        userCredential.user;
+      const user = userCredential.user;
 
-      // =========================================
-      // SET FIREBASE DISPLAY NAME
-      // =========================================
+      // =====================================================
+      // UPDATE FIREBASE DISPLAY NAME
+      // =====================================================
 
       await updateProfile(user, {
         displayName: name.trim(),
       });
 
-      // =========================================
+      // =====================================================
       // SAVE USER INFORMATION
-      // TO REALTIME DATABASE
-      // =========================================
+      // TO FIREBASE REALTIME DATABASE
+      // =====================================================
+
+      const userData = {
+        uid: user.uid,
+        name: name.trim(),
+        birthName: birthName.trim(),
+        email: email.trim(),
+        createdAt: new Date().toISOString(),
+      };
 
       await set(
-        ref(
-          database,
-          `users/${user.uid}`
-        ),
-        {
-          uid: user.uid,
-
-          name: name.trim(),
-
-          birthName: birthName.trim(),
-
-          email: email.trim(),
-
-          createdAt: new Date().toISOString(),
-        }
+        ref(database, `users/${user.uid}`),
+        userData
       );
 
-      // =========================================
-      // SIGN OUT
-      // =========================================
+      // =====================================================
+      // SIGN OUT AFTER REGISTRATION
+      // =====================================================
 
       await signOut(auth);
 
-      // =========================================
+      // =====================================================
       // SUCCESS MESSAGE
-      // =========================================
+      // =====================================================
 
       setSuccess(
         "Account created successfully! Please log in."
       );
 
-      // =========================================
+      // =====================================================
       // CLEAR FORM
-      // =========================================
+      // =====================================================
 
       setName("");
       setBirthName("");
@@ -176,7 +161,6 @@ function CreateAccount({ onBackToLogin }) {
       setPassword("");
       setConfirmPassword("");
 
-      // Reset password visibility
       setShowPassword(false);
       setShowConfirmPassword(false);
 
@@ -187,70 +171,63 @@ function CreateAccount({ onBackToLogin }) {
         error
       );
 
-      // =========================================
-      // FIREBASE ERRORS
-      // =========================================
+      // =====================================================
+      // FIREBASE ERROR HANDLING
+      // =====================================================
 
       switch (error.code) {
 
         case "auth/email-already-in-use":
-
           setError(
             "An account already exists with this email."
           );
-
           break;
 
         case "auth/invalid-email":
-
           setError(
             "Please enter a valid email address."
           );
-
           break;
 
         case "auth/weak-password":
-
           setError(
             "Password must be at least 6 characters."
           );
-
           break;
 
         case "auth/operation-not-allowed":
-
           setError(
             "Email/Password authentication is not enabled in Firebase."
           );
-
           break;
 
         case "auth/network-request-failed":
-
           setError(
             "Network error. Please check your internet connection."
           );
+          break;
 
+        case "auth/too-many-requests":
+          setError(
+            "Too many attempts. Please try again later."
+          );
           break;
 
         default:
-
           setError(
-            error.message ||
-            "Unable to create account."
+            error?.message ||
+            "Unable to create account. Please try again."
           );
       }
 
     } finally {
-
       setLoading(false);
-
     }
   }
 
-  // =========================================
+  // =========================================================
   // BACK TO LOGIN
-  // =========================================
+  // =========================================================
 
   function handleBackToLogin() {
 
@@ -258,9 +235,11 @@ function CreateAccount({ onBackToLogin }) {
       return;
     }
 
+    // Clear messages
     setError("");
     setSuccess("");
 
+    // Clear form
     setName("");
     setBirthName("");
     setEmail("");
@@ -271,22 +250,22 @@ function CreateAccount({ onBackToLogin }) {
     setShowPassword(false);
     setShowConfirmPassword(false);
 
-    if (onBackToLogin) {
+    // Return to Login
+    if (typeof onBackToLogin === "function") {
       onBackToLogin();
     }
   }
 
-  // =========================================
+  // =========================================================
   // INTERFACE
-  // =========================================
+  // =========================================================
 
   return (
-
     <div className="login-page create-account-page">
 
-      {/* =====================================
+      {/* =====================================================
           BACKGROUND
-      ===================================== */}
+      ===================================================== */}
 
       <div className="login-background">
 
@@ -303,15 +282,15 @@ function CreateAccount({ onBackToLogin }) {
       </div>
 
 
-      {/* =====================================
+      {/* =====================================================
           CREATE ACCOUNT CARD
-      ===================================== */}
+      ===================================================== */}
 
       <div className="login-card create-account-card">
 
-        {/* =====================================
+        {/* ===================================================
             BACK TO LOGIN
-        ===================================== */}
+        =================================================== */}
 
         <button
           type="button"
@@ -331,15 +310,11 @@ function CreateAccount({ onBackToLogin }) {
         </button>
 
 
-        {/* =====================================
+        {/* ===================================================
             HEADER
-        ===================================== */}
+        =================================================== */}
 
         <div className="login-header">
-
-          <div className="login-logo">
-            F
-          </div>
 
           <h1>
             Create your FRENDS Account
@@ -352,9 +327,9 @@ function CreateAccount({ onBackToLogin }) {
         </div>
 
 
-        {/* =====================================
+        {/* ===================================================
             SYSTEM STATUS
-        ===================================== */}
+        =================================================== */}
 
         <div className="system-status">
 
@@ -367,18 +342,19 @@ function CreateAccount({ onBackToLogin }) {
         </div>
 
 
-        {/* =====================================
+        {/* ===================================================
             FORM
-        ===================================== */}
+        =================================================== */}
 
         <form
           onSubmit={handleCreateAccount}
           className="create-account-form"
+          noValidate
         >
 
-          {/* =================================
+          {/* =================================================
               FULL NAME
-          ================================= */}
+          ================================================= */}
 
           <div className="login-field">
 
@@ -388,20 +364,24 @@ function CreateAccount({ onBackToLogin }) {
 
             <div className="input-wrapper">
 
-              <span className="input-icon">
+              <span
+                className="input-icon"
+                aria-hidden="true"
+              >
                 👤
               </span>
 
               <input
                 id="name"
+                name="name"
                 type="text"
                 placeholder="Enter your full name"
                 value={name}
                 onChange={(e) => {
                   setName(e.target.value);
                   setError("");
+                  setSuccess("");
                 }}
-                required
                 disabled={loading}
                 autoComplete="name"
               />
@@ -411,9 +391,9 @@ function CreateAccount({ onBackToLogin }) {
           </div>
 
 
-          {/* =================================
+          {/* =================================================
               BIRTH NAME
-          ================================= */}
+          ================================================= */}
 
           <div className="login-field">
 
@@ -423,21 +403,26 @@ function CreateAccount({ onBackToLogin }) {
 
             <div className="input-wrapper">
 
-              <span className="input-icon">
+              <span
+                className="input-icon"
+                aria-hidden="true"
+              >
                 🪪
               </span>
 
               <input
                 id="birthName"
+                name="birthName"
                 type="text"
                 placeholder="Enter your birth name"
                 value={birthName}
                 onChange={(e) => {
                   setBirthName(e.target.value);
                   setError("");
+                  setSuccess("");
                 }}
-                required
                 disabled={loading}
+                autoComplete="off"
               />
 
             </div>
@@ -445,9 +430,9 @@ function CreateAccount({ onBackToLogin }) {
           </div>
 
 
-          {/* =================================
+          {/* =================================================
               EMAIL
-          ================================= */}
+          ================================================= */}
 
           <div className="login-field">
 
@@ -457,20 +442,24 @@ function CreateAccount({ onBackToLogin }) {
 
             <div className="input-wrapper">
 
-              <span className="input-icon">
+              <span
+                className="input-icon"
+                aria-hidden="true"
+              >
                 ✉
               </span>
 
               <input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
                   setError("");
+                  setSuccess("");
                 }}
-                required
                 disabled={loading}
                 autoComplete="email"
               />
@@ -480,9 +469,9 @@ function CreateAccount({ onBackToLogin }) {
           </div>
 
 
-          {/* =================================
+          {/* =================================================
               PASSWORD
-          ================================= */}
+          ================================================= */}
 
           <div className="login-field">
 
@@ -492,12 +481,16 @@ function CreateAccount({ onBackToLogin }) {
 
             <div className="input-wrapper">
 
-              <span className="input-icon">
+              <span
+                className="input-icon"
+                aria-hidden="true"
+              >
                 🔒
               </span>
 
               <input
                 id="password"
+                name="password"
                 type={
                   showPassword
                     ? "text"
@@ -508,20 +501,18 @@ function CreateAccount({ onBackToLogin }) {
                 onChange={(e) => {
                   setPassword(e.target.value);
                   setError("");
+                  setSuccess("");
                 }}
-                required
                 minLength={6}
                 disabled={loading}
                 autoComplete="new-password"
               />
 
-              {/* SHOW / HIDE PASSWORD */}
-
               <button
                 type="button"
                 className="password-toggle"
                 onClick={() =>
-                  setShowPassword(!showPassword)
+                  setShowPassword((previous) => !previous)
                 }
                 disabled={loading}
                 aria-label={
@@ -542,9 +533,9 @@ function CreateAccount({ onBackToLogin }) {
           </div>
 
 
-          {/* =================================
+          {/* =================================================
               CONFIRM PASSWORD
-          ================================= */}
+          ================================================= */}
 
           <div className="login-field">
 
@@ -554,12 +545,16 @@ function CreateAccount({ onBackToLogin }) {
 
             <div className="input-wrapper">
 
-              <span className="input-icon">
+              <span
+                className="input-icon"
+                aria-hidden="true"
+              >
                 🔐
               </span>
 
               <input
                 id="confirmPassword"
+                name="confirmPassword"
                 type={
                   showConfirmPassword
                     ? "text"
@@ -570,21 +565,19 @@ function CreateAccount({ onBackToLogin }) {
                 onChange={(e) => {
                   setConfirmPassword(e.target.value);
                   setError("");
+                  setSuccess("");
                 }}
-                required
                 minLength={6}
                 disabled={loading}
                 autoComplete="new-password"
               />
-
-              {/* SHOW / HIDE CONFIRM PASSWORD */}
 
               <button
                 type="button"
                 className="password-toggle"
                 onClick={() =>
                   setShowConfirmPassword(
-                    !showConfirmPassword
+                    (previous) => !previous
                   )
                 }
                 disabled={loading}
@@ -606,18 +599,17 @@ function CreateAccount({ onBackToLogin }) {
           </div>
 
 
-          {/* =================================
-              ERROR
-          ================================= */}
+          {/* =================================================
+              ERROR MESSAGE
+          ================================================= */}
 
           {error && (
-
             <div
               className="login-message login-error"
               role="alert"
             >
 
-              <span>
+              <span aria-hidden="true">
                 ⚠
               </span>
 
@@ -626,22 +618,20 @@ function CreateAccount({ onBackToLogin }) {
               </p>
 
             </div>
-
           )}
 
 
-          {/* =================================
-              SUCCESS
-          ================================= */}
+          {/* =================================================
+              SUCCESS MESSAGE
+          ================================================= */}
 
           {success && (
-
             <div
               className="login-message login-success"
               role="status"
             >
 
-              <span>
+              <span aria-hidden="true">
                 ✓
               </span>
 
@@ -650,13 +640,12 @@ function CreateAccount({ onBackToLogin }) {
               </p>
 
             </div>
-
           )}
 
 
-          {/* =================================
+          {/* =================================================
               CREATE ACCOUNT BUTTON
-          ================================= */}
+          ================================================= */}
 
           <button
             type="submit"
@@ -665,31 +654,29 @@ function CreateAccount({ onBackToLogin }) {
           >
 
             {loading ? (
-
               <>
-
-                <span className="spinner"></span>
+                <span
+                  className="spinner"
+                  aria-hidden="true"
+                ></span>
 
                 <span>
                   Creating Account...
                 </span>
-
               </>
-
             ) : (
-
               <>
-
                 <span>
                   Create Account
                 </span>
 
-                <span className="button-arrow">
+                <span
+                  className="button-arrow"
+                  aria-hidden="true"
+                >
                   →
                 </span>
-
               </>
-
             )}
 
           </button>
@@ -697,9 +684,9 @@ function CreateAccount({ onBackToLogin }) {
         </form>
 
 
-        {/* =====================================
+        {/* =====================================================
             FOOTER
-        ===================================== */}
+        ===================================================== */}
 
         <div className="login-footer">
 
