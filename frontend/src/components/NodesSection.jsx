@@ -1,3 +1,7 @@
+import { useEffect, useState } from "react";
+import { ref, onValue } from "firebase/database";
+import { database } from "../firebase/firebaseConfig"; // Adjust path if needed
+
 function getFloodInformation(waterLevel, status) {
   if (status === "offline") {
     return {
@@ -40,7 +44,6 @@ function getFloodInformation(waterLevel, status) {
 
 function formatLastUpdate(timestamp) {
   if (!timestamp) return "No recent data";
-
   return new Date(timestamp).toLocaleString();
 }
 
@@ -74,7 +77,6 @@ function NodeCard({ node }) {
       <div className="node-water-level">
         <div>
           <span>Current water level</span>
-
           <strong>
             {status === "online" ? waterLevel : "--"}
             <small> cm</small>
@@ -115,11 +117,64 @@ function NodeCard({ node }) {
   );
 }
 
-function NodesSection({
-  nodes = [],
-  loading = false,
-  error = null,
-}) {
+function NodesSection() {
+  // Moved state into the component so it manages its own Firebase data
+  const [nodes, setNodes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const nodesRef = ref(database, "nodes");
+
+    const unsubscribe = onValue(
+      nodesRef,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const rawData = snapshot.val();
+          const latestNodesArray = [];
+
+          // Parse the history of each node to find the latest entry
+          for (const [nodeKey, nodeHistory] of Object.entries(rawData)) {
+            const entries = Object.values(nodeHistory);
+            
+            if (entries.length > 0) {
+              const latestEntry = entries.sort(
+                (a, b) => b.timestamp - a.timestamp
+              )[0];
+
+              // Normalize the data so it matches what your UI components expect
+              latestNodesArray.push({
+                ...latestEntry,
+                firebaseKey: nodeKey,
+                id: latestEntry.id || nodeKey,
+                // UI expects lowercase "online"
+                status: latestEntry.status ? latestEntry.status.toLowerCase() : "offline",
+                // Convert Firebase seconds to JS milliseconds
+                timestamp: latestEntry.timestamp ? latestEntry.timestamp * 1000 : null,
+                // Fallback location if none is provided in DB
+                location: latestEntry.location || `Location ${nodeKey}`,
+              });
+            }
+          }
+
+          setNodes(latestNodesArray);
+        } else {
+          setNodes([]);
+        }
+
+        setLoading(false);
+        setError(null);
+      },
+      (firebaseError) => {
+        console.error("Firebase error:", firebaseError);
+        setError("Failed to load node data.");
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
   const safeNodes = Array.isArray(nodes) ? nodes : [];
 
   const onlineNodes = safeNodes.filter(
@@ -131,7 +186,6 @@ function NodesSection({
       Number(node.waterLevel ?? 0),
       node.status
     );
-
     return flood.className === "critical";
   }).length;
 
@@ -140,11 +194,7 @@ function NodesSection({
       Number(node.waterLevel ?? 0),
       node.status
     );
-
-    return (
-      flood.className === "warning" ||
-      flood.className === "critical"
-    );
+    return flood.className === "warning" || flood.className === "critical";
   }).length;
 
   return (
@@ -152,9 +202,7 @@ function NodesSection({
       <div className="section-heading nodes-heading">
         <div>
           <p className="eyebrow">MONITORING NETWORK</p>
-
           <h3>Flood Monitoring Nodes</h3>
-
           <p className="section-description">
             Real-time flood information from the installed monitoring devices.
           </p>
@@ -212,6 +260,5 @@ function NodesSection({
     </section>
   );
 }
-
 
 export default NodesSection;
