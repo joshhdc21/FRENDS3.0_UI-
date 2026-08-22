@@ -478,7 +478,7 @@ export default function MapSection() {
             {/* Floating Route Info Pill (Bottom Center) */}
             {routeInfo && (
                 <div style={{ 
-                    position: 'absolute', bottom: isMobile ? '30px' : '40px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: '#ffffff', borderRadius: '24px', padding: '12px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '24px'
+                    position: 'absolute', bottom: isMobile ? '100px' : '40px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: '#ffffff', borderRadius: '24px', padding: '12px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '24px'
                 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                         <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a73e8' }}>{routeInfo.time} <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#5f6368' }}>min</span></span>
