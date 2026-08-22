@@ -202,8 +202,9 @@ export default function MapSection() {
                 .bindPopup(popupContent);
         });
 
-        // Route Segments
+        // Route Segments (Updated with safe guard)
         routeSegments.forEach(segment => {
+            if (!segment || !Array.isArray(segment.coords)) return; // Crash prevention safeguard
             const positions = segment.coords.map(c => [c.latitude, c.longitude]);
             L.polyline(positions, { color: segment.color, weight: 6, opacity: 0.8, lineCap: 'round', lineJoin: 'round' }).addTo(mapGroup);
         });
@@ -333,7 +334,10 @@ export default function MapSection() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
+            
             const data = await response.json();
+            console.log("🚨 RAW BACKEND DATA:", data); // ADDED THIS LINE FOR DEBUGGING
+            
             if (data.status === 'SUCCESS' || data.status === 'success') {
                 if (data.segments && data.segments.length > 0) setRouteSegments(data.segments);
                 else if (data.path) setRouteSegments([{ coords: data.path, color: '#1a73e8' }]); // Google Maps Blue
