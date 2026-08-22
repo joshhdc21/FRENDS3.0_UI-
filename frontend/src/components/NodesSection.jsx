@@ -202,9 +202,9 @@ function NodesSection({
       )}
 
       <div className="nodes-grid">
-        {safeNodes.map((node) => (
+        {safeNodes.map((node, index) => (
           <NodeCard
-            key={node.firebaseKey || node.id}
+            key={node.firebaseKey || node.id || `fallback-key-${index}`}
             node={node}
           />
         ))}
