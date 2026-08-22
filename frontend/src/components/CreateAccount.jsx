@@ -21,8 +21,8 @@ function CreateAccount({ onBackToLogin }) {
   // FORM DATA
   // =========================================================
 
-  const [name, setName] = useState("");
-  const [birthName, setBirthName] = useState("");
+  const [username, setUsername] = useState("");
+  const [birthday, setBirthday] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -54,7 +54,6 @@ function CreateAccount({ onBackToLogin }) {
   async function handleCreateAccount(e) {
     e.preventDefault();
 
-    // Clear previous messages
     setError("");
     setSuccess("");
 
@@ -63,13 +62,22 @@ function CreateAccount({ onBackToLogin }) {
     // =======================================================
 
     if (
-      !name.trim() ||
-      !birthName.trim() ||
+      !username.trim() ||
+      !birthday ||
       !email.trim() ||
       !password ||
       !confirmPassword
     ) {
       setError("Please complete all fields.");
+      return;
+    }
+
+    // =======================================================
+    // CHECK USERNAME
+    // =======================================================
+
+    if (username.trim().length < 3) {
+      setError("Username must be at least 3 characters.");
       return;
     }
 
@@ -113,10 +121,11 @@ function CreateAccount({ onBackToLogin }) {
 
       // =====================================================
       // UPDATE FIREBASE DISPLAY NAME
+      // USE USERNAME
       // =====================================================
 
       await updateProfile(user, {
-        displayName: name.trim(),
+        displayName: username.trim(),
       });
 
       // =====================================================
@@ -126,8 +135,8 @@ function CreateAccount({ onBackToLogin }) {
 
       const userData = {
         uid: user.uid,
-        name: name.trim(),
-        birthName: birthName.trim(),
+        username: username.trim(),
+        birthday: birthday,
         email: email.trim(),
         createdAt: new Date().toISOString(),
       };
@@ -155,8 +164,8 @@ function CreateAccount({ onBackToLogin }) {
       // CLEAR FORM
       // =====================================================
 
-      setName("");
-      setBirthName("");
+      setUsername("");
+      setBirthday("");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
@@ -235,22 +244,18 @@ function CreateAccount({ onBackToLogin }) {
       return;
     }
 
-    // Clear messages
     setError("");
     setSuccess("");
 
-    // Clear form
-    setName("");
-    setBirthName("");
+    setUsername("");
+    setBirthday("");
     setEmail("");
     setPassword("");
     setConfirmPassword("");
 
-    // Reset password visibility
     setShowPassword(false);
     setShowConfirmPassword(false);
 
-    // Return to Login
     if (typeof onBackToLogin === "function") {
       onBackToLogin();
     }
@@ -321,7 +326,7 @@ function CreateAccount({ onBackToLogin }) {
           </h1>
 
           <p>
-            Smart Flood &amp; Traffic Monitoring
+           Flood Road Eye and Navigation Dtection System 
           </p>
 
         </div>
@@ -353,13 +358,13 @@ function CreateAccount({ onBackToLogin }) {
         >
 
           {/* =================================================
-              FULL NAME
+              USERNAME
           ================================================= */}
 
           <div className="login-field">
 
-            <label htmlFor="name">
-              Full Name
+            <label htmlFor="username">
+              Username
             </label>
 
             <div className="input-wrapper">
@@ -372,18 +377,20 @@ function CreateAccount({ onBackToLogin }) {
               </span>
 
               <input
-                id="name"
-                name="name"
+                id="username"
+                name="username"
+                className="create-account-input"
                 type="text"
-                placeholder="Enter your full name"
-                value={name}
+                placeholder="Enter your username"
+                value={username}
                 onChange={(e) => {
-                  setName(e.target.value);
+                  setUsername(e.target.value);
                   setError("");
                   setSuccess("");
                 }}
                 disabled={loading}
-                autoComplete="name"
+                autoComplete="username"
+                maxLength={30}
               />
 
             </div>
@@ -392,13 +399,13 @@ function CreateAccount({ onBackToLogin }) {
 
 
           {/* =================================================
-              BIRTH NAME
+              BIRTHDAY
           ================================================= */}
 
           <div className="login-field">
 
-            <label htmlFor="birthName">
-              Birth Name
+            <label htmlFor="birthday">
+              Birthday
             </label>
 
             <div className="input-wrapper">
@@ -407,22 +414,22 @@ function CreateAccount({ onBackToLogin }) {
                 className="input-icon"
                 aria-hidden="true"
               >
-                🪪
+          
               </span>
 
               <input
-                id="birthName"
-                name="birthName"
-                type="text"
-                placeholder="Enter your birth name"
-                value={birthName}
+                id="birthday"
+                name="birthday"
+                className="create-account-input"
+                type="date"
+                value={birthday}
                 onChange={(e) => {
-                  setBirthName(e.target.value);
+                  setBirthday(e.target.value);
                   setError("");
                   setSuccess("");
                 }}
                 disabled={loading}
-                autoComplete="off"
+                autoComplete="bday"
               />
 
             </div>
@@ -452,6 +459,7 @@ function CreateAccount({ onBackToLogin }) {
               <input
                 id="email"
                 name="email"
+                className="create-account-input"
                 type="email"
                 placeholder="Enter your email"
                 value={email}
@@ -491,6 +499,7 @@ function CreateAccount({ onBackToLogin }) {
               <input
                 id="password"
                 name="password"
+                className="create-account-input"
                 type={
                   showPassword
                     ? "text"
@@ -512,7 +521,9 @@ function CreateAccount({ onBackToLogin }) {
                 type="button"
                 className="password-toggle"
                 onClick={() =>
-                  setShowPassword((previous) => !previous)
+                  setShowPassword(
+                    (previous) => !previous
+                  )
                 }
                 disabled={loading}
                 aria-label={
@@ -523,8 +534,8 @@ function CreateAccount({ onBackToLogin }) {
               >
 
                 {showPassword
-                  ? "🙈"
-                  : "👁️"}
+                 ? "👁"
+                  : "👁"}
 
               </button>
 
@@ -555,6 +566,7 @@ function CreateAccount({ onBackToLogin }) {
               <input
                 id="confirmPassword"
                 name="confirmPassword"
+                className="create-account-input"
                 type={
                   showConfirmPassword
                     ? "text"
@@ -589,8 +601,8 @@ function CreateAccount({ onBackToLogin }) {
               >
 
                 {showConfirmPassword
-                  ? "🙈"
-                  : "👁️"}
+                 ? "👁"
+                  : "👁"}
 
               </button>
 
@@ -655,6 +667,7 @@ function CreateAccount({ onBackToLogin }) {
 
             {loading ? (
               <>
+
                 <span
                   className="spinner"
                   aria-hidden="true"
@@ -663,9 +676,11 @@ function CreateAccount({ onBackToLogin }) {
                 <span>
                   Creating Account...
                 </span>
+
               </>
             ) : (
               <>
+                <br></br>
                 <span>
                   Create Account
                 </span>
@@ -676,6 +691,7 @@ function CreateAccount({ onBackToLogin }) {
                 >
                   →
                 </span>
+
               </>
             )}
 

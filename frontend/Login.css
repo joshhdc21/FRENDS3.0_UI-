@@ -1,75 +1,7 @@
- /* =========================================
-   FRENDS LOGO - REMOVE WHITE BOX / CIRCLE
-   Keeps the original logo size
-========================================= */
-
-/* =========================================
-   WELCOME / INTRO LOGO CONTAINER
-========================================= */
-
-.intro-logo {
-  background: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
-
-/* Remove decorative circles / pseudo-elements */
-
-.intro-logo::before,
-.intro-logo::after {
-  content: none !important;
-  display: none !important;
-  background: none !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-/* =========================================
-   FRENDS LOGO IMAGE
-========================================= */
-
-.intro-logo img {
-  background: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  outline: none !important;
-  display: block;
-}
-
-/* =========================================
-   LOGIN LOGO
-========================================= */
-
-.login-logo {
-  background: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  padding: 0 !important;
-  overflow: visible !important;
-}
-
-.login-logo::before,
-.login-logo::after {
-  content: none !important;
-  display: none !important;
-  background: none !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.login-logo img {
-  background: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  outline: none !important;
-  display: block;
-}
+/* =========================================================
+   FRENDS CREATE ACCOUNT
+   COMPLETE FORM + ICON + INPUT FIX
+========================================================= */
 
 
 /* =========================================================
@@ -77,119 +9,12 @@
 ========================================================= */
 
 .create-account-page {
-  position: relative;
+  width: 100% !important;
+  min-height: 100vh !important;
 
-  min-height: 100vh;
-  width: 100%;
+  box-sizing: border-box !important;
 
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 40px 20px;
-
-  overflow: hidden;
-
-  background:
-    linear-gradient(
-      135deg,
-      #eef8fc 0%,
-      #f8fbfd 50%,
-      #e9f5fa 100%
-    );
-}
-
-
-/* =========================================================
-   BACKGROUND
-========================================================= */
-
-.create-account-page .login-background {
-  position: absolute;
-
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-
-  overflow: hidden;
-
-  pointer-events: none;
-
-  z-index: 0;
-}
-
-
-/* =========================================================
-   BACKGROUND CIRCLES
-========================================================= */
-
-.create-account-page .background-circle {
-  position: absolute;
-
-  border-radius: 50%;
-
-  opacity: 0.35;
-
-  pointer-events: none;
-}
-
-.create-account-page .circle-one {
-  width: 420px;
-  height: 420px;
-
-  top: -180px;
-  left: -150px;
-
-  background: rgba(40, 181, 220, 0.18);
-}
-
-.create-account-page .circle-two {
-  width: 520px;
-  height: 520px;
-
-  right: -230px;
-  bottom: -220px;
-
-  background: rgba(15, 123, 164, 0.13);
-}
-
-.create-account-page .circle-three {
-  width: 180px;
-  height: 180px;
-
-  top: 15%;
-  right: 12%;
-
-  background: rgba(78, 199, 225, 0.12);
-}
-
-
-/* =========================================================
-   BACKGROUND WAVES
-========================================================= */
-
-.create-account-page .background-wave {
-  position: absolute;
-
-  width: 800px;
-  height: 800px;
-
-  border: 1px solid rgba(42, 157, 189, 0.08);
-
-  border-radius: 45%;
-
-  transform: rotate(25deg);
-}
-
-.create-account-page .wave-one {
-  left: -430px;
-  bottom: -500px;
-}
-
-.create-account-page .wave-two {
-  right: -500px;
-  top: -480px;
+  overflow-x: hidden !important;
 }
 
 
@@ -197,209 +22,75 @@
    CREATE ACCOUNT CARD
 ========================================================= */
 
-.create-account-card {
-  position: relative;
+.create-account-page .create-account-card {
+  width: 100% !important;
+  max-width: 550px !important;
 
-  z-index: 2;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
 
-  width: 100%;
-  max-width: 550px;
+  padding: 30px 38px 28px !important;
 
-  background: rgba(255, 255, 255, 0.97);
+  background: #f3f4f6 !important;
 
-  border: 1px solid rgba(20, 109, 145, 0.12);
+  border: none !important;
+  border-radius: 24px !important;
 
-  border-radius: 24px;
+  box-shadow: none !important;
 
-  padding: 34px 38px 28px;
+  overflow: visible !important;
 
-  box-shadow:
-    0 20px 60px rgba(20, 76, 102, 0.12),
-    0 5px 20px rgba(20, 76, 102, 0.06);
-
-  backdrop-filter: blur(10px);
-
-  animation: createAccountAppear 0.45s ease;
-}
-
-@keyframes createAccountAppear {
-
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-
+  box-sizing: border-box !important;
 }
 
 
 /* =========================================================
-   BACK TO LOGIN
+   CREATE ACCOUNT FORM
 ========================================================= */
 
-.back-to-login-button {
-  display: inline-flex;
+.create-account-page .create-account-form {
+  display: block !important;
 
-  align-items: center;
+  width: 100% !important;
 
-  gap: 8px;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
 
-  margin-bottom: 18px;
+  margin: 0 !important;
+  padding: 0 !important;
 
-  padding: 4px 0;
+  background: transparent !important;
 
-  border: none;
-
-  background: transparent;
-
-  color: #16789e;
-
-  font-family: inherit;
-
-  font-size: 14px;
-
-  font-weight: 600;
-
-  cursor: pointer;
-
-  transition:
-    color 0.2s ease,
-    transform 0.2s ease;
-}
-
-.back-to-login-button:hover {
-  color: #0c5f81;
-
-  transform: translateX(-3px);
-}
-
-.back-to-login-button:disabled {
-  opacity: 0.5;
-
-  cursor: not-allowed;
-
-  transform: none;
-}
-
-.back-arrow {
-  font-size: 20px;
-
-  line-height: 1;
+  box-sizing: border-box !important;
 }
 
 
 /* =========================================================
-   HEADER
+   REMOVE FLEX STRETCHING
 ========================================================= */
 
-.create-account-card .login-header {
-  text-align: center;
+.create-account-page .login-form,
+.create-account-page .login-fields,
+.create-account-page .form-fields {
+  display: block !important;
 
-  margin-bottom: 20px;
-}
+  width: 100% !important;
 
-.create-account-card .login-header h1 {
-  margin: 0;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
 
-  color: #123c59;
+  margin: 0 !important;
+  padding: 0 !important;
 
-  font-size: 28px;
+  background: transparent !important;
 
-  font-weight: 750;
+  justify-content: initial !important;
+  align-items: initial !important;
 
-  line-height: 1.25;
-
-  letter-spacing: -0.5px;
-}
-
-.create-account-card .login-header p {
-  margin: 8px 0 0;
-
-  color: #6b8799;
-
-  font-size: 13px;
-
-  font-weight: 500;
-
-  letter-spacing: 0.2px;
-}
-
-
-/* =========================================================
-   SYSTEM STATUS
-========================================================= */
-
-.create-account-card .system-status {
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  gap: 8px;
-
-  width: fit-content;
-
-  margin: 0 auto 24px;
-
-  padding: 7px 14px;
-
-  border-radius: 30px;
-
-  background: #edf9f5;
-
-  color: #267d62;
-
-  font-size: 12px;
-
-  font-weight: 600;
-
-  border: 1px solid rgba(44, 153, 111, 0.12);
-}
-
-.status-dot {
-  width: 8px;
-
-  height: 8px;
-
-  flex-shrink: 0;
-
-  border-radius: 50%;
-
-  background: #28b77a;
-
-  box-shadow:
-    0 0 0 3px rgba(40, 183, 122, 0.12);
-
-  animation: statusPulse 2s infinite;
-}
-
-@keyframes statusPulse {
-
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 3px rgba(40, 183, 122, 0.12);
-  }
-
-  50% {
-    box-shadow:
-      0 0 0 6px rgba(40, 183, 122, 0.04);
-  }
-
-}
-
-
-/* =========================================================
-   FORM
-========================================================= */
-
-.create-account-form {
-  width: 100%;
+  box-sizing: border-box !important;
 }
 
 
@@ -407,570 +98,1839 @@
    FORM FIELD
 ========================================================= */
 
-.create-account-form .login-field {
-  width: 100%;
+.create-account-page
+.create-account-form
+.login-field {
+  display: block !important;
 
-  margin-bottom: 17px;
+  position: relative !important;
+
+  width: 100% !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+
+  margin: 0 0 16px 0 !important;
+  padding: 0 !important;
+
+  background: transparent !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  box-sizing: border-box !important;
 }
 
-.create-account-form .login-field label {
-  display: block;
 
-  margin-bottom: 7px;
+/* =========================================================
+   LABEL
+========================================================= */
 
-  color: #274b62;
+.create-account-page
+.create-account-form
+.login-field
+label {
+  display: block !important;
 
-  font-size: 13px;
+  position: relative !important;
 
-  font-weight: 650;
+  width: 100% !important;
+
+  height: auto !important;
+
+  margin: 0 0 7px 0 !important;
+  padding: 0 !important;
+
+  color: #374151 !important;
+
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+
+  line-height: 1.4 !important;
+
+  background: transparent !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  box-sizing: border-box !important;
 }
 
 
 /* =========================================================
    INPUT WRAPPER
+   GRAY FIELD
 ========================================================= */
 
-.create-account-form .input-wrapper {
-  position: relative;
+.create-account-page
+.create-account-form
+.input-wrapper {
+  display: flex !important;
 
-  display: flex;
+  position: relative !important;
 
-  align-items: center;
+  align-items: center !important;
 
-  width: 100%;
+  width: 100% !important;
 
-  min-height: 48px;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
 
-  border: 1px solid #d7e4eb;
+  margin: 0 !important;
+  padding: 0 !important;
 
-  border-radius: 12px;
+  background: #e5e7eb !important;
 
-  background: #fbfdfe;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
 
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
-}
+  box-shadow: none !important;
 
-.create-account-form .input-wrapper:focus-within {
-  border-color: #27a5ca;
+  overflow: hidden !important;
 
-  background: #ffffff;
+  box-sizing: border-box !important;
 
-  box-shadow:
-    0 0 0 4px rgba(39, 165, 202, 0.10);
-}
-
-
-/* =========================================================
-   INPUT ICON
-========================================================= */
-
-.create-account-form .input-icon {
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  width: 44px;
-
-  flex-shrink: 0;
-
-  color: #6f98aa;
-
-  font-size: 17px;
-
-  user-select: none;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 
 /* =========================================================
    INPUT
+   IMPORTANT:
+   RESERVES SPACE FOR LEFT ICON
 ========================================================= */
 
-.create-account-form .input-wrapper input {
-  width: 100%;
+.create-account-page
+.create-account-form
+.input-wrapper
+input {
+  display: block !important;
 
-  min-width: 0;
+  position: relative !important;
 
-  height: 46px;
+  flex: 1 1 auto !important;
 
-  padding: 0 14px 0 0;
+  width: 100% !important;
 
-  border: none;
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
 
-  outline: none;
+  margin: 0 !important;
 
-  background: transparent;
+  /*
+     LEFT = 44px
+     RIGHT = 44px
+     This prevents icons from overlapping text.
+  */
+  padding: 0 44px 0 44px !important;
 
-  color: #193d55;
+  background: transparent !important;
 
-  font-family: inherit;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 
-  font-size: 14px;
+  color: #1f2937 !important;
+
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+
+  line-height: 46px !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+
+  box-sizing: border-box !important;
 }
 
-.create-account-form .input-wrapper input::placeholder {
-  color: #9aadb8;
+
+/* =========================================================
+   INPUT PLACEHOLDER
+========================================================= */
+
+.create-account-page
+.create-account-form
+.input-wrapper
+input::placeholder {
+  color: #6b7280 !important;
+
+  opacity: 1 !important;
+
+  font-weight: 400 !important;
 }
 
-.create-account-form .input-wrapper input:disabled {
-  opacity: 0.6;
 
-  cursor: not-allowed;
+/* =========================================================
+   INPUT FOCUS
+========================================================= */
+
+.create-account-page
+.create-account-form
+.input-wrapper:focus-within {
+  background: #e5e7eb !important;
+
+  border-color: #3b82f6 !important;
+
+  box-shadow:
+    0 0 0 2px rgba(59, 130, 246, 0.12) !important;
+}
+
+
+/* =========================================================
+   LEFT INPUT ICON
+   FIXES ICON OVERLAPPING TEXT
+========================================================= */
+
+.create-account-page
+.create-account-form
+.input-wrapper
+.input-icon {
+  display: flex !important;
+
+  position: absolute !important;
+
+  left: 0 !important;
+  top: 0 !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 44px !important;
+  height: 46px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  flex: none !important;
+
+  color: #6b7280 !important;
+
+  background: transparent !important;
+
+  border: none !important;
+
+  z-index: 3 !important;
+
+  pointer-events: none !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   ICON SVG / I
+========================================================= */
+
+.create-account-page
+.create-account-form
+.input-wrapper
+.input-icon
+svg,
+.create-account-page
+.create-account-form
+.input-wrapper
+.input-icon
+i {
+  display: block !important;
+
+  width: 17px !important;
+  height: 17px !important;
+
+  color: #6b7280 !important;
+
+  fill: currentColor !important;
+
+  opacity: 1 !important;
 }
 
 
 /* =========================================================
    PASSWORD TOGGLE
+   RIGHT SIDE
 ========================================================= */
 
+.create-account-page
+.create-account-form
 .password-toggle {
-  display: flex;
+  display: flex !important;
 
-  align-items: center;
+  position: absolute !important;
 
-  justify-content: center;
+  right: 0 !important;
+  top: 0 !important;
 
-  width: 44px;
+  align-items: center !important;
+  justify-content: center !important;
 
-  height: 44px;
+  width: 44px !important;
+  height: 46px !important;
 
-  flex-shrink: 0;
+  margin: 0 !important;
+  padding: 0 !important;
 
-  margin-right: 2px;
+  flex: none !important;
 
-  padding: 0;
+  background: transparent !important;
 
-  border: none;
+  border: none !important;
+  outline: none !important;
 
-  border-radius: 9px;
+  color: #6b7280 !important;
 
-  background: transparent;
+  cursor: pointer !important;
 
-  cursor: pointer;
+  z-index: 5 !important;
 
-  font-size: 16px;
+  visibility: visible !important;
+  opacity: 1 !important;
 
-  opacity: 0.7;
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   PASSWORD TOGGLE ICON
+========================================================= */
+
+.create-account-page
+.create-account-form
+.password-toggle
+svg,
+.create-account-page
+.create-account-form
+.password-toggle
+i {
+  width: 17px !important;
+  height: 17px !important;
+
+  color: #6b7280 !important;
+
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   PASSWORD TOGGLE HOVER
+========================================================= */
+
+.create-account-page
+.create-account-form
+.password-toggle:hover {
+  background: transparent !important;
+
+  color: #374151 !important;
+}
+
+
+/* =========================================================
+   DATE INPUT
+   KEEP CALENDAR ON RIGHT
+========================================================= */
+
+.create-account-page
+.create-account-form
+input[type="date"] {
+  padding-left: 44px !important;
+  padding-right: 44px !important;
+
+  color: #1f2937 !important;
+
+  background: transparent !important;
+}
+
+
+/* =========================================================
+   DATE CALENDAR ICON
+========================================================= */
+
+.create-account-page
+.create-account-form
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 1 !important;
+
+  cursor: pointer !important;
+
+  width: 16px !important;
+  height: 16px !important;
+
+  margin-right: 8px !important;
+}
+
+
+/* =========================================================
+   TEXT / EMAIL / PASSWORD INPUTS
+========================================================= */
+
+.create-account-page
+.create-account-form
+input[type="text"],
+.create-account-page
+.create-account-form
+input[type="email"],
+.create-account-page
+.create-account-form
+input[type="password"] {
+  background: transparent !important;
+
+  color: #1f2937 !important;
+
+  -webkit-text-fill-color: #1f2937 !important;
+}
+
+
+/* =========================================================
+   AUTOFILL FIX
+   PREVENTS BROWSER FROM MAKING INPUT WHITE
+========================================================= */
+
+.create-account-page
+.create-account-form
+input:-webkit-autofill,
+.create-account-page
+.create-account-form
+input:-webkit-autofill:hover,
+.create-account-page
+.create-account-form
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1f2937 !important;
+
+  -webkit-box-shadow:
+    0 0 0 1000px #e5e7eb inset !important;
+
+  box-shadow:
+    0 0 0 1000px #e5e7eb inset !important;
+
+  background-color: #e5e7eb !important;
+
+  transition:
+    background-color 9999s ease-out 0s !important;
+}
+
+
+/* =========================================================
+   CREATE ACCOUNT BUTTON - FIXED
+========================================================= */
+
+.create-account-page .create-account-form .create-account-button {
+  display: flex !important;
+  position: relative !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 100% !important;
+  height: 25px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+
+  /* ADD SPACE ABOVE THE BUTTON */
+  margin-top: 14px !important;
+  margin-right: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+
+  padding: 0 20px !important;
+
+  background: linear-gradient(
+    135deg,
+    #2563eb,
+    #3b82f6
+  ) !important;
+
+  color: #ffffff !important;
+
+  border: none !important;
+  border-radius: 11px !important;
+
+  font-family: inherit !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+
+  line-height: 1 !important;
+
+  cursor: pointer !important;
+
+  box-shadow:
+    0 5px 14px rgba(37, 99, 235, 0.22) !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  box-sizing: border-box !important;
 
   transition:
     background 0.2s ease,
-    opacity 0.2s ease;
-}
-
-.password-toggle:hover {
-  background: #eef7fa;
-
-  opacity: 1;
-}
-
-.password-toggle:disabled {
-  cursor: not-allowed;
-
-  opacity: 0.4;
-}
-
-
-/* =========================================================
-   ERROR / SUCCESS MESSAGE
-========================================================= */
-
-.create-account-form .login-message {
-  display: flex;
-
-  align-items: flex-start;
-
-  gap: 10px;
-
-  width: 100%;
-
-  margin: 5px 0 17px;
-
-  padding: 12px 14px;
-
-  border-radius: 10px;
-
-  font-size: 13px;
-
-  line-height: 1.45;
-}
-
-.create-account-form .login-message span {
-  flex-shrink: 0;
-
-  font-weight: 700;
-}
-
-.create-account-form .login-message p {
-  margin: 0;
-}
-
-
-/* ERROR */
-
-.create-account-form .login-error {
-  background: #fff2f2;
-
-  border: 1px solid #f3d0d0;
-
-  color: #b54242;
-}
-
-
-/* SUCCESS */
-
-.create-account-form .login-success {
-  background: #edf9f3;
-
-  border: 1px solid #ccebdc;
-
-  color: #237451;
-}
-
-
-/* =========================================================
-   CREATE ACCOUNT BUTTON
-========================================================= */
-
-.create-account-button {
-  display: flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  gap: 12px;
-
-  width: 100%;
-
-  min-height: 50px;
-
-  margin-top: 7px;
-
-  padding: 0 20px;
-
-  border: none;
-
-  border-radius: 12px;
-
-  background:
-    linear-gradient(
-      135deg,
-      #168db5 0%,
-      #22a8c9 100%
-    );
-
-  color: white;
-
-  font-family: inherit;
-
-  font-size: 14px;
-
-  font-weight: 700;
-
-  cursor: pointer;
-
-  box-shadow:
-    0 8px 20px rgba(22, 141, 181, 0.20);
-
-  transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease,
-    opacity 0.2s ease;
+    box-shadow 0.2s ease !important;
 }
 
+
+/* =========================================================
+   BUTTON TEXT
+========================================================= */
+
+.create-account-page
+.create-account-form
+.create-account-button span,
+.create-account-page
+.create-account-form
+.create-account-button {
+  color: #ffffff !important;
+}
+
+
+/* =========================================================
+   BUTTON HOVER
+========================================================= */
+
+.create-account-page
+.create-account-form
 .create-account-button:hover {
-  transform: translateY(-2px);
+  background: linear-gradient(
+    135deg,
+    #1d4ed8,
+    #2563eb
+  ) !important;
+
+  transform: translateY(-1px) !important;
 
   box-shadow:
-    0 12px 25px rgba(22, 141, 181, 0.28);
+    0 7px 18px rgba(37, 99, 235, 0.28) !important;
 }
 
+
+/* =========================================================
+   BUTTON ACTIVE
+========================================================= */
+
+.create-account-page
+.create-account-form
 .create-account-button:active {
-  transform: translateY(0);
-}
+  transform: translateY(0) !important;
 
-.create-account-button:disabled {
-  opacity: 0.7;
-
-  cursor: not-allowed;
-
-  transform: none;
-}
-
-.button-arrow {
-  font-size: 19px;
-
-  line-height: 1;
-
-  transition: transform 0.2s ease;
-}
-
-.create-account-button:hover .button-arrow {
-  transform: translateX(4px);
+  box-shadow:
+    0 4px 10px rgba(37, 99, 235, 0.20) !important;
 }
 
 
 /* =========================================================
-   LOADING SPINNER
-========================================================= */
-
-.spinner {
-  width: 17px;
-
-  height: 17px;
-
-  border: 2px solid rgba(255, 255, 255, 0.35);
-
-  border-top-color: white;
-
-  border-radius: 50%;
-
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-
-  to {
-    transform: rotate(360deg);
-  }
-
-}
-
-
-/* =========================================================
-   FOOTER
-========================================================= */
-
-.create-account-card .login-footer {
-  display: flex;
-
-  flex-direction: column;
-
-  align-items: center;
-
-  margin-top: 24px;
-
-  padding-top: 18px;
-
-  border-top: 1px solid #edf2f5;
-
-  text-align: center;
-}
-
-.create-account-card .login-footer > span {
-  color: #1684a8;
-
-  font-size: 13px;
-
-  font-weight: 800;
-
-  letter-spacing: 1.5px;
-}
-
-.create-account-card .login-footer small {
-  margin-top: 4px;
-
-  color: #8a9ca7;
-
-  font-size: 10px;
-
-  letter-spacing: 0.2px;
-}
-
-.footer-status {
-  display: flex;
-
-  align-items: center;
-
-  gap: 7px;
-
-  margin-top: 9px;
-
-  color: #579078;
-
-  font-size: 10px;
-
-  font-weight: 600;
-}
-
-.footer-status .status-dot {
-  width: 6px;
-
-  height: 6px;
-
-  box-shadow: none;
-
-  animation: none;
-}
-
-
-/* =========================================================
-   AUTOFILL
-========================================================= */
-
-.create-account-form input:-webkit-autofill,
-.create-account-form input:-webkit-autofill:hover,
-.create-account-form input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #193d55;
-
-  -webkit-box-shadow:
-    0 0 0 1000px #fbfdfe inset;
-
-  transition:
-    background-color 5000s ease-in-out 0s;
-}
-
-
-/* =========================================================
-   MOBILE / TABLET
-========================================================= */
-
-@media (max-width: 768px) {
-
-  .create-account-page {
-    padding: 30px 16px;
-  }
-
-  .create-account-card {
-    max-width: 500px;
-
-    padding: 30px 30px 25px;
-
-    border-radius: 20px;
-  }
-
-  .create-account-card .login-header h1 {
-    font-size: 25px;
-  }
-
-}
-
-
-/* =========================================================
-   MOBILE
+   MOBILE BUTTON
 ========================================================= */
 
 @media (max-width: 520px) {
 
-  .create-account-page {
-    align-items: flex-start;
-
-    padding: 20px 12px;
-
-    overflow-y: auto;
-  }
-
-  .create-account-card {
-    width: 100%;
-
-    max-width: 100%;
-
-    padding: 24px 20px 22px;
-
-    border-radius: 18px;
-  }
-
-  .back-to-login-button {
-    margin-bottom: 15px;
-
-    font-size: 13px;
-  }
-
-  .create-account-card .login-header {
-    margin-bottom: 17px;
-  }
-
-  .create-account-card .login-header h1 {
-    font-size: 22px;
-  }
-
-  .create-account-card .login-header p {
-    font-size: 11px;
-  }
-
-  .create-account-card .system-status {
-    margin-bottom: 20px;
-
-    font-size: 11px;
-  }
-
-  .create-account-form .login-field {
-    margin-bottom: 15px;
-  }
-
-  .create-account-form .login-field label {
-    font-size: 12px;
-  }
-
-  .create-account-form .input-wrapper {
-    min-height: 46px;
-
-    border-radius: 10px;
-  }
-
-  .create-account-form .input-wrapper input {
-    height: 44px;
-
-    font-size: 13px;
-  }
-
-  .create-account-form .input-icon {
-    width: 40px;
-
-    font-size: 16px;
-  }
-
-  .password-toggle {
-    width: 40px;
-
-    height: 40px;
-  }
-
+  .create-account-page
+  .create-account-form
   .create-account-button {
-    min-height: 48px;
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
 
-    border-radius: 10px;
+    margin-top: 14px !important;
 
-    font-size: 13px;
+    border-radius: 10px !important;
+
+    font-size: 14px !important;
   }
 
-  .create-account-card .login-footer {
-    margin-top: 20px;
+}
+/* =========================================================
+   BUTTON TEXT
+========================================================= */
+
+.create-account-page
+.create-account-button,
+.create-account-page
+.create-account-button span {
+  color: #ffffff !important;
+
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   BUTTON HOVER
+========================================================= */
+
+.create-account-page
+.create-account-button:hover {
+  background: linear-gradient(
+    135deg,
+    #1d4ed8,
+    #2563eb
+  ) !important;
+
+  transform: translateY(-1px) !important;
+
+  box-shadow:
+    0 7px 18px rgba(37, 99, 235, 0.28) !important;
+}
+
+
+/* =========================================================
+   BUTTON ACTIVE
+========================================================= */
+
+.create-account-page
+.create-account-button:active {
+  transform: translateY(0) !important;
+}
+
+
+/* =========================================================
+   FORCE FORM VISIBILITY
+========================================================= */
+
+.create-account-page
+.create-account-form
+.login-field,
+.create-account-page
+.create-account-form
+.login-field label,
+.create-account-page
+.create-account-form
+.input-wrapper,
+.create-account-page
+.create-account-form
+input,
+.create-account-page
+.create-account-form
+button {
+  visibility: visible !important;
+
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   REMOVE WHITE BACKGROUNDS
+========================================================= */
+
+.create-account-page
+.create-account-form
+.login-field,
+.create-account-page
+.create-account-form
+.login-field > *,
+.create-account-page
+.create-account-form
+.input-wrapper {
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   LOGO
+   REMOVE WHITE BOX / CIRCLE
+========================================================= */
+
+.create-account-page .intro-logo,
+.intro-logo {
+  background: transparent !important;
+
+  border: none !important;
+  border-radius: 0 !important;
+
+  box-shadow: none !important;
+  outline: none !important;
+
+  padding: 0 !important;
+
+  margin: 0 auto !important;
+
+  overflow: visible !important;
+}
+
+
+/* =========================================================
+   REMOVE LOGO DECORATIVE SHAPES
+========================================================= */
+
+.create-account-page .intro-logo::before,
+.create-account-page .intro-logo::after,
+.intro-logo::before,
+.intro-logo::after {
+  content: none !important;
+
+  display: none !important;
+
+  background: transparent !important;
+
+  border: none !important;
+
+  box-shadow: none !important;
+}
+
+
+/* =========================================================
+   LOGO IMAGE
+========================================================= */
+
+.create-account-page
+.intro-logo
+img,
+.intro-logo img {
+  display: block !important;
+
+  background: transparent !important;
+
+  border: none !important;
+
+  border-radius: 0 !important;
+
+  box-shadow: none !important;
+
+  outline: none !important;
+
+  padding: 0 !important;
+
+  margin: 0 auto !important;
+
+  opacity: 1 !important;
+
+  visibility: visible !important;
+
+  filter: none !important;
+
+  overflow: visible !important;
+}
+
+
+/* =========================================================
+   LOGO INNER ELEMENTS
+========================================================= */
+
+.intro-logo > *,
+.intro-logo > *::before,
+.intro-logo > *::after {
+  background: transparent !important;
+
+  border: none !important;
+
+  box-shadow: none !important;
+
+  outline: none !important;
+}
+
+
+/* =========================================================
+   COMMON LOGO BACKGROUND CLASSES
+========================================================= */
+
+.intro-logo .logo-circle,
+.intro-logo .logo-bg,
+.intro-logo .logo-background,
+.intro-logo .decorative-circle,
+.intro-logo .circle,
+.intro-logo .logo-wrapper {
+  background: transparent !important;
+
+  border: none !important;
+
+  box-shadow: none !important;
+}
+
+
+/* =========================================================
+   REMOVE LOGO PSEUDO ELEMENTS
+========================================================= */
+
+.intro-logo .logo-circle::before,
+.intro-logo .logo-circle::after,
+.intro-logo .logo-bg::before,
+.intro-logo .logo-bg::after,
+.intro-logo .logo-background::before,
+.intro-logo .logo-background::after,
+.intro-logo .decorative-circle::before,
+.intro-logo .decorative-circle::after,
+.intro-logo .circle::before,
+.intro-logo .circle::after {
+  content: none !important;
+
+  display: none !important;
+}
+
+
+/* =========================================================
+   DESKTOP
+========================================================= */
+
+@media (min-width: 769px) {
+
+  .create-account-page .create-account-card {
+    width: 100% !important;
+
+    max-width: 550px !important;
+
+    padding: 30px 38px 28px !important;
   }
 
 }
 
 
 /* =========================================================
-   VERY SMALL SCREEN
+   TABLET / MOBILE
 ========================================================= */
 
-@media (max-width: 360px) {
+@media (max-width: 520px) {
 
-  .create-account-page {
-    padding: 12px 8px;
+  .create-account-page .create-account-card {
+    width: 100% !important;
+
+    max-width: 100% !important;
+
+    padding: 24px 20px 22px !important;
+
+    border-radius: 20px !important;
   }
 
-  .create-account-card {
-    padding: 20px 15px;
+
+  .create-account-page
+  .create-account-form
+  .login-field {
+    margin-bottom: 15px !important;
   }
 
-  .create-account-card .login-header h1 {
-    font-size: 20px;
+
+  .create-account-page
+  .create-account-form
+  .input-wrapper {
+    height: 46px !important;
+
+    min-height: 46px !important;
+
+    max-height: 46px !important;
   }
 
-  .create-account-card .system-status {
-    padding: 6px 10px;
 
-    font-size: 10px;
+  .create-account-page
+  .create-account-form
+  .input-wrapper
+  input {
+    height: 44px !important;
+
+    min-height: 44px !important;
+
+    max-height: 44px !important;
+
+    padding-left: 42px !important;
+
+    padding-right: 42px !important;
+
+    font-size: 13px !important;
+
+    line-height: 44px !important;
   }
 
-  .create-account-form .input-wrapper input {
-    font-size: 12px;
+
+  .create-account-page
+  .create-account-form
+  .input-wrapper
+  .input-icon {
+    width: 42px !important;
+
+    height: 44px !important;
   }
 
+
+  .create-account-page
+  .create-account-form
+  .password-toggle {
+    width: 42px !important;
+
+    height: 44px !important;
+  }
+
+
+  .create-account-page
+  .create-account-button {
+    height: 48px !important;
+
+    min-height: 48px !important;
+  }
+
+}
+
+
+
+/* =========================================================
+   FRENDS CREATE ACCOUNT
+   COMPLETE FORM + ICON + INPUT FIX
+========================================================= */
+
+
+/* =========================================================
+   CREATE ACCOUNT PAGE
+========================================================= */
+
+.create-account-page {
+  width: 100% !important;
+  min-height: 100vh !important;
+
+  box-sizing: border-box !important;
+
+  overflow-x: hidden !important;
+}
+
+
+/* =========================================================
+   CREATE ACCOUNT CARD
+========================================================= */
+
+.create-account-page .create-account-card {
+  width: 100% !important;
+  max-width: 550px !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  padding: 30px 38px 28px !important;
+
+  background: #f3f4f6 !important;
+
+  border: none !important;
+  border-radius: 24px !important;
+
+  box-shadow: none !important;
+
+  overflow: visible !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   CREATE ACCOUNT FORM
+========================================================= */
+
+.create-account-page .create-account-form {
+  display: block !important;
+
+  width: 100% !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  background: transparent !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   REMOVE FLEX STRETCHING
+========================================================= */
+
+.create-account-page .login-form,
+.create-account-page .login-fields,
+.create-account-page .form-fields {
+  display: block !important;
+
+  width: 100% !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  background: transparent !important;
+
+  justify-content: initial !important;
+  align-items: initial !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   FORM FIELD
+========================================================= */
+
+.create-account-page
+.create-account-form
+.login-field {
+  display: block !important;
+
+  position: relative !important;
+
+  width: 100% !important;
+
+  height: auto !important;
+  min-height: 0 !important;
+
+  margin: 0 0 16px 0 !important;
+  padding: 0 !important;
+
+  background: transparent !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   LABEL
+========================================================= */
+
+.create-account-page
+.create-account-form
+.login-field
+label {
+  display: block !important;
+
+  position: relative !important;
+
+  width: 100% !important;
+
+  height: auto !important;
+
+  margin: 0 0 7px 0 !important;
+  padding: 0 !important;
+
+  color: #374151 !important;
+
+  font-family: inherit !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+
+  line-height: 1.4 !important;
+
+  background: transparent !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   INPUT WRAPPER
+   GRAY FIELD
+========================================================= */
+
+.create-account-page
+.create-account-form
+.input-wrapper {
+  display: flex !important;
+
+  position: relative !important;
+
+  align-items: center !important;
+
+  width: 100% !important;
+
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  background: #e5e7eb !important;
+
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+
+  box-shadow: none !important;
+
+  overflow: hidden !important;
+
+  box-sizing: border-box !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   INPUT
+   IMPORTANT:
+   RESERVES SPACE FOR LEFT ICON
+========================================================= */
+
+.create-account-page
+.create-account-form
+.input-wrapper
+input {
+  display: block !important;
+
+  position: relative !important;
+
+  flex: 1 1 auto !important;
+
+  width: 100% !important;
+
+  height: 46px !important;
+  min-height: 46px !important;
+  max-height: 46px !important;
+
+  margin: 0 !important;
+
+  /*
+     LEFT = 44px
+     RIGHT = 44px
+     This prevents icons from overlapping text.
+  */
+  padding: 0 44px 0 44px !important;
+
+  background: transparent !important;
+
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+
+  color: #1f2937 !important;
+
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+
+  line-height: 46px !important;
+
+  opacity: 1 !important;
+  visibility: visible !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   INPUT PLACEHOLDER
+========================================================= */
+
+.create-account-page
+.create-account-form
+.input-wrapper
+input::placeholder {
+  color: #6b7280 !important;
+
+  opacity: 1 !important;
+
+  font-weight: 400 !important;
+}
+
+
+/* =========================================================
+   INPUT FOCUS
+========================================================= */
+
+.create-account-page
+.create-account-form
+.input-wrapper:focus-within {
+  background: #e5e7eb !important;
+
+  border-color: #3b82f6 !important;
+
+  box-shadow:
+    0 0 0 2px rgba(59, 130, 246, 0.12) !important;
+}
+
+
+/* =========================================================
+   LEFT INPUT ICON
+   FIXES ICON OVERLAPPING TEXT
+========================================================= */
+
+.create-account-page
+.create-account-form
+.input-wrapper
+.input-icon {
+  display: flex !important;
+
+  position: absolute !important;
+
+  left: 0 !important;
+  top: 0 !important;
+
+  align-items: center !important;
+
+  justify-content: center !important;
+
+  width: 44px !important;
+  height: 46px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  flex: none !important;
+
+  color: #6b7280 !important;
+
+  background: transparent !important;
+
+  border: none !important;
+
+  z-index: 3 !important;
+
+  pointer-events: none !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   ICON SVG / I
+========================================================= */
+
+.create-account-page
+.create-account-form
+.input-wrapper
+.input-icon
+svg,
+.create-account-page
+.create-account-form
+.input-wrapper
+.input-icon
+i {
+  display: block !important;
+
+  width: 17px !important;
+  height: 17px !important;
+
+  color: #6b7280 !important;
+
+  fill: currentColor !important;
+
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   PASSWORD TOGGLE
+   RIGHT SIDE
+========================================================= */
+
+.create-account-page
+.create-account-form
+.password-toggle {
+  display: flex !important;
+
+  position: absolute !important;
+
+  right: 0 !important;
+  top: 0 !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 44px !important;
+  height: 46px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  flex: none !important;
+
+  background: transparent !important;
+
+  border: none !important;
+  outline: none !important;
+
+  color: #6b7280 !important;
+
+  cursor: pointer !important;
+
+  z-index: 5 !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   PASSWORD TOGGLE ICON
+========================================================= */
+
+.create-account-page
+.create-account-form
+.password-toggle
+svg,
+.create-account-page
+.create-account-form
+.password-toggle
+i {
+  width: 17px !important;
+  height: 17px !important;
+
+  color: #6b7280 !important;
+
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   PASSWORD TOGGLE HOVER
+========================================================= */
+
+.create-account-page
+.create-account-form
+.password-toggle:hover {
+  background: transparent !important;
+
+  color: #374151 !important;
+}
+
+
+/* =========================================================
+   DATE INPUT
+   KEEP CALENDAR ON RIGHT
+========================================================= */
+
+.create-account-page
+.create-account-form
+input[type="date"] {
+  padding-left: 44px !important;
+  padding-right: 44px !important;
+
+  color: #1f2937 !important;
+
+  background: transparent !important;
+}
+
+
+/* =========================================================
+   DATE CALENDAR ICON
+========================================================= */
+
+.create-account-page
+.create-account-form
+input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 1 !important;
+
+  cursor: pointer !important;
+
+  width: 16px !important;
+  height: 16px !important;
+
+  margin-right: 8px !important;
+}
+
+
+/* =========================================================
+   TEXT / EMAIL / PASSWORD INPUTS
+========================================================= */
+
+.create-account-page
+.create-account-form
+input[type="text"],
+.create-account-page
+.create-account-form
+input[type="email"],
+.create-account-page
+.create-account-form
+input[type="password"] {
+  background: transparent !important;
+
+  color: #1f2937 !important;
+
+  -webkit-text-fill-color: #1f2937 !important;
+}
+
+
+/* =========================================================
+   AUTOFILL FIX
+   PREVENTS BROWSER FROM MAKING INPUT WHITE
+========================================================= */
+
+.create-account-page
+.create-account-form
+input:-webkit-autofill,
+.create-account-page
+.create-account-form
+input:-webkit-autofill:hover,
+.create-account-page
+.create-account-form
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1f2937 !important;
+
+  -webkit-box-shadow:
+    0 0 0 1000px #e5e7eb inset !important;
+
+  box-shadow:
+    0 0 0 1000px #e5e7eb inset !important;
+
+  background-color: #e5e7eb !important;
+
+  transition:
+    background-color 9999s ease-out 0s !important;
+}
+
+
+/* =========================================================
+   CREATE ACCOUNT BUTTON - FIXED
+========================================================= */
+
+.create-account-page .create-account-form .create-account-button {
+  display: flex !important;
+  position: relative !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  width: 100% !important;
+  height: 25px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+
+  /* ADD SPACE ABOVE THE BUTTON */
+  margin-top: 14px !important;
+  margin-right: 0 !important;
+  margin-bottom: 0 !important;
+  margin-left: 0 !important;
+
+  padding: 0 20px !important;
+
+  background: linear-gradient(
+    135deg,
+    #2563eb,
+    #3b82f6
+  ) !important;
+
+  color: #ffffff !important;
+
+  border: none !important;
+  border-radius: 11px !important;
+
+  font-family: inherit !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+
+  line-height: 1 !important;
+
+  cursor: pointer !important;
+
+  box-shadow:
+    0 5px 14px rgba(37, 99, 235, 0.22) !important;
+
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  box-sizing: border-box !important;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease !important;
+}
+
+
+/* =========================================================
+   BUTTON TEXT
+========================================================= */
+
+.create-account-page
+.create-account-form
+.create-account-button span,
+.create-account-page
+.create-account-form
+.create-account-button {
+  color: #ffffff !important;
+}
+
+
+/* =========================================================
+   BUTTON HOVER
+========================================================= */
+
+.create-account-page
+.create-account-form
+.create-account-button:hover {
+  background: linear-gradient(
+    135deg,
+    #1d4ed8,
+    #2563eb
+  ) !important;
+
+  transform: translateY(-1px) !important;
+
+  box-shadow:
+    0 7px 18px rgba(37, 99, 235, 0.28) !important;
+}
+
+
+/* =========================================================
+   BUTTON ACTIVE
+========================================================= */
+
+.create-account-page
+.create-account-form
+.create-account-button:active {
+  transform: translateY(0) !important;
+
+  box-shadow:
+    0 4px 10px rgba(37, 99, 235, 0.20) !important;
+}
+
+
+/* =========================================================
+   MOBILE BUTTON
+========================================================= */
+
+@media (max-width: 520px) {
+
+  .create-account-page
+  .create-account-form
+  .create-account-button {
+    height: 50px !important;
+    min-height: 50px !important;
+    max-height: 50px !important;
+
+    margin-top: 14px !important;
+
+    border-radius: 10px !important;
+
+    font-size: 14px !important;
+  }
+
+}
+/* =========================================================
+   BUTTON TEXT
+========================================================= */
+
+.create-account-page
+.create-account-button,
+.create-account-page
+.create-account-button span {
+  color: #ffffff !important;
+
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   BUTTON HOVER
+========================================================= */
+
+.create-account-page
+.create-account-button:hover {
+  background: linear-gradient(
+    135deg,
+    #1d4ed8,
+    #2563eb
+  ) !important;
+
+  transform: translateY(-1px) !important;
+
+  box-shadow:
+    0 7px 18px rgba(37, 99, 235, 0.28) !important;
+}
+
+
+/* =========================================================
+   BUTTON ACTIVE
+========================================================= */
+
+.create-account-page
+.create-account-button:active {
+  transform: translateY(0) !important;
+}
+
+
+/* =========================================================
+   FORCE FORM VISIBILITY
+========================================================= */
+
+.create-account-page
+.create-account-form
+.login-field,
+.create-account-page
+.create-account-form
+.login-field label,
+.create-account-page
+.create-account-form
+.input-wrapper,
+.create-account-page
+.create-account-form
+input,
+.create-account-page
+.create-account-form
+button {
+  visibility: visible !important;
+
+  opacity: 1 !important;
+}
+
+
+/* =========================================================
+   REMOVE WHITE BACKGROUNDS
+========================================================= */
+
+.create-account-page
+.create-account-form
+.login-field,
+.create-account-page
+.create-account-form
+.login-field > *,
+.create-account-page
+.create-account-form
+.input-wrapper {
+  box-sizing: border-box !important;
+}
+
+
+/* =========================================================
+   LOGO
+   REMOVE WHITE BOX / CIRCLE
+========================================================= */
+
+.create-account-page .intro-logo,
+.intro-logo {
+  background: transparent !important;
+
+  border: none !important;
+  border-radius: 0 !important;
+
+  box-shadow: none !important;
+  outline: none !important;
+
+  padding: 0 !important;
+
+  margin: 0 auto !important;
+
+  overflow: visible !important;
+}
+
+
+/* =========================================================
+   REMOVE LOGO DECORATIVE SHAPES
+========================================================= */
+
+.create-account-page .intro-logo::before,
+.create-account-page .intro-logo::after,
+.intro-logo::before,
+.intro-logo::after {
+  content: none !important;
+
+  display: none !important;
+
+  background: transparent !important;
+
+  border: none !important;
+
+  box-shadow: none !important;
+}
+
+
+/* =========================================================
+   LOGO IMAGE
+========================================================= */
+
+.create-account-page
+.intro-logo
+img,
+.intro-logo img {
+  display: block !important;
+
+  background: transparent !important;
+
+  border: none !important;
+
+  border-radius: 0 !important;
+
+  box-shadow: none !important;
+
+  outline: none !important;
+
+  padding: 0 !important;
+
+  margin: 0 auto !important;
+
+  opacity: 1 !important;
+
+  visibility: visible !important;
+
+  filter: none !important;
+
+  overflow: visible !important;
+}
+
+
+/* =========================================================
+   LOGO INNER ELEMENTS
+========================================================= */
+
+.intro-logo > *,
+.intro-logo > *::before,
+.intro-logo > *::after {
+  background: transparent !important;
+
+  border: none !important;
+
+  box-shadow: none !important;
+
+  outline: none !important;
+}
+
+
+/* =========================================================
+   COMMON LOGO BACKGROUND CLASSES
+========================================================= */
+
+.intro-logo .logo-circle,
+.intro-logo .logo-bg,
+.intro-logo .logo-background,
+.intro-logo .decorative-circle,
+.intro-logo .circle,
+.intro-logo .logo-wrapper {
+  background: transparent !important;
+
+  border: none !important;
+
+  box-shadow: none !important;
+}
+
+
+/* =========================================================
+   REMOVE LOGO PSEUDO ELEMENTS
+========================================================= */
+
+.intro-logo .logo-circle::before,
+.intro-logo .logo-circle::after,
+.intro-logo .logo-bg::before,
+.intro-logo .logo-bg::after,
+.intro-logo .logo-background::before,
+.intro-logo .logo-background::after,
+.intro-logo .decorative-circle::before,
+.intro-logo .decorative-circle::after,
+.intro-logo .circle::before,
+.intro-logo .circle::after {
+  content: none !important;
+
+  display: none !important;
+}
+
+
+/* =========================================================
+   DESKTOP
+========================================================= */
+
+@media (min-width: 769px) {
+
+  .create-account-page .create-account-card {
+    width: 100% !important;
+
+    max-width: 550px !important;
+
+    padding: 30px 38px 28px !important;
+  }
+
+}
+
+
+/* =========================================================
+   TABLET / MOBILE
+========================================================= */
+
+@media (max-width: 520px) {
+
+  .create-account-page .create-account-card {
+    width: 100% !important;
+
+    max-width: 100% !important;
+
+    padding: 24px 20px 22px !important;
+
+    border-radius: 20px !important;
+  }
+
+
+  .create-account-page
+  .create-account-form
+  .login-field {
+    margin-bottom: 15px !important;
+  }
+
+
+  .create-account-page
+  .create-account-form
+  .input-wrapper {
+    height: 46px !important;
+
+    min-height: 46px !important;
+
+    max-height: 46px !important;
+  }
+
+
+  .create-account-page
+  .create-account-form
+  .input-wrapper
+  input {
+    height: 44px !important;
+
+    min-height: 44px !important;
+
+    max-height: 44px !important;
+
+    padding-left: 42px !important;
+
+    padding-right: 42px !important;
+
+    font-size: 13px !important;
+
+    line-height: 44px !important;
+  }
+
+
+  .create-account-page
+  .create-account-form
+  .input-wrapper
+  .input-icon {
+    width: 42px !important;
+
+    height: 44px !important;
+  }
+
+
+  .create-account-page
+  .create-account-form
+  .password-toggle {
+    width: 42px !important;
+
+    height: 44px !important;
+  }
+
+
+  .create-account-page
+  .create-account-button {
+    height: 48px !important;
+
+    min-height: 48px !important;
+  }
+
+}
+
+/* =========================================================
+   WELCOME TITLE BOLD FIX (NEW)
+========================================================= */
+
+.create-account-page .create-account-card h1,
+.create-account-page .create-account-card h2,
+.create-account-page .create-account-card h3,
+.create-account-page .create-account-card .welcome-title,
+.create-account-page .create-account-card .title {
+  font-weight: 800 !important;
 }
