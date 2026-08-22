@@ -23,12 +23,16 @@ function CreateAccount({ onBackToLogin }) {
 
   const [name, setName] = useState("");
   const [birthName, setBirthName] = useState("");
-  const [age, setAge] = useState("");
-  const [gender, setGender] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  // =========================================
+  // PASSWORD VISIBILITY
+  // =========================================
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // =========================================
   // MESSAGES
@@ -61,8 +65,6 @@ function CreateAccount({ onBackToLogin }) {
     if (
       !name.trim() ||
       !birthName.trim() ||
-      !age ||
-      !gender ||
       !email.trim() ||
       !password ||
       !confirmPassword
@@ -70,24 +72,6 @@ function CreateAccount({ onBackToLogin }) {
 
       setError(
         "Please complete all fields."
-      );
-
-      return;
-    }
-
-    // =========================================
-    // CHECK AGE
-    // =========================================
-
-    const numericAge = Number(age);
-
-    if (
-      numericAge < 1 ||
-      numericAge > 120
-    ) {
-
-      setError(
-        "Please enter a valid age."
       );
 
       return;
@@ -160,18 +144,11 @@ function CreateAccount({ onBackToLogin }) {
 
           name: name.trim(),
 
-          birthName:
-            birthName.trim(),
+          birthName: birthName.trim(),
 
-          age: numericAge,
+          email: email.trim(),
 
-          gender: gender,
-
-          email:
-            email.trim(),
-
-          createdAt:
-            new Date().toISOString(),
+          createdAt: new Date().toISOString(),
         }
       );
 
@@ -195,11 +172,13 @@ function CreateAccount({ onBackToLogin }) {
 
       setName("");
       setBirthName("");
-      setAge("");
-      setGender("");
       setEmail("");
       setPassword("");
       setConfirmPassword("");
+
+      // Reset password visibility
+      setShowPassword(false);
+      setShowConfirmPassword(false);
 
     } catch (error) {
 
@@ -284,11 +263,13 @@ function CreateAccount({ onBackToLogin }) {
 
     setName("");
     setBirthName("");
-    setAge("");
-    setGender("");
     setEmail("");
     setPassword("");
     setConfirmPassword("");
+
+    // Reset password visibility
+    setShowPassword(false);
+    setShowConfirmPassword(false);
 
     if (onBackToLogin) {
       onBackToLogin();
@@ -301,12 +282,35 @@ function CreateAccount({ onBackToLogin }) {
 
   return (
 
-    <div className="login-page">
+    <div className="login-page create-account-page">
 
-      <div className="login-card">
+      {/* =====================================
+          BACKGROUND
+      ===================================== */}
+
+      <div className="login-background">
+
+        <div className="background-circle circle-one"></div>
+
+        <div className="background-circle circle-two"></div>
+
+        <div className="background-circle circle-three"></div>
+
+        <div className="background-wave wave-one"></div>
+
+        <div className="background-wave wave-two"></div>
+
+      </div>
+
+
+      {/* =====================================
+          CREATE ACCOUNT CARD
+      ===================================== */}
+
+      <div className="login-card create-account-card">
 
         {/* =====================================
-            BACK TO LOGIN BUTTON
+            BACK TO LOGIN
         ===================================== */}
 
         <button
@@ -315,6 +319,7 @@ function CreateAccount({ onBackToLogin }) {
           onClick={handleBackToLogin}
           disabled={loading}
         >
+
           <span className="back-arrow">
             ←
           </span>
@@ -322,7 +327,9 @@ function CreateAccount({ onBackToLogin }) {
           <span>
             Back to Login
           </span>
+
         </button>
+
 
         {/* =====================================
             HEADER
@@ -344,15 +351,34 @@ function CreateAccount({ onBackToLogin }) {
 
         </div>
 
+
+        {/* =====================================
+            SYSTEM STATUS
+        ===================================== */}
+
+        <div className="system-status">
+
+          <span className="status-dot"></span>
+
+          <span>
+            Registration System Online
+          </span>
+
+        </div>
+
+
         {/* =====================================
             FORM
         ===================================== */}
 
         <form
           onSubmit={handleCreateAccount}
+          className="create-account-form"
         >
 
-          {/* FULL NAME */}
+          {/* =================================
+              FULL NAME
+          ================================= */}
 
           <div className="login-field">
 
@@ -360,22 +386,34 @@ function CreateAccount({ onBackToLogin }) {
               Full Name
             </label>
 
-            <input
-              id="name"
-              type="text"
-              placeholder="Enter your full name"
-              value={name}
-              onChange={(e) =>
-                setName(e.target.value)
-              }
-              required
-              disabled={loading}
-              autoComplete="name"
-            />
+            <div className="input-wrapper">
+
+              <span className="input-icon">
+                👤
+              </span>
+
+              <input
+                id="name"
+                type="text"
+                placeholder="Enter your full name"
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setError("");
+                }}
+                required
+                disabled={loading}
+                autoComplete="name"
+              />
+
+            </div>
 
           </div>
 
-          {/* BIRTH NAME */}
+
+          {/* =================================
+              BIRTH NAME
+          ================================= */}
 
           <div className="login-field">
 
@@ -383,83 +421,33 @@ function CreateAccount({ onBackToLogin }) {
               Birth Name
             </label>
 
-            <input
-              id="birthName"
-              type="text"
-              placeholder="Enter your birth name"
-              value={birthName}
-              onChange={(e) =>
-                setBirthName(e.target.value)
-              }
-              required
-              disabled={loading}
-            />
+            <div className="input-wrapper">
+
+              <span className="input-icon">
+                🪪
+              </span>
+
+              <input
+                id="birthName"
+                type="text"
+                placeholder="Enter your birth name"
+                value={birthName}
+                onChange={(e) => {
+                  setBirthName(e.target.value);
+                  setError("");
+                }}
+                required
+                disabled={loading}
+              />
+
+            </div>
 
           </div>
 
-          {/* AGE */}
 
-          <div className="login-field">
-
-            <label htmlFor="age">
-              Age
-            </label>
-
-            <input
-              id="age"
-              type="number"
-              placeholder="Enter your age"
-              min="1"
-              max="120"
-              value={age}
-              onChange={(e) =>
-                setAge(e.target.value)
-              }
-              required
-              disabled={loading}
-            />
-
-          </div>
-
-          {/* GENDER */}
-
-          <div className="login-field">
-
-            <label htmlFor="gender">
-              Gender
-            </label>
-
-            <select
-              id="gender"
-              value={gender}
-              onChange={(e) =>
-                setGender(e.target.value)
-              }
-              required
-              disabled={loading}
-            >
-
-              <option value="">
-                Select Gender
-              </option>
-
-              <option value="Male">
-                Male
-              </option>
-
-              <option value="Female">
-                Female
-              </option>
-
-              <option value="Prefer not to say">
-                Prefer not to say
-              </option>
-
-            </select>
-
-          </div>
-
-          {/* EMAIL */}
+          {/* =================================
+              EMAIL
+          ================================= */}
 
           <div className="login-field">
 
@@ -467,22 +455,34 @@ function CreateAccount({ onBackToLogin }) {
               Email
             </label>
 
-            <input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              required
-              disabled={loading}
-              autoComplete="email"
-            />
+            <div className="input-wrapper">
+
+              <span className="input-icon">
+                ✉
+              </span>
+
+              <input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                }}
+                required
+                disabled={loading}
+                autoComplete="email"
+              />
+
+            </div>
 
           </div>
 
-          {/* PASSWORD */}
+
+          {/* =================================
+              PASSWORD
+          ================================= */}
 
           <div className="login-field">
 
@@ -490,23 +490,61 @@ function CreateAccount({ onBackToLogin }) {
               Password
             </label>
 
-            <input
-              id="password"
-              type="password"
-              placeholder="Create a password"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              required
-              minLength={6}
-              disabled={loading}
-              autoComplete="new-password"
-            />
+            <div className="input-wrapper">
+
+              <span className="input-icon">
+                🔒
+              </span>
+
+              <input
+                id="password"
+                type={
+                  showPassword
+                    ? "text"
+                    : "password"
+                }
+                placeholder="Create a password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError("");
+                }}
+                required
+                minLength={6}
+                disabled={loading}
+                autoComplete="new-password"
+              />
+
+              {/* SHOW / HIDE PASSWORD */}
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() =>
+                  setShowPassword(!showPassword)
+                }
+                disabled={loading}
+                aria-label={
+                  showPassword
+                    ? "Hide password"
+                    : "Show password"
+                }
+              >
+
+                {showPassword
+                  ? "🙈"
+                  : "👁️"}
+
+              </button>
+
+            </div>
 
           </div>
 
-          {/* CONFIRM PASSWORD */}
+
+          {/* =================================
+              CONFIRM PASSWORD
+          ================================= */}
 
           <div className="login-field">
 
@@ -514,59 +552,150 @@ function CreateAccount({ onBackToLogin }) {
               Confirm Password
             </label>
 
-            <input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) =>
-                setConfirmPassword(
-                  e.target.value
-                )
-              }
-              required
-              minLength={6}
-              disabled={loading}
-              autoComplete="new-password"
-            />
+            <div className="input-wrapper">
+
+              <span className="input-icon">
+                🔐
+              </span>
+
+              <input
+                id="confirmPassword"
+                type={
+                  showConfirmPassword
+                    ? "text"
+                    : "password"
+                }
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setError("");
+                }}
+                required
+                minLength={6}
+                disabled={loading}
+                autoComplete="new-password"
+              />
+
+              {/* SHOW / HIDE CONFIRM PASSWORD */}
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() =>
+                  setShowConfirmPassword(
+                    !showConfirmPassword
+                  )
+                }
+                disabled={loading}
+                aria-label={
+                  showConfirmPassword
+                    ? "Hide confirm password"
+                    : "Show confirm password"
+                }
+              >
+
+                {showConfirmPassword
+                  ? "🙈"
+                  : "👁️"}
+
+              </button>
+
+            </div>
 
           </div>
 
-          {/* ERROR */}
+
+          {/* =================================
+              ERROR
+          ================================= */}
 
           {error && (
 
-            <p className="login-error">
-              {error}
-            </p>
+            <div
+              className="login-message login-error"
+              role="alert"
+            >
+
+              <span>
+                ⚠
+              </span>
+
+              <p>
+                {error}
+              </p>
+
+            </div>
 
           )}
 
-          {/* SUCCESS */}
+
+          {/* =================================
+              SUCCESS
+          ================================= */}
 
           {success && (
 
-            <p className="login-success">
-              {success}
-            </p>
+            <div
+              className="login-message login-success"
+              role="status"
+            >
+
+              <span>
+                ✓
+              </span>
+
+              <p>
+                {success}
+              </p>
+
+            </div>
 
           )}
 
-          {/* CREATE ACCOUNT BUTTON */}
+
+          {/* =================================
+              CREATE ACCOUNT BUTTON
+          ================================= */}
 
           <button
             type="submit"
-            className="login-button"
+            className="create-account-button"
             disabled={loading}
           >
 
-            {loading
-              ? "Creating account..."
-              : "Create Account"}
+            {loading ? (
+
+              <>
+
+                <span className="spinner"></span>
+
+                <span>
+                  Creating Account...
+                </span>
+
+              </>
+
+            ) : (
+
+              <>
+
+                <span>
+                  Create Account
+                </span>
+
+                <span className="button-arrow">
+                  →
+                </span>
+
+              </>
+
+            )}
 
           </button>
 
         </form>
+
 
         {/* =====================================
             FOOTER
@@ -581,6 +710,14 @@ function CreateAccount({ onBackToLogin }) {
           <small>
             Real-Time Flood &amp; Traffic Monitoring
           </small>
+
+          <div className="footer-status">
+
+            <span className="status-dot"></span>
+
+            Registration Ready
+
+          </div>
 
         </div>
 
