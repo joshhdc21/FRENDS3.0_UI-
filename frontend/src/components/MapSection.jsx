@@ -206,24 +206,31 @@ export default function MapSection() {
             const nodeContainer = firebaseNodes[nodeId];
             if (!nodeContainer || typeof nodeContainer !== 'object') return;
             
-            let lat, lng, floodDepth = 0, battery = 'N/A', status = 'UNKNOWN';
+            let lat = nodeContainer.lat;
+            let lng = nodeContainer.lng;
+            let floodDepth = 0, battery = 'N/A', status = 'UNKNOWN';
 
-            if (nodeContainer.lat !== undefined && nodeContainer.lng !== undefined) {
-                lat = nodeContainer.lat;
-                lng = nodeContainer.lng;
-                floodDepth = nodeContainer.waterLevel || 0;
+            // Filter for Firebase Push IDs (they always start with '-') and sort chronologically
+            const pushKeys = Object.keys(nodeContainer)
+                .filter(key => key.startsWith('-'))
+                .sort(); 
+
+            if (pushKeys.length > 0) {
+                // Grab the absolute newest reading
+                const latestKey = pushKeys[pushKeys.length - 1];
+                const latestData = nodeContainer[latestKey];
+                
+                lat = latestData?.lat !== undefined ? latestData.lat : lat;
+                lng = latestData?.lng !== undefined ? latestData.lng : lng;
+                
+                floodDepth = latestData?.waterLevel !== undefined ? latestData.waterLevel : (latestData?.depth || 0);
+                battery = latestData?.battery || 'N/A';
+                status = latestData?.status || 'ONLINE';
+            } else if (nodeContainer.waterLevel !== undefined || nodeContainer.depth !== undefined) {
+                // Fallback testing structure
+                floodDepth = nodeContainer.waterLevel !== undefined ? nodeContainer.waterLevel : (nodeContainer.depth || 0);
                 battery = nodeContainer.battery || 'N/A';
                 status = nodeContainer.status || 'ONLINE';
-            } else {
-                const childKeys = Object.keys(nodeContainer).filter(k => k !== 'lat' && k !== 'lng');
-                if (childKeys.length > 0) {
-                    const latestData = nodeContainer[childKeys[childKeys.length - 1]];
-                    lat = latestData?.lat || nodeContainer.lat;
-                    lng = latestData?.lng || nodeContainer.lng;
-                    floodDepth = latestData?.waterLevel || 0;
-                    battery = latestData?.battery || 'N/A';
-                    status = latestData?.status || 'UNKNOWN';
-                }
             }
 
             if (!lat || !lng) return;
@@ -286,14 +293,14 @@ export default function MapSection() {
             if (nodeContainer && typeof nodeContainer === 'object') {
                 let floodDepth = 0;
 
-                if (nodeContainer.waterLevel !== undefined) {
-                    floodDepth = nodeContainer.waterLevel;
-                } else {
-                    const childKeys = Object.keys(nodeContainer).filter(k => k !== 'lat' && k !== 'lng');
-                    if (childKeys.length > 0) {
-                        const latestData = nodeContainer[childKeys[childKeys.length - 1]];
-                        floodDepth = latestData?.waterLevel || 0;
-                    }
+                const pushKeys = Object.keys(nodeContainer).filter(key => key.startsWith('-')).sort();
+                
+                if (pushKeys.length > 0) {
+                    const latestKey = pushKeys[pushKeys.length - 1];
+                    const latestData = nodeContainer[latestKey];
+                    floodDepth = latestData?.waterLevel !== undefined ? latestData.waterLevel : (latestData?.depth || 0);
+                } else if (nodeContainer.waterLevel !== undefined || nodeContainer.depth !== undefined) {
+                    floodDepth = nodeContainer.waterLevel !== undefined ? nodeContainer.waterLevel : (nodeContainer.depth || 0);
                 }
 
                 if (floodDepth >= myLimit && nodeBlockStates.current[nodeId] !== 'blocked') {
