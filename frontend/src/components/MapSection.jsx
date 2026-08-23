@@ -161,12 +161,19 @@ export default function MapSection() {
         if (baseLayerRef.current) map.removeLayer(baseLayerRef.current);
         if (labelLayerRef.current) map.removeLayer(labelLayerRef.current);
 
-        const baseStyle = theme === 'dark' ? 'dark_nolabels' : 'voyager_nolabels';
-        const labelStyle = theme === 'dark' ? 'dark_only_labels' : 'voyager_only_labels';
+        // We use Esri's World Dark Gray Canvas for a soft, professional slate gray, 
+        // and Carto's Voyager for the light mode.
+        const baseUrl = theme === 'dark' 
+            ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+            : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
+            
+        const labelUrl = theme === 'dark'
+            ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}'
+            : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png';
 
         // zIndex ensures base is on bottom (1) and labels are on top (1000)
-        baseLayerRef.current = L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/${baseStyle}/{z}/{x}/{y}{r}.png`, { maxZoom: 19, zIndex: 1 }).addTo(map);
-        labelLayerRef.current = L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/${labelStyle}/{z}/{x}/{y}{r}.png`, { maxZoom: 19, zIndex: 1000 }).addTo(map);
+        baseLayerRef.current = L.tileLayer(baseUrl, { maxZoom: 19, zIndex: 1 }).addTo(map);
+        labelLayerRef.current = L.tileLayer(labelUrl, { maxZoom: 19, zIndex: 1000 }).addTo(map);
     }, [theme]);
 
     // Update Map Center
