@@ -25,7 +25,11 @@ export default function MapSection() {
     const [destination, setDestination] = useState(null); 
     const [vehicleLayer, setVehicleLayer] = useState("LOW");
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-    const [panelOpen, setPanelOpen] = useState(true);
+    
+    // =========================================
+    // THEME STATE
+    // =========================================
+    const [theme, setTheme] = useState("light");
     
     const originRef = useRef(origin);
     const destRef = useRef(destination);
@@ -55,6 +59,23 @@ export default function MapSection() {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const layerGroupRef = useRef(null);
+    
+    // Refs for hot-swapping map tiles
+    const baseLayerRef = useRef(null);
+    const labelLayerRef = useRef(null);
+
+    // =========================================
+    // DYNAMIC COLOR PALETTE
+    // =========================================
+    const ui = {
+        bg: theme === 'dark' ? '#1e293b' : '#ffffff',
+        panelBg: theme === 'dark' ? '#0f172a' : '#fafafa',
+        inputBg: theme === 'dark' ? '#334155' : '#f1f3f4',
+        border: theme === 'dark' ? '#334155' : '#dadce0',
+        textMain: theme === 'dark' ? '#ffffff' : '#202124',
+        textMuted: theme === 'dark' ? '#94a3b8' : '#5f6368',
+        btnHover: theme === 'dark' ? '#334155' : '#f8f9fa'
+    };
 
     // Handle responsive resize
     useEffect(() => {
@@ -74,15 +95,14 @@ export default function MapSection() {
             const map = L.map(mapRef.current, {
                 center: mapCenter,
                 zoom: 15,
-                zoomControl: false // We hide the default zoom to keep it clean
+                zoomControl: false
             });
 
-            // Base Layers & TomTom Traffic
-            L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png", { maxZoom: 19 }).addTo(map);
-            L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`, { maxZoom: 19, opacity: 0.85, tileSize: 128, zoomOffset: 1 }).addTo(map);
-            L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png", { maxZoom: 19, zIndex: 1000 }).addTo(map);
+            // Add TomTom Traffic (This stays permanent regardless of theme)
+            L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`, { 
+                maxZoom: 19, opacity: 0.85, tileSize: 128, zoomOffset: 1, zIndex: 10 
+            }).addTo(map);
 
-            // Layer group for dynamic markers/routes
             const layerGroup = L.layerGroup().addTo(map);
             layerGroupRef.current = layerGroup;
 
@@ -130,6 +150,25 @@ export default function MapSection() {
         }
     }, []);
 
+    // =========================================
+    // HOT-SWAP MAP TILES FOR DARK MODE
+    // =========================================
+    useEffect(() => {
+        if (!mapInstanceRef.current) return;
+        const map = mapInstanceRef.current;
+
+        // Remove old layers before adding new ones
+        if (baseLayerRef.current) map.removeLayer(baseLayerRef.current);
+        if (labelLayerRef.current) map.removeLayer(labelLayerRef.current);
+
+        const baseStyle = theme === 'dark' ? 'dark_nolabels' : 'voyager_nolabels';
+        const labelStyle = theme === 'dark' ? 'dark_only_labels' : 'voyager_only_labels';
+
+        // zIndex ensures base is on bottom (1) and labels are on top (1000)
+        baseLayerRef.current = L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/${baseStyle}/{z}/{x}/{y}{r}.png`, { maxZoom: 19, zIndex: 1 }).addTo(map);
+        labelLayerRef.current = L.tileLayer(`https://{s}.basemaps.cartocdn.com/rastertiles/${labelStyle}/{z}/{x}/{y}{r}.png`, { maxZoom: 19, zIndex: 1000 }).addTo(map);
+    }, [theme]);
+
     // Update Map Center
     useEffect(() => {
         if (mapInstanceRef.current) {
@@ -162,7 +201,6 @@ export default function MapSection() {
             
             let lat, lng, floodDepth = 0, battery = 'N/A', status = 'UNKNOWN';
 
-            // Handle both .set() and .push() formats
             if (nodeContainer.lat !== undefined && nodeContainer.lng !== undefined) {
                 lat = nodeContainer.lat;
                 lng = nodeContainer.lng;
@@ -202,12 +240,19 @@ export default function MapSection() {
                 .bindPopup(popupContent);
         });
 
-        // Route Segments (Updated with safe guard)
+        // Route Segments with auto-zoom
+        const allPositions = [];
         routeSegments.forEach(segment => {
-            if (!segment || !Array.isArray(segment.coords)) return; // Crash prevention safeguard
+            if (!segment || !Array.isArray(segment.coords)) return;
             const positions = segment.coords.map(c => [c.latitude, c.longitude]);
+            allPositions.push(...positions);
             L.polyline(positions, { color: segment.color, weight: 6, opacity: 0.8, lineCap: 'round', lineJoin: 'round' }).addTo(mapGroup);
         });
+
+        if (allPositions.length > 0 && mapInstanceRef.current) {
+            const bounds = L.latLngBounds(allPositions);
+            mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+        }
 
     }, [origin, destination, liveLocation, firebaseNodes, routeSegments]);
 
@@ -336,11 +381,13 @@ export default function MapSection() {
             });
             
             const data = await response.json();
-            console.log("🚨 RAW BACKEND DATA:", data); // ADDED THIS LINE FOR DEBUGGING
             
             if (data.status === 'SUCCESS' || data.status === 'success') {
-                if (data.segments && data.segments.length > 0) setRouteSegments(data.segments);
-                else if (data.path) setRouteSegments([{ coords: data.path, color: '#1a73e8' }]); // Google Maps Blue
+                if (data.segments && data.segments.length > 0 && data.segments[0].coords) {
+                    setRouteSegments(data.segments);
+                } else if (data.path && data.path.length > 0) {
+                    setRouteSegments([{ coords: data.path, color: '#1a73e8' }]); 
+                }
                 setRouteInfo({ distance: (data.distance / 1000).toFixed(2), time: Math.round(data.time / 60) });
             } else {
                 alert(`❌ Routing Error: ${data.message}`);
@@ -359,30 +406,44 @@ export default function MapSection() {
     };
 
     return (
-        // Wrapper now spans the entire viewport
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: 0 }}>
             
-            {/* The Map Container */}
             <div ref={mapRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }} />
 
-            {/* Google Maps Style Floating Search Panel */}
             <div style={{
                 position: 'absolute',
                 top: isMobile ? '100px' : '110px',
                 left: isMobile ? '50%' : '20px',
                 transform: isMobile ? 'translateX(-50%)' : 'none',
                 width: isMobile ? '95%' : '360px',
-                backgroundColor: '#ffffff',
+                backgroundColor: ui.bg,
                 borderRadius: '8px',
                 boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
                 zIndex: 1000,
                 display: 'flex',
                 flexDirection: 'column',
-                overflow: 'hidden'
+                overflow: 'hidden',
+                transition: 'background-color 0.3s ease'
             }}>
                 
                 {/* Search Inputs Container */}
-                <div style={{ padding: '16px 16px 8px 16px', borderBottom: '1px solid #e8eaed' }}>
+                <div style={{ padding: '16px 16px 8px 16px', borderBottom: `1px solid ${ui.border}` }}>
+                    
+                    {/* Theme Toggle Header */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <span style={{ fontSize: '15px', fontWeight: 'bold', color: ui.textMain }}>FRENDS Routing</span>
+                        <button 
+                            onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                            style={{ 
+                                background: 'none', border: 'none', cursor: 'pointer', fontSize: '18px', 
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' 
+                            }}
+                            title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} Mode`}
+                        >
+                            {theme === 'light' ? '🌙' : '☀️'}
+                        </button>
+                    </div>
+
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px', position: 'relative' }}>
                         <div style={{ width: '16px', display: 'flex', justifyContent: 'center', marginRight: '12px' }}>
                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', border: '2px solid #1a73e8' }}></div>
@@ -392,15 +453,14 @@ export default function MapSection() {
                             value={originQuery} 
                             onChange={(e) => handleSearchInput(e.target.value, true)} 
                             placeholder="Choose starting point" 
-                            style={{ flex: 1, border: 'none', background: '#f1f3f4', padding: '10px 12px', borderRadius: '4px', fontSize: '14px', outline: 'none' }}
+                            style={{ flex: 1, border: 'none', background: ui.inputBg, color: ui.textMain, padding: '10px 12px', borderRadius: '4px', fontSize: '14px', outline: 'none' }}
                         />
-                        {/* Suggestions Dropdown for Origin */}
                         {originSuggestions.length > 0 && (
-                            <div style={{ position: 'absolute', top: '100%', left: '28px', right: 0, background: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', borderRadius: '4px', zIndex: 1001, maxHeight: '200px', overflowY: 'auto' }}>
+                            <div style={{ position: 'absolute', top: '100%', left: '28px', right: 0, background: ui.bg, boxShadow: '0 2px 6px rgba(0,0,0,0.2)', borderRadius: '4px', zIndex: 1001, maxHeight: '200px', overflowY: 'auto' }}>
                                 {originSuggestions.map((item, idx) => (
-                                    <div key={idx} onClick={() => selectLocationItem(item, true)} style={{ padding: '10px 12px', borderBottom: '1px solid #f1f3f4', cursor: 'pointer' }}>
-                                        <div style={{ fontSize: '14px', fontWeight: '500', color: '#202124' }}>{item.primary}</div>
-                                        <div style={{ fontSize: '12px', color: '#5f6368' }}>{item.secondary}</div>
+                                    <div key={idx} onClick={() => selectLocationItem(item, true)} style={{ padding: '10px 12px', borderBottom: `1px solid ${ui.border}`, cursor: 'pointer' }}>
+                                        <div style={{ fontSize: '14px', fontWeight: '500', color: ui.textMain }}>{item.primary}</div>
+                                        <div style={{ fontSize: '12px', color: ui.textMuted }}>{item.secondary}</div>
                                     </div>
                                 ))}
                             </div>
@@ -418,15 +478,14 @@ export default function MapSection() {
                             value={destQuery} 
                             onChange={(e) => handleSearchInput(e.target.value, false)} 
                             placeholder="Choose destination"
-                            style={{ flex: 1, border: 'none', background: '#f1f3f4', padding: '10px 12px', borderRadius: '4px', fontSize: '14px', outline: 'none' }}
+                            style={{ flex: 1, border: 'none', background: ui.inputBg, color: ui.textMain, padding: '10px 12px', borderRadius: '4px', fontSize: '14px', outline: 'none' }}
                         />
-                        {/* Suggestions Dropdown for Destination */}
                         {destSuggestions.length > 0 && (
-                            <div style={{ position: 'absolute', top: '100%', left: '28px', right: 0, background: 'white', boxShadow: '0 2px 6px rgba(0,0,0,0.2)', borderRadius: '4px', zIndex: 1001, maxHeight: '200px', overflowY: 'auto' }}>
+                            <div style={{ position: 'absolute', top: '100%', left: '28px', right: 0, background: ui.bg, boxShadow: '0 2px 6px rgba(0,0,0,0.2)', borderRadius: '4px', zIndex: 1001, maxHeight: '200px', overflowY: 'auto' }}>
                                 {destSuggestions.map((item, idx) => (
-                                    <div key={idx} onClick={() => selectLocationItem(item, false)} style={{ padding: '10px 12px', borderBottom: '1px solid #f1f3f4', cursor: 'pointer' }}>
-                                        <div style={{ fontSize: '14px', fontWeight: '500', color: '#202124' }}>{item.primary}</div>
-                                        <div style={{ fontSize: '12px', color: '#5f6368' }}>{item.secondary}</div>
+                                    <div key={idx} onClick={() => selectLocationItem(item, false)} style={{ padding: '10px 12px', borderBottom: `1px solid ${ui.border}`, cursor: 'pointer' }}>
+                                        <div style={{ fontSize: '14px', fontWeight: '500', color: ui.textMain }}>{item.primary}</div>
+                                        <div style={{ fontSize: '12px', color: ui.textMuted }}>{item.secondary}</div>
                                     </div>
                                 ))}
                             </div>
@@ -435,13 +494,13 @@ export default function MapSection() {
                 </div>
 
                 {/* Options & Action Buttons */}
-                <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: '#fafafa' }}>
+                <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: '12px', backgroundColor: ui.panelBg }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <span style={{ fontSize: '13px', color: '#5f6368', fontWeight: '500' }}>Vehicle Type</span>
+                        <span style={{ fontSize: '13px', color: ui.textMuted, fontWeight: '500' }}>Vehicle Type</span>
                         <select 
                             value={vehicleLayer} 
                             onChange={(e) => setVehicleLayer(e.target.value)} 
-                            style={{ border: '1px solid #dadce0', borderRadius: '4px', padding: '6px 8px', fontSize: '13px', color: '#202124', backgroundColor: '#fff', cursor: 'pointer', outline: 'none' }}
+                            style={{ border: `1px solid ${ui.border}`, borderRadius: '4px', padding: '6px 8px', fontSize: '13px', color: ui.textMain, backgroundColor: ui.bg, cursor: 'pointer', outline: 'none' }}
                         >
                             <option value="LOW">Sedan / Hatchback</option>
                             <option value="MID">SUV / Pick-up</option>
@@ -464,10 +523,10 @@ export default function MapSection() {
                         <button 
                             onClick={clearMap}
                             style={{
-                                padding: '10px 16px', backgroundColor: '#fff', color: '#3c4043', border: '1px solid #dadce0', borderRadius: '20px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'background 0.2s'
+                                padding: '10px 16px', backgroundColor: ui.bg, color: ui.textMain, border: `1px solid ${ui.border}`, borderRadius: '20px', fontSize: '14px', fontWeight: '500', cursor: 'pointer', transition: 'background 0.2s'
                             }}
-                            onMouseOver={(e) => e.target.style.backgroundColor = '#f8f9fa'}
-                            onMouseOut={(e) => e.target.style.backgroundColor = '#fff'}
+                            onMouseOver={(e) => e.target.style.backgroundColor = ui.btnHover}
+                            onMouseOut={(e) => e.target.style.backgroundColor = ui.bg}
                         >
                             Clear
                         </button>
@@ -478,14 +537,14 @@ export default function MapSection() {
             {/* Floating Route Info Pill (Bottom Center) */}
             {routeInfo && (
                 <div style={{ 
-                    position: 'absolute', bottom: isMobile ? '100px' : '100px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: '#ffffff', borderRadius: '24px', padding: '12px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '24px'
+                    position: 'absolute', bottom: isMobile ? '100px' : '100px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, background: ui.bg, borderRadius: '24px', padding: '12px 24px', boxShadow: '0 2px 10px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '24px', transition: 'background-color 0.3s ease'
                 }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a73e8' }}>{routeInfo.time} <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#5f6368' }}>min</span></span>
+                        <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1a73e8' }}>{routeInfo.time} <span style={{ fontSize: '14px', fontWeight: 'normal', color: ui.textMuted }}>min</span></span>
                     </div>
-                    <div style={{ width: '1px', height: '24px', background: '#dadce0' }}></div>
+                    <div style={{ width: '1px', height: '24px', background: ui.border }}></div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                        <span style={{ fontSize: '16px', color: '#202124', fontWeight: '500' }}>{routeInfo.distance} <span style={{ fontSize: '14px', fontWeight: 'normal', color: '#5f6368' }}>km</span></span>
+                        <span style={{ fontSize: '16px', color: ui.textMain, fontWeight: '500' }}>{routeInfo.distance} <span style={{ fontSize: '14px', fontWeight: 'normal', color: ui.textMuted }}>km</span></span>
                     </div>
                 </div>
             )}
