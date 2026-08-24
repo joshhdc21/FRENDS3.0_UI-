@@ -98,6 +98,10 @@ export default function MapSection() {
                 zoomControl: false
             });
 
+            // CREATE CUSTOM PANE FOR ROUTES (Forces routes to stay above traffic)
+            map.createPane('routePane');
+            map.getPane('routePane').style.zIndex = 500;
+
             // Add TomTom Traffic (This stays permanent regardless of theme)
             L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`, { 
                 maxZoom: 19, opacity: 0.85, tileSize: 128, zoomOffset: 1, zIndex: 10 
@@ -161,8 +165,6 @@ export default function MapSection() {
         if (baseLayerRef.current) map.removeLayer(baseLayerRef.current);
         if (labelLayerRef.current) map.removeLayer(labelLayerRef.current);
 
-        // We use Esri's World Dark Gray Canvas for a soft, professional slate gray, 
-        // and Carto's Voyager for the light mode.
         const baseUrl = theme === 'dark' 
             ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
             : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png';
@@ -254,13 +256,32 @@ export default function MapSection() {
                 .bindPopup(popupContent);
         });
 
-        // Route Segments with auto-zoom
+        // Route Segments with auto-zoom (DOUBLE-STACKED POLYLINE)
         const allPositions = [];
         routeSegments.forEach(segment => {
             if (!segment || !Array.isArray(segment.coords)) return;
             const positions = segment.coords.map(c => [c.latitude, c.longitude]);
             allPositions.push(...positions);
-            L.polyline(positions, { color: segment.color, weight: 6, opacity: 0.8, lineCap: 'round', lineJoin: 'round' }).addTo(mapGroup);
+            
+            // 1. The Background Border Line (Thick & Dark) - Attached to custom pane
+            L.polyline(positions, { 
+                color: '#1a52ad', // Dark blue outline
+                weight: 9, 
+                opacity: 0.9, 
+                lineCap: 'round', 
+                lineJoin: 'round',
+                pane: 'routePane'
+            }).addTo(mapGroup);
+
+            // 2. The Main Foreground Line (Vibrant & Thinner) - Attached to custom pane
+            L.polyline(positions, { 
+                color: '#4285F4', // Vibrant Google Maps blue (or use segment.color if preferred)
+                weight: 5, 
+                opacity: 1.0, 
+                lineCap: 'round', 
+                lineJoin: 'round',
+                pane: 'routePane'
+            }).addTo(mapGroup);
         });
 
         if (allPositions.length > 0 && mapInstanceRef.current) {
