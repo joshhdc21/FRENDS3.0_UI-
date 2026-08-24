@@ -787,7 +787,7 @@ function MonitoringSection() {
           </p>
 
           <h2>
-            Smart Flood and Water-Level Monitoring
+            Flood Road Eye and Navigation Detection System 
           </h2>
 
           <p className="hero-description">
