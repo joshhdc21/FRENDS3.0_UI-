@@ -257,7 +257,6 @@ export default function MapSection() {
         });
 
         // Route Segments with auto-zoom (DOUBLE-STACKED POLYLINE)
-        // Route Segments with auto-zoom (DOUBLE-STACKED POLYLINE)
         const allPositions = [];
         routeSegments.forEach(segment => {
             if (!segment || !Array.isArray(segment.coords)) return;
@@ -419,11 +418,26 @@ export default function MapSection() {
             const data = await response.json();
             
             if (data.status === 'SUCCESS' || data.status === 'success') {
+                
+                // 1. Get the exact coordinates of the user's pins
+                const startPin = { latitude: currentOrigin.latlng[0], longitude: currentOrigin.latlng[1] };
+                const endPin = { latitude: currentDest.latlng[0], longitude: currentDest.latlng[1] };
+
                 if (data.segments && data.segments.length > 0 && data.segments[0].coords) {
+                    
+                    // 2. Attach the pin locations to bridge the visual gaps
+                    data.segments[0].coords.unshift(startPin);
+                    data.segments[data.segments.length - 1].coords.push(endPin);
+                    
                     setRouteSegments(data.segments);
+
                 } else if (data.path && data.path.length > 0) {
-                    setRouteSegments([{ coords: data.path, color: '#1a73e8' }]); 
+                    
+                    // Same gap-bridging logic for the fallback path array
+                    const bridgedPath = [startPin, ...data.path, endPin];
+                    setRouteSegments([{ coords: bridgedPath, color: '#1a73e8' }]); 
                 }
+                
                 setRouteInfo({ distance: (data.distance / 1000).toFixed(2), time: Math.round(data.time / 60) });
             } else {
                 alert(`❌ Routing Error: ${data.message}`);
