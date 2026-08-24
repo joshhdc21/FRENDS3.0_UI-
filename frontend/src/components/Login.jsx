@@ -120,7 +120,7 @@ function Login() {
         
         {/* NO LOGO HERE, JUST TEXT */}
         <div className="login-header">
-          <p className="card-subtitle"> WELCOME TO FRENDS SYSTEM </p>
+          <p className="card-subtitle"> WELCOME TO FRENDS </p>
         </div>
 
         <div className="system-status">
