@@ -257,25 +257,26 @@ export default function MapSection() {
         });
 
         // Route Segments with auto-zoom (DOUBLE-STACKED POLYLINE)
+        // Route Segments with auto-zoom (DOUBLE-STACKED POLYLINE)
         const allPositions = [];
         routeSegments.forEach(segment => {
             if (!segment || !Array.isArray(segment.coords)) return;
             const positions = segment.coords.map(c => [c.latitude, c.longitude]);
             allPositions.push(...positions);
             
-            // 1. The Background Border Line (Thick & Dark) - Attached to custom pane
+            // 1. The Background Border Line (Dark Grey/Black outline for contrast)
             L.polyline(positions, { 
-                color: '#1a52ad', // Dark blue outline
+                color: '#202124', // A neutral dark color that works with Red/Orange/Green
                 weight: 9, 
-                opacity: 0.9, 
+                opacity: 0.8, 
                 lineCap: 'round', 
                 lineJoin: 'round',
                 pane: 'routePane'
             }).addTo(mapGroup);
 
-            // 2. The Main Foreground Line (Vibrant & Thinner) - Attached to custom pane
+            // 2. The Main Foreground Line (Restored to your Backend's Traffic Color)
             L.polyline(positions, { 
-                color: '#4285F4', // Vibrant Google Maps blue (or use segment.color if preferred)
+                color: segment.color || '#4285F4', // Uses your traffic color, defaults to blue if none
                 weight: 5, 
                 opacity: 1.0, 
                 lineCap: 'round', 
