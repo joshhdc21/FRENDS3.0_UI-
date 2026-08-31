@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
-import { ref, onValue } from "firebase/database";
-import { onAuthStateChanged } from "firebase/auth";
+
+import {
+  ref,
+  onValue,
+} from "firebase/database";
+
+import {
+  onAuthStateChanged,
+} from "firebase/auth";
 
 import {
   database,
@@ -14,7 +21,6 @@ import {
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Login from "./components/Login";
-import RoleInterface from "./components/RoleInterface";
 import AdminDashboard from "./components/AdminDashboard";
 
 import MonitoringSection from "./components/MonitoringSection";
@@ -27,12 +33,22 @@ import MapSection from "./components/MapSection";
 
 import "./App.css";
 
+// =========================================
+// ADMIN ACCOUNT
+// =========================================
+// Put the EXACT email of your FRENDS admin account here.
+
+const ADMIN_EMAIL = "frendsadmin@gmail.com";
+
+
 function App() {
+
   // =========================================
   // PAGE NAVIGATION
   // =========================================
 
   const [page, setPage] = useState("dashboard");
+
 
   // =========================================
   // FIREBASE AUTHENTICATION
@@ -40,19 +56,10 @@ function App() {
 
   const [user, setUser] = useState(null);
 
-  const [authLoading, setAuthLoading] =
-    useState(true);
+  const [userRole, setUserRole] = useState(null);
 
-  // =========================================
-  // SELECTED ROLE
-  //
-  // null  = user has not selected a role yet
-  // user  = user interface
-  // admin = admin interface
-  // =========================================
+  const [authLoading, setAuthLoading] = useState(true);
 
-  const [selectedRole, setSelectedRole] =
-    useState(null);
 
   // =========================================
   // FIREBASE REALTIME DATABASE
@@ -60,11 +67,10 @@ function App() {
 
   const [nodes, setNodes] = useState({});
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [error, setError] =
-    useState(null);
+  const [error, setError] = useState(null);
+
 
   // =========================================
   // FIREBASE CONNECTION STATUS
@@ -73,14 +79,17 @@ function App() {
   const [firebaseConnected, setFirebaseConnected] =
     useState(false);
 
-  // =========================================
-  // FIREBASE AUTHENTICATION LISTENER
-  // =========================================
+
+  // =========================================================
+  // FIREBASE AUTHENTICATION
+  // =========================================================
 
   useEffect(() => {
+
     console.log(
       "Starting Firebase Authentication listener..."
     );
+
 
     const unsubscribeAuth =
       onAuthStateChanged(
@@ -92,9 +101,10 @@ function App() {
             currentUser
           );
 
-          // =====================================
-          // USER LOGGED OUT
-          // =====================================
+
+          // =========================================
+          // NOT LOGGED IN
+          // =========================================
 
           if (!currentUser) {
 
@@ -104,20 +114,19 @@ function App() {
 
             setUser(null);
 
-            // Reset role
-            setSelectedRole(null);
-
-            // Reset page
-            setPage("dashboard");
+            setUserRole(null);
 
             setAuthLoading(false);
+
+            setPage("dashboard");
 
             return;
           }
 
-          // =====================================
+
+          // =========================================
           // USER LOGGED IN
-          // =====================================
+          // =========================================
 
           console.log(
             "================================="
@@ -141,55 +150,206 @@ function App() {
             "================================="
           );
 
+
           setUser(currentUser);
 
-          /*
-           * IMPORTANT:
-           *
-           * DO NOT automatically determine
-           * the role here.
-           *
-           * The next screen is:
-           *
-           *       RoleInterface
-           *
-           * The user will choose:
-           *
-           *       USER
-           *       ADMIN
-           *
-           * If ADMIN is selected,
-           * RoleInterface will request
-           * the admin passkey.
-           */
 
-          setSelectedRole(null);
+          // =====================================================
+          // CHECK IF THIS IS THE SPECIFIC ADMIN ACCOUNT
+          // =====================================================
 
-          setAuthLoading(false);
+          if (
+            currentUser.email?.toLowerCase() ===
+            ADMIN_EMAIL.toLowerCase()
+          ) {
+
+            console.log(
+              "================================="
+            );
+
+            console.log(
+              "ADMIN ACCOUNT DETECTED"
+            );
+
+            console.log(
+              "Opening Admin Dashboard..."
+            );
+
+            console.log(
+              "================================="
+            );
+
+
+            setUserRole("admin");
+
+            setAuthLoading(false);
+
+            return;
+          }
+
+
+          // =====================================================
+          // NORMAL USER
+          // =====================================================
+
+          console.log(
+            "Checking normal user account..."
+          );
+
+
+          const userRef =
+            ref(
+              database,
+              `users/${currentUser.uid}`
+            );
+
+
+          const unsubscribeUser =
+            onValue(
+
+              userRef,
+
+              (snapshot) => {
+
+                console.log(
+                  "User database data:",
+                  snapshot.val()
+                );
+
+
+                // =========================================
+                // USER RECORD EXISTS
+                // =========================================
+
+                if (snapshot.exists()) {
+
+                  const userData =
+                    snapshot.val();
+
+
+                  console.log(
+                    "User data:",
+                    userData
+                  );
+
+
+                  // =========================================
+                  // NORMAL USER
+                  // =========================================
+
+                  if (
+                    userData.role === "user"
+                  ) {
+
+                    console.log(
+                      "NORMAL USER ACCOUNT DETECTED"
+                    );
+
+                    setUserRole("user");
+
+                  }
+
+                  // =========================================
+                  // NO VALID ROLE
+                  // =========================================
+
+                  else {
+
+                    console.log(
+                      "No valid user role found."
+                    );
+
+                    // Since this is NOT the Admin email,
+                    // treat it as a normal user account.
+
+                    setUserRole("user");
+
+                  }
+
+                }
+
+                // =========================================
+                // DATABASE RECORD DOES NOT EXIST
+                // =========================================
+
+                else {
+
+                  console.log(
+                    "No database record found."
+                  );
+
+                  // This account is not the Admin,
+                  // so send it to the normal user interface.
+
+                  setUserRole("user");
+
+                }
+
+
+                // =========================================
+                // FINISHED AUTH CHECK
+                // =========================================
+
+                setAuthLoading(false);
+
+              },
+
+              (firebaseError) => {
+
+                console.error(
+                  "Error reading user data:",
+                  firebaseError
+                );
+
+
+                // If database role lookup fails,
+                // this is still NOT the Admin account,
+                // so send the account to the user interface.
+
+                setUserRole("user");
+
+                setAuthLoading(false);
+
+              }
+            );
+
+
+          // =========================================
+          // CLEANUP
+          // =========================================
+
+          return () => {
+
+            unsubscribeUser();
+
+          };
+
         }
       );
 
+
     // =========================================
-    // CLEANUP
+    // CLEANUP AUTH LISTENER
     // =========================================
 
     return () => {
+
       unsubscribeAuth();
+
     };
 
   }, []);
 
-  // =========================================
-  // FIREBASE REALTIME DATABASE
-  //
-  // Only connect when authenticated.
-  // =========================================
+
+  // =========================================================
+  // FIREBASE REALTIME DATABASE - NODES
+  // =========================================================
 
   useEffect(() => {
 
-    // =======================================
-    // USER NOT LOGGED IN
-    // =======================================
+    // =========================================
+    // NO USER
+    // =========================================
 
     if (!user) {
 
@@ -204,25 +364,25 @@ function App() {
       return;
     }
 
+
     console.log(
       "Connecting to Firebase Realtime Database..."
     );
 
+
     setLoading(true);
 
-    // =======================================
-    // NODES REFERENCE
-    // =======================================
 
     const nodesRef =
-      ref(database, "nodes");
+      ref(
+        database,
+        "nodes"
+      );
 
-    // =======================================
-    // LISTEN FOR NODE CHANGES
-    // =======================================
 
     const unsubscribeDatabase =
       onValue(
+
         nodesRef,
 
         (snapshot) => {
@@ -231,6 +391,7 @@ function App() {
             "Firebase Nodes Data:",
             snapshot.val()
           );
+
 
           if (snapshot.exists()) {
 
@@ -241,49 +402,60 @@ function App() {
           } else {
 
             setNodes({});
+
           }
+
 
           setFirebaseConnected(true);
 
           setLoading(false);
 
           setError(null);
+
         },
 
-        (err) => {
+        (firebaseError) => {
 
           console.error(
             "Firebase Database Error:",
-            err
+            firebaseError
           );
 
+
           setError(
-            err.message
+            firebaseError.message
           );
 
           setFirebaseConnected(false);
 
           setLoading(false);
+
         }
+
       );
 
-    // =======================================
+
+    // =========================================
     // CLEANUP
-    // =======================================
+    // =========================================
 
     return () => {
+
       unsubscribeDatabase();
+
     };
 
   }, [user]);
 
-  // =========================================
+
+  // =========================================================
   // AUTHENTICATION LOADING
-  // =========================================
+  // =========================================================
 
   if (authLoading) {
 
     return (
+
       <div className="app-loading">
 
         <div className="loading-spinner"></div>
@@ -293,108 +465,95 @@ function App() {
         </p>
 
       </div>
+
     );
+
   }
 
-  // =========================================
+
+  // =========================================================
   // NOT LOGGED IN
-  //
-  // SHOW LOGIN
-  // =========================================
+  // =========================================================
 
   if (!user) {
 
     return <Login />;
+
   }
 
-  // =========================================
-  // LOGGED IN BUT NO ROLE SELECTED
-  //
-  // SHOW ROLE INTERFACE
-  // =========================================
 
-  if (!selectedRole) {
+  // =========================================================
+  // ADMIN
+  // =========================================================
 
-    return (
-      <RoleInterface
-        user={user}
-        onRoleSelected={setSelectedRole}
-      />
-    );
-  }
-
-  // =========================================
-  // ADMIN ROLE
-  //
-  // RoleInterface should only call this
-  // after the ADMIN passkey is correct.
-  // =========================================
-
-  if (selectedRole === "admin") {
+  if (userRole === "admin") {
 
     console.log(
-      "Opening ADMIN interface..."
+      "Rendering AdminDashboard..."
     );
 
     return (
       <AdminDashboard />
     );
+
   }
 
-  // =========================================
-  // USER ROLE
-  //
-  // Open the normal FRENDS monitoring
-  // interface.
-  // =========================================
 
-  if (selectedRole === "user") {
+  // =========================================================
+  // NORMAL USER
+  // =========================================================
+
+  if (userRole === "user") {
 
     console.log(
-      "Opening USER monitoring interface..."
+      "Rendering FRENDS User Interface..."
     );
 
+
     return (
+
       <div className="app">
 
-        {/* ===================================
+
+        {/* =====================================
             HEADER
-        =================================== */}
+        ===================================== */}
 
         <Header
           page={page}
           setPage={setPage}
-          firebaseConnected={
-            firebaseConnected
-          }
+          firebaseConnected={firebaseConnected}
           user={user}
         />
 
-        {/* ===================================
+
+        {/* =====================================
             MAIN CONTENT
-        =================================== */}
+        ===================================== */}
 
         <main className="main-content">
 
-          {/* DASHBOARD */}
 
           {page === "dashboard" && (
+
             <MonitoringSection />
+
           )}
 
-          {/* TRAFFIC */}
 
           {page === "traffic" && (
+
             <TrafficHeroSection />
+
           )}
 
-          {/* FLOOD */}
 
           {page === "flood" && (
+
             <FloodLevelSection />
+
           )}
 
-          {/* NODES */}
 
           {page === "nodes" && (
 
@@ -406,65 +565,67 @@ function App() {
 
           )}
 
-          {/* DEVICES */}
 
           {page === "devices" && (
+
             <DeviceSection />
+
           )}
 
-          {/* MAP */}
 
           {page === "map" && (
+
             <MapSection />
+
           )}
+
 
         </main>
 
-        {/* ===================================
+
+        {/* =====================================
             BOTTOM NAVIGATION
-        =================================== */}
+        ===================================== */}
 
         <BottomNavigation
           page={page}
           setPage={setPage}
         />
 
-        {/* ===================================
+
+        {/* =====================================
             FOOTER
-        =================================== */}
+        ===================================== */}
 
         <Footer />
 
+
       </div>
+
     );
+
   }
 
-  // =========================================
-  // INVALID ROLE
-  // =========================================
+
+  // =========================================================
+  // FALLBACK
+  // =========================================================
 
   return (
+
     <div className="app-loading">
 
-      <h2>
-        Invalid Role
-      </h2>
+      <div className="loading-spinner"></div>
 
       <p>
-        Please select a valid FRENDS account role.
+        Loading FRENDS...
       </p>
 
-      <button
-        type="button"
-        onClick={() => {
-          setSelectedRole(null);
-        }}
-      >
-        Back to Role Selection
-      </button>
-
     </div>
+
   );
+
 }
+
 
 export default App;

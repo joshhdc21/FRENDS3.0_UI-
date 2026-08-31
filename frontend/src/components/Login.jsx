@@ -23,48 +23,36 @@ function Login() {
   // INTRO
   // =========================================
 
-  const [introFinished, setIntroFinished] =
-    useState(false);
+  const [introFinished, setIntroFinished] = useState(false);
 
   // =========================================
   // CREATE ACCOUNT
   // =========================================
 
-  const [showCreateAccount, setShowCreateAccount] =
-    useState(false);
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
 
   // =========================================
   // LOGIN INFORMATION
   // =========================================
 
-  const [email, setEmail] =
-    useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const [password, setPassword] =
-    useState("");
-
-  const [showPassword, setShowPassword] =
-    useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // =========================================
   // MESSAGES
   // =========================================
 
-  const [error, setError] =
-    useState("");
-
-  const [success, setSuccess] =
-    useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   // =========================================
   // LOADING
   // =========================================
 
-  const [loading, setLoading] =
-    useState(false);
-
-  const [googleLoading, setGoogleLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // =========================================
   // START UP
@@ -97,68 +85,55 @@ function Login() {
           password
         );
 
-      const loggedInUser =
-        userCredential.user;
+      const loggedInUser = userCredential.user;
 
-      console.log(
-        "================================="
-      );
+      // =======================================
+      // LOGIN SUCCESS
+      // =======================================
+      //
+      // IMPORTANT:
+      // We DO NOT ask the user to select
+      // Admin or User.
+      //
+      // Firebase has authenticated the account.
+      //
+      // App.jsx will use the Firebase UID to
+      // check:
+      //
+      // users/{uid}/role
+      //
+      // If role = "admin"
+      //     → Admin Interface
+      //
+      // If role = "user"
+      //     → User Interface
+      //
+      // =======================================
 
-      console.log(
-        "LOGIN SUCCESSFUL"
-      );
+      console.log("=================================");
+      console.log("LOGIN SUCCESSFUL");
+      console.log("Email:", loggedInUser.email);
+      console.log("UID:", loggedInUser.uid);
+      console.log("=================================");
 
-      console.log(
-        "Email:",
-        loggedInUser.email
-      );
+      setSuccess("Login successful!");
 
-      console.log(
-        "UID:",
-        loggedInUser.uid
-      );
-
-      console.log(
-        "================================="
-      );
-
-      /*
-       * IMPORTANT
-       *
-       * We DO NOT select the role here.
-       *
-       * After Firebase authentication succeeds,
-       * App.jsx detects the logged-in user.
-       *
-       * App.jsx will then show:
-       *
-       * LOGIN
-       *   ↓
-       * ROLE INTERFACE
-       *   ↓
-       * USER / ADMIN
-       */
-
-      setSuccess(
-        "Login successful!"
-      );
+      // Do NOT manually redirect here.
+      //
+      // onAuthStateChanged() in App.jsx will
+      // detect the authenticated account and
+      // determine which interface to display.
 
     } catch (error) {
-      console.error(
-        "Login error:",
-        error
-      );
+      console.error("Login error:", error);
 
       // =====================================
       // FIREBASE ERROR HANDLING
       // =====================================
 
       switch (error.code) {
-
         case "auth/invalid-credential":
-          setError(
-            "Invalid email or password."
-          );
+          setError("Invalid email or password.");
           break;
 
         case "auth/user-not-found":
@@ -168,9 +143,7 @@ function Login() {
           break;
 
         case "auth/wrong-password":
-          setError(
-            "Incorrect password."
-          );
+          setError("Incorrect password.");
           break;
 
         case "auth/invalid-email":
@@ -200,10 +173,9 @@ function Login() {
         default:
           setError(
             error.message ||
-            "Authentication failed. Please try again."
+              "Authentication failed. Please try again."
           );
       }
-
     } finally {
       setLoading(false);
     }
@@ -219,59 +191,44 @@ function Login() {
     setGoogleLoading(true);
 
     try {
-
       const userCredential =
         await signInWithPopup(
           auth,
           googleProvider
         );
 
-      const loggedInUser =
-        userCredential.user;
+      const loggedInUser = userCredential.user;
 
-      console.log(
-        "================================="
-      );
+      // =======================================
+      // GOOGLE LOGIN SUCCESS
+      // =======================================
+      //
+      // The same role system applies:
+      //
+      // Firebase UID
+      //      ↓
+      // users/{uid}/role
+      //      ↓
+      // admin OR user
+      //
+      // App.jsx handles the destination.
+      // =======================================
 
-      console.log(
-        "GOOGLE LOGIN SUCCESSFUL"
-      );
+      console.log("=================================");
+      console.log("GOOGLE LOGIN SUCCESSFUL");
+      console.log("Email:", loggedInUser.email);
+      console.log("UID:", loggedInUser.uid);
+      console.log("=================================");
 
-      console.log(
-        "Email:",
-        loggedInUser.email
-      );
-
-      console.log(
-        "UID:",
-        loggedInUser.uid
-      );
-
-      console.log(
-        "================================="
-      );
-
-      /*
-       * App.jsx will detect the authenticated
-       * Google account and display the
-       * Role Interface.
-       */
-
-      setSuccess(
-        "Google login successful!"
-      );
+      setSuccess("Google login successful!");
 
     } catch (error) {
-      console.error(
-        "Google login error:",
-        error
-      );
+      console.error("Google login error:", error);
 
       if (
         error.code ===
         "auth/popup-closed-by-user"
       ) {
-
         setError(
           "Google sign-in was cancelled."
         );
@@ -280,7 +237,6 @@ function Login() {
         error.code ===
         "auth/operation-not-allowed"
       ) {
-
         setError(
           "Google sign-in is not enabled in Firebase."
         );
@@ -289,7 +245,6 @@ function Login() {
         error.code ===
         "auth/popup-blocked"
       ) {
-
         setError(
           "Google sign-in popup was blocked by the browser."
         );
@@ -298,13 +253,11 @@ function Login() {
         error.code ===
         "auth/network-request-failed"
       ) {
-
         setError(
           "Network error. Please check your internet connection."
         );
 
       } else {
-
         setError(
           "Unable to sign in with Google."
         );
@@ -320,7 +273,6 @@ function Login() {
   // =========================================
 
   function openCreateAccount() {
-
     setError("");
     setSuccess("");
 
@@ -337,7 +289,6 @@ function Login() {
   // =========================================
 
   function backToLogin() {
-
     setShowCreateAccount(false);
 
     setEmail("");
@@ -354,7 +305,6 @@ function Login() {
   // =========================================
 
   if (showCreateAccount) {
-
     return (
       <CreateAccount
         onBackToLogin={backToLogin}
@@ -531,10 +481,7 @@ function Login() {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => {
-                  setEmail(
-                    e.target.value
-                  );
-
+                  setEmail(e.target.value);
                   setError("");
                   setSuccess("");
                 }}
@@ -580,10 +527,7 @@ function Login() {
                 placeholder="Enter your password"
                 value={password}
                 onChange={(e) => {
-                  setPassword(
-                    e.target.value
-                  );
-
+                  setPassword(e.target.value);
                   setError("");
                   setSuccess("");
                 }}
@@ -622,7 +566,6 @@ function Login() {
           ================================= */}
 
           {error && (
-
             <div
               className="login-message login-error"
               role="alert"
@@ -637,7 +580,6 @@ function Login() {
               </p>
 
             </div>
-
           )}
 
           {/* =================================
@@ -645,7 +587,6 @@ function Login() {
           ================================= */}
 
           {success && (
-
             <div
               className="login-message login-success"
               role="status"
@@ -660,7 +601,6 @@ function Login() {
               </p>
 
             </div>
-
           )}
 
           {/* =================================
@@ -678,7 +618,6 @@ function Login() {
           >
 
             {loading ? (
-
               <>
                 <span className="spinner"></span>
 
@@ -686,9 +625,7 @@ function Login() {
                   Signing in...
                 </span>
               </>
-
             ) : (
-
               <>
                 <span>
                   Login
@@ -698,7 +635,6 @@ function Login() {
                   →
                 </span>
               </>
-
             )}
 
           </button>
@@ -723,9 +659,7 @@ function Login() {
 
           <button
             type="button"
-            onClick={
-              openCreateAccount
-            }
+            onClick={openCreateAccount}
             disabled={isLoading}
           >
             Create Account
@@ -766,14 +700,11 @@ function Login() {
               ? "content-show"
               : ""
           }`}
-          onClick={
-            handleGoogleLogin
-          }
+          onClick={handleGoogleLogin}
           disabled={isLoading}
         >
 
           {googleLoading ? (
-
             <>
               <span className="spinner"></span>
 
@@ -781,9 +712,7 @@ function Login() {
                 Connecting...
               </span>
             </>
-
           ) : (
-
             <>
               <span className="google-icon">
                 G
@@ -793,7 +722,6 @@ function Login() {
                 Continue with Google
               </span>
             </>
-
           )}
 
         </button>

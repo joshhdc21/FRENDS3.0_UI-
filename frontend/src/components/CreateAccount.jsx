@@ -132,12 +132,30 @@ function CreateAccount({ onBackToLogin }) {
       // SAVE USER INFORMATION
       // TO FIREBASE REALTIME DATABASE
       // =====================================================
+      //
+      // IMPORTANT:
+      //
+      // EVERY ACCOUNT CREATED THROUGH THIS PAGE
+      // IS AUTOMATICALLY A NORMAL USER.
+      //
+      // The user cannot choose "admin".
+      //
+      // Admin accounts are created separately by FRENDS.
+      //
+      // =====================================================
 
       const userData = {
         uid: user.uid,
         username: username.trim(),
         birthday: birthday,
         email: email.trim(),
+
+        // =========================================
+        // ROLE
+        // =========================================
+
+        role: "user",
+
         createdAt: new Date().toISOString(),
       };
 
@@ -326,7 +344,7 @@ function CreateAccount({ onBackToLogin }) {
           </h1>
 
           <p>
-           Flood Road Eye and Navigation Dtection System 
+            Flood Road Eye and Navigation Detection System
           </p>
 
         </div>
@@ -414,7 +432,7 @@ function CreateAccount({ onBackToLogin }) {
                 className="input-icon"
                 aria-hidden="true"
               >
-          
+                🎂
               </span>
 
               <input
@@ -532,11 +550,7 @@ function CreateAccount({ onBackToLogin }) {
                     : "Show password"
                 }
               >
-
-                {showPassword
-                 ? "👁"
-                  : "👁"}
-
+                👁
               </button>
 
             </div>
@@ -599,11 +613,7 @@ function CreateAccount({ onBackToLogin }) {
                     : "Show confirm password"
                 }
               >
-
-                {showConfirmPassword
-                 ? "👁"
-                  : "👁"}
-
+                👁
               </button>
 
             </div>
@@ -667,7 +677,6 @@ function CreateAccount({ onBackToLogin }) {
 
             {loading ? (
               <>
-
                 <span
                   className="spinner"
                   aria-hidden="true"
@@ -676,11 +685,9 @@ function CreateAccount({ onBackToLogin }) {
                 <span>
                   Creating Account...
                 </span>
-
               </>
             ) : (
               <>
-                <br></br>
                 <span>
                   Create Account
                 </span>
@@ -691,7 +698,6 @@ function CreateAccount({ onBackToLogin }) {
                 >
                   →
                 </span>
-
               </>
             )}
 
