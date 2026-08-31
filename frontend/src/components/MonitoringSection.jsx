@@ -21,6 +21,7 @@ function SensorCard({ title, value, unit, icon, type }) {
   );
 }
 
+
 /* =========================================
    MONITORING SECTION
 ========================================= */
@@ -34,11 +35,9 @@ function MonitoringSection() {
 
   const API_KEY = "21604dffca378c5d621f8cf55ff15c08";
 
+
   // =====================================================
   // APPROVED PHILIPPINE NEWS SOURCES
-  //
-  // These sources are prioritized, but are NOT required.
-  // The article itself must still be about the Philippines.
   // =====================================================
 
   const TRUSTED_SOURCES = [
@@ -52,7 +51,6 @@ function MonitoringSection() {
     "pagasa",
     "mmda",
 
-    // Additional Philippine publications
     "manila times",
     "the manila times",
     "manilatimes",
@@ -99,17 +97,17 @@ function MonitoringSection() {
     "panay news",
   ];
 
+
   // =====================================================
   // PHILIPPINE LOCATIONS
   // =====================================================
 
   const PHILIPPINE_LOCATIONS = [
-    // Country
+
     "philippines",
     "philippine",
     "pilipinas",
 
-    // Metro Manila
     "metro manila",
     "manila",
     "quezon city",
@@ -130,13 +128,11 @@ function MonitoringSection() {
     "las pinas",
     "san juan",
 
-    // Luzon
     "luzon",
     "northern luzon",
     "central luzon",
     "southern luzon",
 
-    // Provinces / cities
     "bulacan",
     "pampanga",
     "tarlac",
@@ -161,7 +157,6 @@ function MonitoringSection() {
     "camarines norte",
     "camarines sur",
 
-    // Visayas
     "visayas",
     "cebu",
     "iloilo",
@@ -179,7 +174,6 @@ function MonitoringSection() {
     "antique",
     "capiz",
 
-    // Mindanao
     "mindanao",
     "davao",
     "davao city",
@@ -194,20 +188,19 @@ function MonitoringSection() {
     "sulu",
     "tawi-tawi",
 
-    // Philippine agencies
     "pagasa",
     "dost-pagasa",
     "ndrrmc",
     "mmda",
   ];
 
+
   // =====================================================
   // FOREIGN LOCATIONS
-  //
-  // Used to reject clearly foreign typhoon stories.
   // =====================================================
 
   const FOREIGN_LOCATIONS = [
+
     "hawaii",
     "hawai’i",
     "hawai'i",
@@ -255,11 +248,13 @@ function MonitoringSection() {
     "samoa",
   ];
 
+
   // =====================================================
   // CHECK TRUSTED PHILIPPINE SOURCE
   // =====================================================
 
   const isTrustedSource = (article) => {
+
     const source = (
       article.source?.name || ""
     )
@@ -272,6 +267,7 @@ function MonitoringSection() {
     );
   };
 
+
   // =====================================================
   // CHECK PHILIPPINE LOCATION
   // =====================================================
@@ -279,11 +275,13 @@ function MonitoringSection() {
   const containsPhilippineLocation = (
     text
   ) => {
+
     return PHILIPPINE_LOCATIONS.some(
       (location) =>
         text.includes(location)
     );
   };
+
 
   // =====================================================
   // CHECK FOREIGN LOCATION
@@ -292,11 +290,13 @@ function MonitoringSection() {
   const containsForeignLocation = (
     text
   ) => {
+
     return FOREIGN_LOCATIONS.some(
       (location) =>
         text.includes(location)
     );
   };
+
 
   // =====================================================
   // CHECK TYPHOON / WEATHER KEYWORDS
@@ -305,7 +305,9 @@ function MonitoringSection() {
   const containsTyphoonKeyword = (
     text
   ) => {
+
     const keywords = [
+
       "typhoon",
       "bagyo",
       "tropical cyclone",
@@ -344,6 +346,7 @@ function MonitoringSection() {
     );
   };
 
+
   // =====================================================
   // FINAL PHILIPPINE TYPHOON CHECK
   // =====================================================
@@ -351,6 +354,7 @@ function MonitoringSection() {
   const isPhilippineTyphoonNews = (
     article
   ) => {
+
     const title = (
       article.title || ""
     ).toLowerCase();
@@ -366,9 +370,6 @@ function MonitoringSection() {
     const text =
       `${title} ${description} ${content}`;
 
-    // -----------------------------------------------
-    // Must contain typhoon/weather keyword
-    // -----------------------------------------------
 
     const hasTyphoonKeyword =
       containsTyphoonKeyword(
@@ -379,39 +380,27 @@ function MonitoringSection() {
       return false;
     }
 
-    // -----------------------------------------------
-    // Check Philippine location
-    // -----------------------------------------------
 
     const hasPhilippineLocation =
       containsPhilippineLocation(
         text
       );
 
-    // -----------------------------------------------
-    // Check foreign location
-    // -----------------------------------------------
 
     const hasForeignLocation =
       containsForeignLocation(
         text
       );
 
-    // -----------------------------------------------
-    // Trusted Philippine publication
-    // -----------------------------------------------
 
     const trustedSource =
       isTrustedSource(article);
 
-    // -----------------------------------------------
-    // PAGASA / MMDA automatically counts
-    // as Philippine context
-    // -----------------------------------------------
 
     const sourceName = (
       article.source?.name || ""
     ).toLowerCase();
+
 
     const officialPhilippineSource =
       sourceName.includes(
@@ -421,47 +410,33 @@ function MonitoringSection() {
         "mmda"
       );
 
-    // -----------------------------------------------
-    // FINAL DECISION
-    // -----------------------------------------------
-    //
-    // Accept if:
-    //
-    // 1. Typhoon/weather keyword exists
-    //
-    // AND
-    //
-    // 2. Philippine location exists
-    //
-    // OR trusted Philippine source
-    //
-    // AND
-    //
-    // 3. It is NOT clearly foreign
-    //
-    // -----------------------------------------------
 
     const isPhilippineNews =
       hasPhilippineLocation ||
       trustedSource ||
       officialPhilippineSource;
 
+
     if (
       hasTyphoonKeyword &&
       isPhilippineNews &&
       !hasForeignLocation
     ) {
+
       return true;
     }
 
+
     return false;
   };
+
 
   // =====================================================
   // FETCH NEWS
   // =====================================================
 
   const fetchNews = async () => {
+
     console.log(
       "========================================"
     );
@@ -474,20 +449,21 @@ function MonitoringSection() {
       "========================================"
     );
 
+
     setLoading(true);
 
+
     try {
+
       const random =
         Math.floor(
           Math.random() * 999999
         );
 
-      // =================================================
-      // ONE GNEWS REQUEST
-      // =================================================
 
       const query =
         'typhoon OR bagyo OR "tropical cyclone" OR "tropical storm" OR "tropical depression" OR PAGASA';
+
 
       const url =
         `https://gnews.io/api/v4/search?` +
@@ -499,12 +475,15 @@ function MonitoringSection() {
         `&apikey=${API_KEY}` +
         `&_=${random}`;
 
+
       console.log(
         "Sending one GNews request..."
       );
 
+
       const response =
         await fetch(url);
+
 
       // =================================================
       // RATE LIMIT
@@ -513,6 +492,7 @@ function MonitoringSection() {
       if (
         response.status === 429
       ) {
+
         console.error(
           "GNews API rate limit reached (429)."
         );
@@ -522,15 +502,18 @@ function MonitoringSection() {
         return;
       }
 
+
       // =================================================
       // OTHER API ERROR
       // =================================================
 
       if (!response.ok) {
+
         throw new Error(
           `GNews API Error: ${response.status}`
         );
       }
+
 
       // =================================================
       // READ RESPONSE
@@ -539,18 +522,22 @@ function MonitoringSection() {
       const data =
         await response.json();
 
+
       console.log(
         "GNews response:",
         data
       );
 
+
       const allArticles =
         data.articles || [];
+
 
       console.log(
         "Articles returned:",
         allArticles.length
       );
+
 
       // =================================================
       // FILTER ARTICLES
@@ -559,10 +546,12 @@ function MonitoringSection() {
       const filteredArticles =
         allArticles.filter(
           (article) => {
+
             const result =
               isPhilippineTyphoonNews(
                 article
               );
+
 
             console.log(
               "--------------------------------"
@@ -588,14 +577,17 @@ function MonitoringSection() {
               result
             );
 
+
             return result;
           }
         );
+
 
       console.log(
         "Filtered Philippine Typhoon Articles:",
         filteredArticles.length
       );
+
 
       // =================================================
       // REMOVE DUPLICATES
@@ -614,10 +606,12 @@ function MonitoringSection() {
             )
         );
 
+
       console.log(
         "Unique Articles:",
         uniqueArticles.length
       );
+
 
       // =================================================
       // SORT NEWEST FIRST
@@ -633,6 +627,7 @@ function MonitoringSection() {
           )
       );
 
+
       // =================================================
       // FORMAT ARTICLES
       // =================================================
@@ -643,6 +638,7 @@ function MonitoringSection() {
             article,
             index
           ) => ({
+
             id:
               article.url ||
               `philippine-typhoon-${index}`,
@@ -677,16 +673,19 @@ function MonitoringSection() {
 
             url:
               article.url,
+
           })
         );
 
+
       // =================================================
-      // SHOW MAXIMUM 9 ARTICLES
+      // SHOW MAXIMUM 6 ARTICLES
       // =================================================
 
       setNewsItems(
         formatted.slice(0, 6)
       );
+
 
       // =================================================
       // LAST UPDATED
@@ -702,6 +701,7 @@ function MonitoringSection() {
         )
       );
 
+
       // =================================================
       // NEXT REFRESH
       // =================================================
@@ -711,6 +711,7 @@ function MonitoringSection() {
           Date.now() +
             5 * 60 * 1000
         );
+
 
       setNextRefresh(
         next.toLocaleTimeString(
@@ -722,6 +723,7 @@ function MonitoringSection() {
         )
       );
 
+
       // =================================================
       // NO RESULTS
       // =================================================
@@ -729,28 +731,36 @@ function MonitoringSection() {
       if (
         formatted.length === 0
       ) {
+
         console.log(
           "No Philippine typhoon news found."
         );
       }
+
     } catch (error) {
+
       console.error(
         "Philippine Typhoon News Error:",
         error
       );
 
       setNewsItems([]);
+
     } finally {
+
       setLoading(false);
+
     }
   };
 
+
   // =====================================================
   // INITIAL FETCH
-  // + REFRESH EVERY 5 MINUTES
+  // + REFRESH EVERY 30 MINUTES
   // =====================================================
 
   useEffect(() => {
+
     fetchNews();
 
     const interval =
@@ -760,19 +770,25 @@ function MonitoringSection() {
       );
 
     return () => {
+
       clearInterval(interval);
+
     };
+
   }, []);
+
 
   /* =========================================
      UI
   ========================================= */
 
   return (
+
     <section
       id="monitoring"
       className="page-section"
     >
+
 
       {/* =========================================
           MONITORING HERO
@@ -787,7 +803,7 @@ function MonitoringSection() {
           </p>
 
           <h2>
-            Flood Road Eye and Navigation Detection System 
+            Flood Road Eye and Navigation Detection System
           </h2>
 
           <p className="hero-description">
@@ -798,6 +814,7 @@ function MonitoringSection() {
           </p>
 
         </div>
+
 
         <div className="system-status-card">
 
@@ -881,6 +898,216 @@ function MonitoringSection() {
 
 
       {/* =========================================
+          EMERGENCY HOTLINES
+      ========================================= */}
+
+      <div className="emergency-section">
+
+        <div className="emergency-header">
+
+          <div>
+
+            <p className="eyebrow">
+              EMERGENCY ASSISTANCE
+            </p>
+
+            <h2>
+              Emergency Hotlines
+            </h2>
+
+            <p>
+              If you are experiencing a flood-related
+              emergency or need immediate assistance,
+              contact the appropriate emergency service.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div className="emergency-grid">
+
+
+          {/* =====================================
+              NATIONAL EMERGENCY
+          ===================================== */}
+
+          <a
+            href="tel:911"
+            className="emergency-card emergency-primary"
+          >
+
+            <div className="emergency-icon">
+              🚨
+            </div>
+
+            <div className="emergency-info">
+
+              <span>
+                NATIONAL EMERGENCY
+              </span>
+
+              <h3>
+                911
+              </h3>
+
+              <p>
+                Police, fire, medical, and other
+                emergency assistance.
+              </p>
+
+            </div>
+
+            <div className="emergency-call">
+              Call →
+            </div>
+
+          </a>
+
+
+          {/* =====================================
+              FIRE & RESCUE
+          ===================================== */}
+
+          <a
+            href="tel:911"
+            className="emergency-card"
+          >
+
+            <div className="emergency-icon">
+              🔥
+            </div>
+
+            <div className="emergency-info">
+
+              <span>
+                FIRE & RESCUE
+              </span>
+
+              <h3>
+                BFP
+              </h3>
+
+              <p>
+                Bureau of Fire Protection
+                emergency and rescue assistance.
+              </p>
+
+            </div>
+
+            <div className="emergency-call">
+              Call →
+            </div>
+
+          </a>
+
+
+          {/* =====================================
+              POLICE
+          ===================================== */}
+
+          <a
+            href="tel:911"
+            className="emergency-card"
+          >
+
+            <div className="emergency-icon">
+              👮
+            </div>
+
+            <div className="emergency-info">
+
+              <span>
+                POLICE ASSISTANCE
+              </span>
+
+              <h3>
+                PNP
+              </h3>
+
+              <p>
+                Philippine National Police
+                emergency assistance.
+              </p>
+
+            </div>
+
+            <div className="emergency-call">
+              Call →
+            </div>
+
+          </a>
+
+
+          {/* =====================================
+              MEDICAL
+          ===================================== */}
+
+          <a
+            href="tel:911"
+            className="emergency-card"
+          >
+
+            <div className="emergency-icon">
+              🏥
+            </div>
+
+            <div className="emergency-info">
+
+              <span>
+                MEDICAL EMERGENCY
+              </span>
+
+              <h3>
+                911
+              </h3>
+
+              <p>
+                For urgent medical emergencies
+                and ambulance assistance.
+              </p>
+
+            </div>
+
+            <div className="emergency-call">
+              Call →
+            </div>
+
+          </a>
+
+        </div>
+
+
+        {/* =====================================
+            EMERGENCY WARNING
+        ===================================== */}
+
+        <div className="emergency-note">
+
+          <span>
+            ⚠️
+          </span>
+
+          <p>
+
+            <strong>
+              Important:
+            </strong>{" "}
+
+            For life-threatening emergencies,
+            call <strong>911</strong> immediately.
+            Provide your exact location and clearly
+            describe the emergency.
+
+          </p>
+
+        </div>
+
+      </div>
+
+
+      {/* =========================================
           ABOUT FRENDS
       ========================================= */}
 
@@ -912,6 +1139,9 @@ function MonitoringSection() {
 
         <div className="frends-info-grid">
 
+
+          {/* FLOOD */}
+
           <article className="frends-info-card">
 
             <div className="frends-info-icon">
@@ -934,6 +1164,8 @@ function MonitoringSection() {
 
           </article>
 
+
+          {/* TRAFFIC */}
 
           <article className="frends-info-card">
 
@@ -958,6 +1190,8 @@ function MonitoringSection() {
           </article>
 
 
+          {/* WEATHER */}
+
           <article className="frends-info-card">
 
             <div className="frends-info-icon">
@@ -980,6 +1214,8 @@ function MonitoringSection() {
 
           </article>
 
+
+          {/* NAVIGATION */}
 
           <article className="frends-info-card">
 
@@ -1036,6 +1272,9 @@ function MonitoringSection() {
 
           <div className="frends-process-grid">
 
+
+            {/* STEP 1 */}
+
             <div className="frends-process-card">
 
               <span className="process-number">
@@ -1053,6 +1292,8 @@ function MonitoringSection() {
 
             </div>
 
+
+            {/* STEP 2 */}
 
             <div className="frends-process-card">
 
@@ -1072,6 +1313,8 @@ function MonitoringSection() {
             </div>
 
 
+            {/* STEP 3 */}
+
             <div className="frends-process-card">
 
               <span className="process-number">
@@ -1089,6 +1332,8 @@ function MonitoringSection() {
 
             </div>
 
+
+            {/* STEP 4 */}
 
             <div className="frends-process-card">
 
@@ -1142,10 +1387,12 @@ function MonitoringSection() {
             </p>
 
             {lastUpdated && (
+
               <p className="last-update">
                 Last Updated:{" "}
                 {lastUpdated}
               </p>
+
             )}
 
           </div>
@@ -1192,11 +1439,13 @@ function MonitoringSection() {
                 {/* NEWS IMAGE */}
 
                 {news.image && (
+
                   <img
                     src={news.image}
                     alt={news.title}
                     className="news-image"
                   />
+
                 )}
 
 
@@ -1236,6 +1485,7 @@ function MonitoringSection() {
                 {/* ARTICLE LINK */}
 
                 {news.url && (
+
                   <a
                     href={news.url}
                     target="_blank"
@@ -1244,6 +1494,7 @@ function MonitoringSection() {
                   >
                     Read Full Article →
                   </a>
+
                 )}
 
               </article>

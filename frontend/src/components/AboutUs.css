@@ -1,0 +1,567 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+/* =========================================================
+   ABOUT US PAGE
+========================================================= */
+
+.about-page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 80% 10%, rgba(31, 105, 180, 0.18), transparent 35%),
+    linear-gradient(135deg, #061b38 0%, #082c58 50%, #0a3970 100%);
+  color: #ffffff;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  padding-bottom: 0;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.about-header {
+  position: relative;
+  padding: 35px 7% 85px;
+  overflow: hidden;
+}
+
+.about-header::before {
+  content: "";
+  position: absolute;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  background: rgba(53, 143, 231, 0.12);
+  top: -250px;
+  right: -120px;
+}
+
+.about-back-btn {
+  position: relative;
+  z-index: 2;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  padding: 11px 20px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: 0.25s ease;
+}
+
+.about-back-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: translateX(-3px);
+}
+
+.about-header-content {
+  position: relative;
+  z-index: 1;
+  max-width: 850px;
+  margin: 75px auto 0;
+  text-align: center;
+}
+
+.about-label {
+  display: inline-block;
+  color: #65b5ff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  margin-bottom: 15px;
+}
+
+.about-header h1 {
+  margin: 0;
+  font-size: clamp(42px, 7vw, 78px);
+  font-weight: 800;
+  letter-spacing: -2px;
+}
+
+.about-header p {
+  max-width: 700px;
+  margin: 22px auto 0;
+  color: #c7dcf2;
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+/* =========================================================
+   GENERAL SECTION
+========================================================= */
+
+.about-section {
+  width: min(1150px, 88%);
+  margin: 0 auto;
+  padding: 80px 0;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 45px;
+}
+
+.section-title span {
+  color: #62b4ff;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.section-title h2 {
+  margin: 0;
+  font-size: clamp(26px, 4vw, 38px);
+  font-weight: 800;
+}
+
+/* =========================================================
+   INTRO
+========================================================= */
+
+.about-intro {
+  display: grid;
+  grid-template-columns: 1.5fr 0.8fr;
+  gap: 55px;
+  align-items: center;
+}
+
+.about-intro-text h3 {
+  font-size: 29px;
+  margin: 0 0 20px;
+}
+
+.about-intro-text p {
+  color: #bfd4e9;
+  line-height: 1.85;
+  font-size: 15px;
+  margin-bottom: 18px;
+}
+
+.about-highlight {
+  padding: 38px 30px;
+  border-radius: 24px;
+  background: linear-gradient(
+    145deg,
+    rgba(30, 111, 190, 0.35),
+    rgba(255, 255, 255, 0.06)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: center;
+  box-shadow: 0 25px 70px rgba(0, 0, 0, 0.15);
+}
+
+.highlight-icon {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.about-highlight h3 {
+  font-size: 27px;
+  margin: 0 0 10px;
+}
+
+.about-highlight p {
+  color: #bdd4eb;
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+/* =========================================================
+   HISTORY
+========================================================= */
+
+.history-section {
+  position: relative;
+}
+
+.history-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.history-container::before {
+  content: "";
+  position: absolute;
+  left: 26px;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  background: rgba(87, 171, 239, 0.35);
+}
+
+.history-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: 54px 1fr;
+  gap: 28px;
+  padding-bottom: 55px;
+}
+
+.history-item:last-child {
+  padding-bottom: 0;
+}
+
+.history-number {
+  position: relative;
+  z-index: 2;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c5597;
+  border: 3px solid #2d8bd0;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.history-content {
+  padding: 4px 0;
+}
+
+.history-tag {
+  display: inline-block;
+  color: #5fb2f5;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 10px;
+}
+
+.history-content h3 {
+  font-size: 23px;
+  margin: 0 0 12px;
+}
+
+.history-content p {
+  max-width: 800px;
+  color: #bcd2e7;
+  line-height: 1.8;
+  font-size: 14px;
+  margin: 7px 0;
+}
+
+/* =========================================================
+   FEATURES
+========================================================= */
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.feature-card {
+  padding: 30px 24px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(93, 178, 244, 0.35);
+}
+
+.feature-icon {
+  font-size: 35px;
+  margin-bottom: 20px;
+}
+
+.feature-card h3 {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+.feature-card p {
+  color: #b9cee2;
+  font-size: 13px;
+  line-height: 1.7;
+  margin: 0;
+}
+
+/* =========================================================
+   MISSION / VISION
+========================================================= */
+
+.mission-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.mission-card {
+  padding: 45px;
+  border-radius: 25px;
+  background: linear-gradient(
+    145deg,
+    rgba(20, 104, 177, 0.35),
+    rgba(255, 255, 255, 0.055)
+  );
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mission-card span {
+  color: #62b4ff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.mission-card h2 {
+  font-size: 27px;
+  line-height: 1.35;
+  margin: 18px 0;
+}
+
+.mission-card p {
+  color: #bfd4e8;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.vision-card {
+  background: linear-gradient(
+    145deg,
+    rgba(7, 70, 133, 0.45),
+    rgba(255, 255, 255, 0.055)
+  );
+}
+
+/* =========================================================
+   AUTHORS
+========================================================= */
+
+.authors-section {
+  padding-bottom: 100px;
+}
+
+.authors-description {
+  color: #bfd4e8;
+  margin-top: -25px;
+  margin-bottom: 35px;
+  font-size: 14px;
+}
+
+.authors-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.author-card {
+  display: flex;
+  gap: 22px;
+  padding: 25px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.055);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: 0.3s ease;
+}
+
+.author-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(89, 174, 240, 0.35);
+}
+
+.author-photo {
+  flex-shrink: 0;
+  width: 85px;
+  height: 85px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(
+    145deg,
+    #145c99,
+    #0a315d
+  );
+  font-size: 35px;
+  overflow: hidden;
+}
+
+.author-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.author-info h3 {
+  margin: 3px 0 5px;
+  font-size: 18px;
+}
+
+.author-role {
+  color: #5fb2f5;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.author-info p {
+  color: #b7cee3;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 12px 0 0;
+}
+
+/* =========================================================
+   CLOSING
+========================================================= */
+
+.about-closing {
+  padding: 100px 20px;
+  text-align: center;
+  background:
+    radial-gradient(
+      circle at center,
+      rgba(38, 126, 205, 0.35),
+      transparent 65%
+    ),
+    #05172f;
+}
+
+.closing-content {
+  max-width: 650px;
+  margin: auto;
+}
+
+.closing-content > span {
+  color: #62b4ff;
+  font-weight: 800;
+  letter-spacing: 4px;
+  font-size: 13px;
+}
+
+.closing-content h2 {
+  margin: 15px 0;
+  font-size: clamp(32px, 5vw, 52px);
+  font-weight: 800;
+}
+
+.closing-content p {
+  color: #bcd3e8;
+  line-height: 1.7;
+}
+
+.closing-button {
+  margin-top: 25px;
+  padding: 13px 25px;
+  border: none;
+  border-radius: 12px;
+  background: #1577d8;
+  color: white;
+  font-family: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.closing-button:hover {
+  background: #258be8;
+  transform: translateY(-2px);
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (max-width: 900px) {
+  .about-intro {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mission-section {
+    grid-template-columns: 1fr;
+  }
+
+  .authors-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .about-header {
+    padding: 25px 6% 65px;
+  }
+
+  .about-header-content {
+    margin-top: 55px;
+  }
+
+  .about-header h1 {
+    letter-spacing: -1px;
+  }
+
+  .about-header p {
+    font-size: 14px;
+  }
+
+  .about-section {
+    width: 88%;
+    padding: 60px 0;
+  }
+
+  .section-title {
+    margin-bottom: 30px;
+  }
+
+  .section-title h2 {
+    font-size: 25px;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .history-container::before {
+    left: 22px;
+  }
+
+  .history-item {
+    grid-template-columns: 46px 1fr;
+    gap: 18px;
+  }
+
+  .history-number {
+    width: 46px;
+    height: 46px;
+  }
+
+  .history-content h3 {
+    font-size: 19px;
+  }
+
+  .mission-card {
+    padding: 30px 25px;
+  }
+
+  .mission-card h2 {
+    font-size: 23px;
+  }
+
+  .author-card {
+    padding: 20px;
+  }
+
+  .author-photo {
+    width: 70px;
+    height: 70px;
+    border-radius: 16px;
+  }
+
+  .about-closing {
+    padding: 75px 20px;
+  }
+}

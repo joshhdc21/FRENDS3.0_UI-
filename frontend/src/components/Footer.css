@@ -1,0 +1,193 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+.footer {
+  width: 100%;
+  background: #05172f;
+  color: #ffffff;
+
+  /* Increased vertical space */
+  padding: 75px 7% 100px;
+
+  box-sizing: border-box;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* Makes sure the footer has enough height */
+  min-height: 330px;
+}
+
+.footer-container {
+  width: min(1150px, 100%);
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: 1.4fr 0.7fr 1fr;
+  gap: 60px;
+}
+
+/* =========================================
+   BRAND
+========================================= */
+
+.footer-logo {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 14px;
+}
+
+.footer-brand p {
+  max-width: 360px;
+  margin: 0;
+
+  color: #9fb9d2;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+/* =========================================
+   FOOTER COLUMNS
+========================================= */
+
+.footer-column h3 {
+  margin: 0 0 18px;
+
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 800;
+
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.footer-column p {
+  max-width: 330px;
+  margin: 0;
+
+  color: #9fb9d2;
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+/* =========================================
+   ABOUT US BUTTON
+========================================= */
+
+.footer-about-button {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 0;
+  margin: 0;
+
+  border: none;
+  outline: none;
+
+  background: transparent;
+
+  color: #b9cee3;
+
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.footer-about-button::after {
+  content: "→";
+
+  margin-left: 8px;
+
+  font-size: 16px;
+
+  transition: transform 0.25s ease;
+}
+
+.footer-about-button:hover {
+  color: #62b4ff;
+  transform: translateX(4px);
+}
+
+.footer-about-button:hover::after {
+  transform: translateX(4px);
+}
+
+/* =========================================
+   FOOTER BOTTOM
+========================================= */
+
+.footer-bottom {
+  width: min(1150px, 100%);
+
+  margin: 55px auto 0;
+  padding-top: 20px;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  gap: 20px;
+}
+
+.footer-bottom p {
+  margin: 0;
+
+  color: #718ba5;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 900px) {
+  .footer {
+    padding: 65px 7% 110px;
+    min-height: 350px;
+  }
+
+  .footer-container {
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+  }
+
+  .footer-brand {
+    grid-column: 1 / -1;
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 600px) {
+  .footer {
+    padding: 55px 6% 120px;
+    min-height: 500px;
+  }
+
+  .footer-container {
+    grid-template-columns: 1fr;
+    gap: 30px;
+  }
+
+  .footer-brand {
+    grid-column: auto;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    align-items: center;
+
+    margin-top: 45px;
+  }
+}

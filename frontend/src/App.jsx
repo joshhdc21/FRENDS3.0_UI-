@@ -25,21 +25,23 @@ import AdminDashboard from "./components/AdminDashboard";
 
 import MonitoringSection from "./components/MonitoringSection";
 import TrafficHeroSection from "./components/trafficherosection";
-import FloodLevelSection from "./components/FloodLevelSection";
 import NodesSection from "./components/NodesSection";
-import DeviceSection from "./components/DeviceSection";
 import BottomNavigation from "./components/BottomNavigation";
 import MapSection from "./components/MapSection";
+
+// =========================================
+// NEW - ABOUT US
+// =========================================
+
+import AboutUs from "./components/AboutUs";
 
 import "./App.css";
 
 // =========================================
 // ADMIN ACCOUNT
 // =========================================
-// Put the EXACT email of your FRENDS admin account here.
 
 const ADMIN_EMAIL = "frendsadmin@gmail.com";
-
 
 function App() {
 
@@ -48,7 +50,6 @@ function App() {
   // =========================================
 
   const [page, setPage] = useState("dashboard");
-
 
   // =========================================
   // FIREBASE AUTHENTICATION
@@ -60,7 +61,6 @@ function App() {
 
   const [authLoading, setAuthLoading] = useState(true);
 
-
   // =========================================
   // FIREBASE REALTIME DATABASE
   // =========================================
@@ -71,14 +71,12 @@ function App() {
 
   const [error, setError] = useState(null);
 
-
   // =========================================
   // FIREBASE CONNECTION STATUS
   // =========================================
 
   const [firebaseConnected, setFirebaseConnected] =
     useState(false);
-
 
   // =========================================================
   // FIREBASE AUTHENTICATION
@@ -90,7 +88,6 @@ function App() {
       "Starting Firebase Authentication listener..."
     );
 
-
     const unsubscribeAuth =
       onAuthStateChanged(
         auth,
@@ -100,7 +97,6 @@ function App() {
             "Firebase Auth User:",
             currentUser
           );
-
 
           // =========================================
           // NOT LOGGED IN
@@ -122,7 +118,6 @@ function App() {
 
             return;
           }
-
 
           // =========================================
           // USER LOGGED IN
@@ -150,9 +145,7 @@ function App() {
             "================================="
           );
 
-
           setUser(currentUser);
-
 
           // =====================================================
           // CHECK IF THIS IS THE SPECIFIC ADMIN ACCOUNT
@@ -179,14 +172,12 @@ function App() {
               "================================="
             );
 
-
             setUserRole("admin");
 
             setAuthLoading(false);
 
             return;
           }
-
 
           // =====================================================
           // NORMAL USER
@@ -196,13 +187,11 @@ function App() {
             "Checking normal user account..."
           );
 
-
           const userRef =
             ref(
               database,
               `users/${currentUser.uid}`
             );
-
 
           const unsubscribeUser =
             onValue(
@@ -216,7 +205,6 @@ function App() {
                   snapshot.val()
                 );
 
-
                 // =========================================
                 // USER RECORD EXISTS
                 // =========================================
@@ -226,12 +214,10 @@ function App() {
                   const userData =
                     snapshot.val();
 
-
                   console.log(
                     "User data:",
                     userData
                   );
-
 
                   // =========================================
                   // NORMAL USER
@@ -259,9 +245,6 @@ function App() {
                       "No valid user role found."
                     );
 
-                    // Since this is NOT the Admin email,
-                    // treat it as a normal user account.
-
                     setUserRole("user");
 
                   }
@@ -278,13 +261,9 @@ function App() {
                     "No database record found."
                   );
 
-                  // This account is not the Admin,
-                  // so send it to the normal user interface.
-
                   setUserRole("user");
 
                 }
-
 
                 // =========================================
                 // FINISHED AUTH CHECK
@@ -301,11 +280,6 @@ function App() {
                   firebaseError
                 );
 
-
-                // If database role lookup fails,
-                // this is still NOT the Admin account,
-                // so send the account to the user interface.
-
                 setUserRole("user");
 
                 setAuthLoading(false);
@@ -313,9 +287,8 @@ function App() {
               }
             );
 
-
           // =========================================
-          // CLEANUP
+          // CLEANUP USER LISTENER
           // =========================================
 
           return () => {
@@ -326,7 +299,6 @@ function App() {
 
         }
       );
-
 
     // =========================================
     // CLEANUP AUTH LISTENER
@@ -339,7 +311,6 @@ function App() {
     };
 
   }, []);
-
 
   // =========================================================
   // FIREBASE REALTIME DATABASE - NODES
@@ -364,21 +335,17 @@ function App() {
       return;
     }
 
-
     console.log(
       "Connecting to Firebase Realtime Database..."
     );
 
-
     setLoading(true);
-
 
     const nodesRef =
       ref(
         database,
         "nodes"
       );
-
 
     const unsubscribeDatabase =
       onValue(
@@ -392,7 +359,6 @@ function App() {
             snapshot.val()
           );
 
-
           if (snapshot.exists()) {
 
             setNodes(
@@ -404,7 +370,6 @@ function App() {
             setNodes({});
 
           }
-
 
           setFirebaseConnected(true);
 
@@ -421,7 +386,6 @@ function App() {
             firebaseError
           );
 
-
           setError(
             firebaseError.message
           );
@@ -434,7 +398,6 @@ function App() {
 
       );
 
-
     // =========================================
     // CLEANUP
     // =========================================
@@ -446,7 +409,6 @@ function App() {
     };
 
   }, [user]);
-
 
   // =========================================================
   // AUTHENTICATION LOADING
@@ -470,7 +432,6 @@ function App() {
 
   }
 
-
   // =========================================================
   // NOT LOGGED IN
   // =========================================================
@@ -480,7 +441,6 @@ function App() {
     return <Login />;
 
   }
-
 
   // =========================================================
   // ADMIN
@@ -498,7 +458,6 @@ function App() {
 
   }
 
-
   // =========================================================
   // NORMAL USER
   // =========================================================
@@ -509,103 +468,109 @@ function App() {
       "Rendering FRENDS User Interface..."
     );
 
-
     return (
 
       <div className="app">
 
-
         {/* =====================================
-            HEADER
+            ABOUT US PAGE
         ===================================== */}
 
-        <Header
-          page={page}
-          setPage={setPage}
-          firebaseConnected={firebaseConnected}
-          user={user}
-        />
+        {page === "about" ? (
 
+          <AboutUs
+            onBack={() => setPage("dashboard")}
+          />
 
-        {/* =====================================
-            MAIN CONTENT
-        ===================================== */}
+        ) : (
 
-        <main className="main-content">
+          <>
 
+            {/* =====================================
+                HEADER
+            ===================================== */}
 
-          {page === "dashboard" && (
-
-            <MonitoringSection />
-
-          )}
-
-
-          {page === "traffic" && (
-
-            <TrafficHeroSection />
-
-          )}
-
-
-          {page === "flood" && (
-
-            <FloodLevelSection />
-
-          )}
-
-
-          {page === "nodes" && (
-
-            <NodesSection
-              nodes={Object.values(nodes)}
-              loading={loading}
-              error={error}
+            <Header
+              page={page}
+              setPage={setPage}
+              firebaseConnected={firebaseConnected}
+              user={user}
             />
 
-          )}
+            {/* =====================================
+                MAIN CONTENT
+            ===================================== */}
 
+            <main className="main-content">
 
-          {page === "devices" && (
+              {page === "dashboard" && (
 
-            <DeviceSection />
+                <MonitoringSection />
 
-          )}
+              )}
 
+              {page === "traffic" && (
 
-          {page === "map" && (
+                <TrafficHeroSection />
 
-            <MapSection />
+              )}
 
-          )}
+              {page === "flood" && (
 
+                <FloodLevelSection />
 
-        </main>
+              )}
 
+              {page === "nodes" && (
 
-        {/* =====================================
-            BOTTOM NAVIGATION
-        ===================================== */}
+                <NodesSection
+                  nodes={Object.values(nodes)}
+                  loading={loading}
+                  error={error}
+                />
 
-        <BottomNavigation
-          page={page}
-          setPage={setPage}
-        />
+              )}
 
+              {page === "devices" && (
 
-        {/* =====================================
-            FOOTER
-        ===================================== */}
+                <DeviceSection />
 
-        <Footer />
+              )}
 
+              {page === "map" && (
+
+                <MapSection />
+
+              )}
+
+            </main>
+
+            {/* =====================================
+                BOTTOM NAVIGATION
+            ===================================== */}
+
+            <BottomNavigation
+              page={page}
+              setPage={setPage}
+            />
+
+            {/* =====================================
+                FOOTER
+            ===================================== */}
+
+            <Footer
+              onAboutClick={() => setPage("about")}
+            />
+
+          </>
+
+        )}
 
       </div>
 
     );
 
   }
-
 
   // =========================================================
   // FALLBACK
@@ -626,6 +591,5 @@ function App() {
   );
 
 }
-
 
 export default App;

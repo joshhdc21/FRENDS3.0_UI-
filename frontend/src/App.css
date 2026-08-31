@@ -4797,3 +4797,470 @@ section:not(.map-section):not(.map-interface) > *:nth-child(8) {
   opacity: 1;
   transform: none;
 }
+
+
+/* =========================================================
+   EMERGENCY HOTLINES
+   MATCHES FRENDS DARK BLUE UI
+========================================================= */
+
+.emergency-section {
+  width: 100%;
+  margin: 45px 0;
+  padding: 28px;
+
+  box-sizing: border-box;
+
+  background: #071b30;
+
+  border: 1px solid #123653;
+
+  border-radius: 20px;
+
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.25);
+}
+
+
+/* =========================================================
+   EMERGENCY HEADER
+========================================================= */
+
+.emergency-header {
+  margin-bottom: 24px;
+}
+
+.emergency-header .eyebrow {
+  margin-bottom: 7px;
+
+  color: #168cff;
+
+  font-size: 9px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.4px;
+}
+
+.emergency-header h2 {
+  margin: 0 0 8px;
+
+  color: #f4f8fc;
+
+  font-size: 25px;
+
+  font-weight: 800;
+
+  letter-spacing: -0.4px;
+}
+
+.emergency-header p:not(.eyebrow) {
+  max-width: 650px;
+
+  margin: 0;
+
+  color: #7890a8;
+
+  font-size: 12px;
+
+  line-height: 1.65;
+}
+
+
+/* =========================================================
+   EMERGENCY GRID
+========================================================= */
+
+.emergency-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 12px;
+}
+
+
+/* =========================================================
+   EMERGENCY CARD
+========================================================= */
+
+.emergency-card {
+  position: relative;
+
+  display: flex;
+
+  flex-direction: column;
+
+  min-height: 175px;
+
+  padding: 19px;
+
+  box-sizing: border-box;
+
+  background: #091d33;
+
+  border: 1px solid #143955;
+
+  border-radius: 15px;
+
+  text-decoration: none;
+
+  overflow: hidden;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+
+/* =========================================================
+   CARD TOP BLUE LINE
+========================================================= */
+
+.emergency-card::before {
+  content: "";
+
+  position: absolute;
+
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: 2px;
+
+  background: #087bea;
+
+  opacity: 0.7;
+}
+
+
+/* =========================================================
+   HOVER
+========================================================= */
+
+.emergency-card:hover {
+  transform: translateY(-3px);
+
+  background: #0b223b;
+
+  border-color: #17639a;
+
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+
+/* =========================================================
+   EMERGENCY ICON
+========================================================= */
+
+.emergency-icon {
+  width: 40px;
+  height: 40px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  margin-bottom: 14px;
+
+  border-radius: 10px;
+
+  background: #062b50;
+
+  border: 1px solid #0b4775;
+
+  color: #1592ff;
+
+  font-size: 18px;
+
+  flex-shrink: 0;
+}
+
+
+/* =========================================================
+   EMERGENCY INFORMATION
+========================================================= */
+
+.emergency-info {
+  flex: 1;
+}
+
+.emergency-info span {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #68829b;
+
+  font-size: 8px;
+
+  font-weight: 800;
+
+  letter-spacing: 1.1px;
+
+  text-transform: uppercase;
+}
+
+
+.emergency-info h3 {
+  margin: 0 0 6px;
+
+  color: #f1f6fb;
+
+  font-size: 21px;
+
+  font-weight: 800;
+}
+
+
+.emergency-info p {
+  margin: 0;
+
+  color: #718aa3;
+
+  font-size: 10px;
+
+  line-height: 1.55;
+}
+
+
+/* =========================================================
+   CALL BUTTON
+========================================================= */
+
+.emergency-call {
+  display: inline-flex;
+
+  align-items: center;
+
+  margin-top: 13px;
+
+  color: #148cff;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  transition:
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+.emergency-card:hover .emergency-call {
+  color: #4aa9ff;
+
+  transform: translateX(3px);
+}
+
+
+/* =========================================================
+   911 CARD
+========================================================= */
+
+.emergency-card.emergency-primary {
+  background: #0a2036;
+
+  border-color: #15527d;
+}
+
+
+.emergency-card.emergency-primary::before {
+  background: #168cff;
+
+  opacity: 1;
+}
+
+
+.emergency-card.emergency-primary .emergency-icon {
+  background: #07345b;
+
+  border-color: #0d6098;
+
+  color: #28a0ff;
+}
+
+
+.emergency-card.emergency-primary .emergency-info span {
+  color: #168cff;
+}
+
+
+.emergency-card.emergency-primary:hover {
+  background: #0d2943;
+
+  border-color: #1a73ad;
+}
+
+
+/* =========================================================
+   EMERGENCY NOTE
+========================================================= */
+
+.emergency-note {
+  display: flex;
+
+  align-items: flex-start;
+
+  gap: 10px;
+
+  margin-top: 15px;
+
+  padding: 13px 15px;
+
+  box-sizing: border-box;
+
+  background: #081b2f;
+
+  border: 1px solid #123550;
+
+  border-radius: 12px;
+}
+
+
+.emergency-note > span {
+  flex-shrink: 0;
+
+  color: #168cff;
+
+  font-size: 15px;
+
+  line-height: 1.4;
+}
+
+
+.emergency-note p {
+  margin: 0;
+
+  color: #6f879e;
+
+  font-size: 10px;
+
+  line-height: 1.6;
+}
+
+
+.emergency-note strong {
+  color: #b8cce0;
+
+  font-weight: 800;
+}
+
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1050px) {
+
+  .emergency-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+}
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 650px) {
+
+  .emergency-section {
+    margin: 35px 0;
+
+    padding: 21px 16px;
+
+    border-radius: 17px;
+  }
+
+
+  .emergency-header {
+    margin-bottom: 20px;
+  }
+
+
+  .emergency-header h2 {
+    font-size: 21px;
+  }
+
+
+  .emergency-header p:not(.eyebrow) {
+    font-size: 11px;
+  }
+
+
+  .emergency-grid {
+    grid-template-columns: 1fr;
+
+    gap: 10px;
+  }
+
+
+  .emergency-card {
+    min-height: 150px;
+
+    padding: 17px;
+  }
+
+
+  .emergency-icon {
+    width: 37px;
+    height: 37px;
+
+    margin-bottom: 12px;
+
+    font-size: 16px;
+  }
+
+
+  .emergency-info h3 {
+    font-size: 19px;
+  }
+
+
+  .emergency-info p {
+    font-size: 10px;
+  }
+
+
+  .emergency-call {
+    font-size: 10px;
+  }
+
+
+  .emergency-note {
+    padding: 12px;
+
+    gap: 9px;
+  }
+
+}
+
+
+/* =========================================================
+   SMALL PHONES
+========================================================= */
+
+@media (max-width: 380px) {
+
+  .emergency-section {
+    padding: 18px 13px;
+  }
+
+  .emergency-header h2 {
+    font-size: 19px;
+  }
+
+  .emergency-card {
+    padding: 15px;
+  }
+
+}
+

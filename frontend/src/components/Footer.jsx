@@ -1,43 +1,91 @@
-function Footer() {
-  const currentYear = new Date().getFullYear();
+import React from "react";
+import "./Footer.css";
 
+function Footer({ onAboutClick }) {
   return (
-    <footer className="site-footer">
-      {/* Project Information */}
-      <div className="footer-brand">
-        <h2>Frends 3.0</h2>
+    <footer className="footer">
 
-        <p className="footer-subtitle">
-          Multi-node Smart Flood Monitoring System
+      {/* =========================================
+          FOOTER CONTAINER
+      ========================================= */}
+
+      <div className="footer-container">
+
+        {/* =========================================
+            FRENDS BRAND
+        ========================================= */}
+
+        <div className="footer-brand">
+
+          <div className="footer-logo">
+            FRENDS
+          </div>
+
+          <p>
+            Real-time flood and traffic information
+            for smarter travel decisions in Metro Manila.
+          </p>
+
+        </div>
+
+        {/* =========================================
+            QUICK LINKS
+        ========================================= */}
+
+        <div className="footer-column">
+
+          <h3>Quick Links</h3>
+
+          <button
+            type="button"
+            className="footer-about-button"
+            onClick={() => {
+              if (onAboutClick) {
+                onAboutClick();
+              }
+            }}
+          >
+            About Us
+          </button>
+
+        </div>
+
+        {/* =========================================
+            FRENDS INFORMATION
+        ========================================= */}
+
+        <div className="footer-column">
+
+          <h3>About FRENDS</h3>
+
+          <p>
+            FRENDS is a flood monitoring and smart
+            navigation system designed to provide
+            real-time information for safer and
+            smarter journeys in Metro Manila.
+          </p>
+
+        </div>
+
+      </div>
+
+      {/* =========================================
+          FOOTER BOTTOM
+      ========================================= */}
+
+      <div className="footer-bottom">
+
+        <p>
+          © {new Date().getFullYear()} FRENDS.
+          All Rights Reserved.
         </p>
 
-        <small>
-          Frends 3.0 is a web-based flood monitoring platform that provides
-          real-time water level monitoring, traffic updates, and route guidance
-          using smart sensor nodes and cloud-based data synchronization.
-        </small>
+        <p>
+          Flood Monitoring & Smart Navigation System
+        </p>
+
       </div>
 
-      {/* System Information */}
-      <div className="footer-info">
-        <h4>System Information</h4>
-
-        <p><strong>Version:</strong> 3.0</p>
-        <p><strong>Status:</strong> Operational</p>
-        
-      </div>
-
-      {/* Copyright */}
-      <div className="footer-copy">
-        <h4>Project</h4>
-
-        <p>Technological University of the Philippines – Manila</p>
-
-        <br />
-
-        <p>© {currentYear} Frends 3.0</p>
-        <small>All Rights Reserved.</small>
-      </div>
     </footer>
   );
 }

@@ -2,6 +2,7 @@ function BottomNavigation({ page, setPage }) {
   return (
     <nav className="bottom-navigation">
 
+      {/* HOME */}
       <button
         className={page === "dashboard" ? "active" : ""}
         onClick={() => setPage("dashboard")}
@@ -9,6 +10,7 @@ function BottomNavigation({ page, setPage }) {
         <small>Home</small>
       </button>
 
+      {/* TRAFFIC */}
       <button
         className={page === "traffic" ? "active" : ""}
         onClick={() => setPage("traffic")}
@@ -16,13 +18,15 @@ function BottomNavigation({ page, setPage }) {
         <small>Traffic</small>
       </button>
 
+      {/* NODES */}
       <button
-        className={page === "flood" ? "active" : ""}
-        onClick={() => setPage("flood")}
+        className={page === "nodes" ? "active" : ""}
+        onClick={() => setPage("nodes")}
       >
         <small>Flood</small>
       </button>
 
+      {/* MAP */}
       <button
         className={page === "map" ? "active" : ""}
         onClick={() => setPage("map")}
@@ -30,21 +34,6 @@ function BottomNavigation({ page, setPage }) {
         <small>Map</small>
       </button>
 
-      <button
-        className={page === "nodes" ? "active" : ""}
-        onClick={() => setPage("nodes")}
-      >
-        <small>Nodes</small>
-      </button>
-
-      <button
-        className={page === "devices" ? "active" : ""}
-        onClick={() => setPage("devices")}
-      >
-        <small>Devices</small>
-      </button>
-
-      
     </nav>
   );
 }
