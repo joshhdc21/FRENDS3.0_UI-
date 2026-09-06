@@ -216,6 +216,44 @@ export default function MapSection() {
         labelLayerRef.current = L.tileLayer(labelUrl, { maxZoom: 19, zIndex: 1000 }).addTo(map);
     }, [theme]);
 
+    // Real-Time GPS Tracking for Drive Mode
+    useEffect(() => {
+        let watchId;
+
+        if (driveMode) {
+            if ('geolocation' in navigator) {
+                // Request high-accuracy continuous tracking
+                watchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        const { latitude, longitude, speed } = position.coords;
+                        setLiveLocation([latitude, longitude]);
+                        
+                        // Optional: You can also use 'speed' (in meters/second) 
+                        // to update the km/h UI element you built!
+                    },
+                    (error) => {
+                        console.error("GPS Tracking Error:", error);
+                        // Fallback or error handling here
+                    },
+                    { 
+                        enableHighAccuracy: true, 
+                        maximumAge: 5000, 
+                        timeout: 10000 
+                    }
+                );
+            } else {
+                alert("⚠️ Geolocation is not supported by your browser.");
+            }
+        } else {
+            // Clean up and stop tracking when Drive Mode is turned off
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+        }
+
+        return () => {
+            if (watchId) navigator.geolocation.clearWatch(watchId);
+        };
+    }, [driveMode]);
+
     useEffect(() => {
         if (mapInstanceRef.current && !driveMode) {
             mapInstanceRef.current.setView(mapCenter, 16);
