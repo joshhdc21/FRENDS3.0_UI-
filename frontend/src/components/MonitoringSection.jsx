@@ -55,7 +55,6 @@ function SummaryCard({
   value,
   status,
   description,
-  link,
   type,
 }) {
   return (
@@ -90,18 +89,6 @@ function SummaryCard({
       <p className="summary-card-description">
         {description}
       </p>
-
-      {/* =================================================
-          ACTUAL HYPERLINK
-      ================================================= */}
-
-      <a
-        href={link}
-        className="summary-card-button"
-      >
-        <span>Click for More Information</span>
-        <span>→</span>
-      </a>
     </div>
   );
 }
@@ -904,9 +891,6 @@ export default function MonitoringSection() {
               ? `${getFloodDescription()} Highest level recorded at ${floodSummary.highestLocation}.`
               : "Waiting for live flood sensor data."
           }
-
-          /* ACTUAL HYPERLINK */
-          link="#nodes"
         />
 
         {/* =================================================
@@ -930,9 +914,6 @@ export default function MonitoringSection() {
           description={
             getTrafficDescription()
           }
-
-          /* ACTUAL HYPERLINK */
-          link="#traffic"
         />
 
       </div>
