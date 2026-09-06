@@ -17,7 +17,7 @@
   --bg-card-light: #143657;
 
   --border: rgba(117, 164, 210, 0.18);
-  --border-light: rgba(117, 164, 210, 0.28);
+  --border-light: rgba(21, 56, 91, 0.28);
 
   --text: #f4f8fc;
   --text-secondary: #b9cbe0;
@@ -1631,4 +1631,101 @@ input {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #386b9e;
+}
+
+/* =========================================================
+   DELETE ACCOUNT BUTTON
+========================================================= */
+
+.delete-account-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+
+  padding: 8px 13px;
+
+  border: 1px solid rgba(240, 100, 100, 0.25);
+  border-radius: 8px;
+
+  background: rgba(240, 100, 100, 0.08);
+  color: var(--danger);
+
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.delete-account-button:hover {
+  background: rgba(240, 100, 100, 0.16);
+  border-color: rgba(240, 100, 100, 0.5);
+  color: #ff8585;
+
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 5px 15px rgba(240, 100, 100, 0.12);
+}
+
+.delete-account-button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.delete-account-button:focus-visible {
+  outline: none;
+
+  border-color: var(--danger);
+
+  box-shadow:
+    0 0 0 3px rgba(240, 100, 100, 0.12);
+}
+
+.delete-account-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Delete icon */
+.delete-account-button span {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* =========================================================
+   DELETE BUTTON — TABLE CELL
+========================================================= */
+
+.admin-data-table td:last-child {
+  white-space: nowrap;
+}
+
+.admin-data-table .delete-account-button {
+  min-width: 72px;
+}
+
+/* =========================================================
+   DELETE BUTTON — MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+  .delete-account-button {
+    padding: 8px 11px;
+    font-size: 9px;
+  }
+
+  .delete-account-button span {
+    font-size: 12px;
+  }
 }

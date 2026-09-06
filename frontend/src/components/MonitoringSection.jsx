@@ -1,343 +1,675 @@
 import { useEffect, useState } from "react";
+import { ref, onValue } from "firebase/database";
 
-/* =========================================
-   SENSOR CARD
-========================================= */
+import { database } from "../firebase/firebaseConfig";
+import { fetchTrafficData } from "../services/trafficService";
 
-function SensorCard({ title, value, unit, icon, type }) {
+// =====================================================
+// NODE NAMES
+// =====================================================
+
+const NODE_NAMES = {
+  "node-01": "Leon Guinto St., Manila",
+  "node-02": "Remedios St., Manila",
+  "node-03": "Pilar Hidalgo St., Manila",
+  "node-04": "San Andres St., Manila",
+  "node-05": "Maginhawa St., Manila",
+  "node-06": "Fidel Reyes St., Manila",
+  "node-07": "Taft Avenue",
+  "node-08": "Pablo Ocampo St., Manila",
+  "node-09": "A. Estrada St., Manila",
+  "node-10": "Castro St., Manila",
+};
+
+// =====================================================
+// CONSTANTS
+// =====================================================
+
+const CM_TO_FEET = 0.0328084;
+
+// =====================================================
+// FLOOD CLASSIFICATION
+// =====================================================
+
+const getFloodLevel = (waterLevel, status) => {
+  if (status === "offline") {
+    return "Offline";
+  }
+
+  const level = Number(waterLevel || 0);
+
+  if (level <= 10) return "Normal";
+  if (level <= 25) return "Caution";
+  if (level <= 50) return "Warning";
+
+  return "Critical";
+};
+
+// =====================================================
+// SUMMARY CARD
+// =====================================================
+
+function SummaryCard({
+  icon,
+  title,
+  value,
+  status,
+  description,
+  link,
+  type,
+}) {
   return (
-    <article className={`sensor-card sensor-card-${type}`}>
-      <div className="sensor-card-header">
-        <span>{title}</span>
-        <span className="sensor-icon">{icon}</span>
+    <div className={`summary-card ${type || ""}`}>
+      {/* CARD HEADER */}
+      <div className="summary-card-header">
+        <div className="summary-card-icon">
+          {icon}
+        </div>
+
+        <div className="summary-card-title">
+          <h3>{title}</h3>
+
+          {status && (
+            <span
+              className={`summary-status ${status
+                .toLowerCase()
+                .replace(/\s+/g, "-")}`}
+            >
+              {status}
+            </span>
+          )}
+        </div>
       </div>
 
-      <strong className="sensor-value">{value}</strong>
+      {/* MAIN VALUE */}
+      <div className="summary-card-value">
+        {value}
+      </div>
 
-      <p className="sensor-unit">
-        {unit}
+      {/* DESCRIPTION */}
+      <p className="summary-card-description">
+        {description}
       </p>
-    </article>
+
+      {/* =================================================
+          ACTUAL HYPERLINK
+      ================================================= */}
+
+      <a
+        href={link}
+        className="summary-card-button"
+      >
+        <span>Click for More Information</span>
+        <span>→</span>
+      </a>
+    </div>
   );
 }
 
+// =====================================================
+// MONITORING SECTION
+// =====================================================
 
-/* =========================================
-   MONITORING SECTION
-========================================= */
+export default function MonitoringSection() {
+  // ===================================================
+  // FLOOD STATE
+  // ===================================================
 
-function MonitoringSection() {
+  const [floodSummary, setFloodSummary] = useState({
+    totalNodes: 0,
+    onlineNodes: 0,
+    offlineNodes: 0,
+    normalNodes: 0,
+    cautionNodes: 0,
+    warningNodes: 0,
+    criticalNodes: 0,
+    highestWaterLevel: 0,
+    highestWaterLevelFeet: 0,
+    overallStatus: "Normal",
+    highestLocation: "No data",
+  });
 
-  const [newsItems, setNewsItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState("");
-  const [nextRefresh, setNextRefresh] = useState("");
+  // ===================================================
+  // TRAFFIC STATE
+  // ===================================================
 
-  const API_KEY = "21604dffca378c5d621f8cf55ff15c08";
+  const [trafficSummary, setTrafficSummary] = useState({
+    totalRoads: 0,
+    highestCongestion: 0,
+    highestRoad: "No data",
+    overallStatus: "Normal",
+  });
 
+  const [trafficLoading, setTrafficLoading] =
+    useState(true);
 
-  // =====================================================
-  // APPROVED PHILIPPINE NEWS SOURCES
-  // =====================================================
+  // ===================================================
+  // NEWS STATE
+  // ===================================================
+
+  const [news, setNews] = useState([]);
+  const [newsLoading, setNewsLoading] =
+    useState(true);
+
+  // ===================================================
+  // FIREBASE FLOOD MONITORING
+  // ===================================================
+
+  useEffect(() => {
+    const nodesRef = ref(database, "nodes");
+
+    const unsubscribe = onValue(
+      nodesRef,
+      (snapshot) => {
+        const data = snapshot.val();
+
+        if (!data) {
+          setFloodSummary({
+            totalNodes: 0,
+            onlineNodes: 0,
+            offlineNodes: 0,
+            normalNodes: 0,
+            cautionNodes: 0,
+            warningNodes: 0,
+            criticalNodes: 0,
+            highestWaterLevel: 0,
+            highestWaterLevelFeet: 0,
+            overallStatus: "Normal",
+            highestLocation: "No data",
+          });
+
+          return;
+        }
+
+        let totalNodes = 0;
+        let onlineNodes = 0;
+        let offlineNodes = 0;
+
+        let normalNodes = 0;
+        let cautionNodes = 0;
+        let warningNodes = 0;
+        let criticalNodes = 0;
+
+        let highestWaterLevel = 0;
+        let highestLocation = "No data";
+
+        // =================================================
+        // PROCESS EACH NODE
+        // =================================================
+
+        Object.entries(data).forEach(
+          ([nodeId, nodeData]) => {
+            totalNodes++;
+
+            let latestReading = null;
+
+            // ---------------------------------------------
+            // FIND LATEST READING
+            // ---------------------------------------------
+
+            if (
+              nodeData &&
+              typeof nodeData === "object"
+            ) {
+              const readings =
+                Object.entries(nodeData);
+
+              readings.forEach(
+                ([key, reading]) => {
+                  if (
+                    reading &&
+                    typeof reading === "object" &&
+                    reading.timestamp
+                  ) {
+                    if (
+                      !latestReading ||
+                      Number(reading.timestamp) >
+                        Number(
+                          latestReading.timestamp
+                        )
+                    ) {
+                      latestReading = reading;
+                    }
+                  }
+                }
+              );
+            }
+
+            // ---------------------------------------------
+            // OFFLINE NODE
+            // ---------------------------------------------
+
+            if (!latestReading) {
+              offlineNodes++;
+              return;
+            }
+
+            const nodeStatus = String(
+              latestReading.status || "online"
+            ).toLowerCase();
+
+            if (nodeStatus === "offline") {
+              offlineNodes++;
+              return;
+            }
+
+            onlineNodes++;
+
+            // ---------------------------------------------
+            // WATER LEVEL
+            // ---------------------------------------------
+
+            const waterLevel = Number(
+              latestReading.waterLevel ??
+                latestReading.water_level ??
+                latestReading.level ??
+                latestReading.distance ??
+                0
+            );
+
+            // ---------------------------------------------
+            // FLOOD CLASSIFICATION
+            // ---------------------------------------------
+
+            const floodLevel = getFloodLevel(
+              waterLevel,
+              nodeStatus
+            );
+
+            // ---------------------------------------------
+            // CLASSIFICATION COUNT
+            // ---------------------------------------------
+
+            switch (floodLevel) {
+              case "Normal":
+                normalNodes++;
+                break;
+
+              case "Caution":
+                cautionNodes++;
+                break;
+
+              case "Warning":
+                warningNodes++;
+                break;
+
+              case "Critical":
+                criticalNodes++;
+                break;
+
+              default:
+                break;
+            }
+
+            // ---------------------------------------------
+            // HIGHEST WATER LEVEL
+            // ---------------------------------------------
+
+            if (
+              waterLevel > highestWaterLevel
+            ) {
+              highestWaterLevel = waterLevel;
+
+              highestLocation =
+                NODE_NAMES[nodeId] || nodeId;
+            }
+          }
+        );
+
+        // =================================================
+        // OVERALL FLOOD STATUS
+        // =================================================
+
+        let overallStatus = "Normal";
+
+        if (criticalNodes > 0) {
+          overallStatus = "Critical";
+        } else if (warningNodes > 0) {
+          overallStatus = "Warning";
+        } else if (cautionNodes > 0) {
+          overallStatus = "Caution";
+        }
+
+        // =================================================
+        // UPDATE FLOOD SUMMARY
+        // =================================================
+
+        setFloodSummary({
+          totalNodes,
+          onlineNodes,
+          offlineNodes,
+          normalNodes,
+          cautionNodes,
+          warningNodes,
+          criticalNodes,
+          highestWaterLevel,
+          highestWaterLevelFeet:
+            highestWaterLevel *
+            CM_TO_FEET,
+          overallStatus,
+          highestLocation,
+        });
+      },
+      (error) => {
+        console.error(
+          "Firebase flood monitoring error:",
+          error
+        );
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  // ===================================================
+  // TRAFFIC MONITORING
+  // ===================================================
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadTraffic = async () => {
+      try {
+        setTrafficLoading(true);
+
+        const traffic =
+          await fetchTrafficData();
+
+        if (!mounted) return;
+
+        const roads = Array.isArray(
+          traffic?.roads
+        )
+          ? traffic.roads
+          : [];
+
+        // ---------------------------------------------
+        // VALID ROADS
+        // ---------------------------------------------
+
+        const validRoads = roads.filter(
+          (road) =>
+            road &&
+            Number.isFinite(
+              Number(road.congestion)
+            )
+        );
+
+        // ---------------------------------------------
+        // HIGHEST CONGESTION
+        // ---------------------------------------------
+
+        const highestCongestion =
+          validRoads.length > 0
+            ? Math.max(
+                ...validRoads.map((road) =>
+                  Number(
+                    road.congestion || 0
+                  )
+                )
+              )
+            : 0;
+
+        // ---------------------------------------------
+        // HIGHEST CONGESTION ROAD
+        // ---------------------------------------------
+
+        const highestCongestionRoad =
+          validRoads.find(
+            (road) =>
+              Number(
+                road.congestion || 0
+              ) === highestCongestion
+          );
+
+        // ---------------------------------------------
+        // OVERALL TRAFFIC STATUS
+        // ---------------------------------------------
+
+        let overallStatus = String(
+          traffic?.status || ""
+        );
+
+        if (!overallStatus) {
+          if (highestCongestion >= 75) {
+            overallStatus = "Critical";
+          } else if (
+            highestCongestion >= 50
+          ) {
+            overallStatus = "Heavy";
+          } else if (
+            highestCongestion >= 25
+          ) {
+            overallStatus = "Moderate";
+          } else {
+            overallStatus = "Light";
+          }
+        }
+
+        // ---------------------------------------------
+        // UPDATE TRAFFIC SUMMARY
+        // ---------------------------------------------
+
+        setTrafficSummary({
+          totalRoads:
+            validRoads.length,
+
+          highestCongestion,
+
+          highestRoad:
+            highestCongestionRoad?.name ||
+            "No data",
+
+          overallStatus,
+        });
+      } catch (error) {
+        console.error(
+          "Traffic monitoring error:",
+          error
+        );
+
+        if (mounted) {
+          setTrafficSummary({
+            totalRoads: 0,
+            highestCongestion: 0,
+            highestRoad: "Unavailable",
+            overallStatus: "Unavailable",
+          });
+        }
+      } finally {
+        if (mounted) {
+          setTrafficLoading(false);
+        }
+      }
+    };
+
+    // INITIAL LOAD
+    loadTraffic();
+
+    // REFRESH EVERY 60 SECONDS
+    const interval = setInterval(
+      loadTraffic,
+      60 * 1000
+    );
+
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // ===================================================
+  // GNEWS CONFIGURATION
+  // ===================================================
+
+  const GNEWS_API_KEY =
+    import.meta.env.VITE_GNEWS_API_KEY ||
+    "21604dffca378c5d621f8cf55ff15c08";
+
+  // ===================================================
+  // TRUSTED PHILIPPINE SOURCES
+  // ===================================================
 
   const TRUSTED_SOURCES = [
-    "gma",
-    "abs-cbn",
-    "inquirer",
-    "philstar",
-    "manila bulletin",
-    "manilabulletin",
-    "rappler",
-    "pagasa",
-    "mmda",
-
-    "manila times",
-    "the manila times",
-    "manilatimes",
-
-    "sunstar",
-    "sun star",
-
-    "manila standard",
-    "manilastandard",
-
-    "daily tribune",
-    "tribune",
-
-    "businessworld",
-    "business world",
-
-    "businessmirror",
-    "business mirror",
-
-    "pna",
-    "philippine news agency",
-
-    "pia",
-    "philippine information agency",
-
-    "interaksyon",
-
-    "news5",
-    "tv5",
-
-    "one news",
-    "onenews",
-
-    "bombo radyo",
-
-    "abante",
-
-    "tempo",
-
-    "the freeman",
-
-    "cebu daily news",
-
-    "panay news",
+    "PAGASA",
+    "GMA News",
+    "ABS-CBN",
+    "Inquirer",
+    "Philstar",
+    "Manila Bulletin",
+    "Rappler",
+    "CNN Philippines",
+    "Manila Standard",
+    "The Philippine Star",
+    "Philippine News Agency",
+    "PNA",
   ];
 
-
-  // =====================================================
+  // ===================================================
   // PHILIPPINE LOCATIONS
-  // =====================================================
+  // ===================================================
 
   const PHILIPPINE_LOCATIONS = [
-
-    "philippines",
-    "philippine",
-    "pilipinas",
-
-    "metro manila",
-    "manila",
-    "quezon city",
-    "caloocan",
-    "pasig",
-    "makati",
-    "taguig",
-    "marikina",
-    "parañaque",
-    "paranaque",
-    "pasay",
-    "malabon",
-    "navotas",
-    "valenzuela",
-    "mandaluyong",
-    "muntinlupa",
-    "las piñas",
-    "las pinas",
-    "san juan",
-
-    "luzon",
-    "northern luzon",
-    "central luzon",
-    "southern luzon",
-
-    "bulacan",
-    "pampanga",
-    "tarlac",
-    "bataan",
-    "zambales",
-    "pangasinan",
-    "la union",
-    "ilocos",
-    "cagayan",
-    "isabela",
-    "batanes",
-    "aurora",
-    "quezon province",
-    "laguna",
-    "cavite",
-    "batangas",
-    "rizal",
-    "bicol",
-    "albay",
-    "sorsogon",
-    "catanduanes",
-    "camarines norte",
-    "camarines sur",
-
-    "visayas",
-    "cebu",
-    "iloilo",
-    "leyte",
-    "eastern visayas",
-    "western visayas",
-    "central visayas",
-    "samar",
-    "bohol",
-    "negros",
-    "negros occidental",
-    "negros oriental",
-    "panay",
-    "aklan",
-    "antique",
-    "capiz",
-
-    "mindanao",
-    "davao",
-    "davao city",
-    "cagayan de oro",
-    "zamboanga",
-    "cotabato",
-    "misamis",
-    "bukidnon",
-    "surigao",
-    "caraga",
-    "basilan",
-    "sulu",
-    "tawi-tawi",
-
-    "pagasa",
-    "dost-pagasa",
-    "ndrrmc",
-    "mmda",
+    "Philippines",
+    "Metro Manila",
+    "Manila",
+    "Quezon City",
+    "Makati",
+    "Pasig",
+    "Taguig",
+    "Pasay",
+    "Parañaque",
+    "Paranaque",
+    "Caloocan",
+    "Malabon",
+    "Navotas",
+    "Valenzuela",
+    "Marikina",
+    "Mandaluyong",
+    "San Juan",
+    "Las Piñas",
+    "Las Pinas",
+    "Muntinlupa",
+    "Pateros",
+    "Luzon",
+    "Visayas",
+    "Mindanao",
   ];
 
-
-  // =====================================================
+  // ===================================================
   // FOREIGN LOCATIONS
-  // =====================================================
+  // ===================================================
 
   const FOREIGN_LOCATIONS = [
-
-    "hawaii",
-    "hawai’i",
-    "hawai'i",
-
-    "united states",
-    "usa",
-    "u.s.",
-    "america",
-
-    "japan",
-    "taiwan",
-    "china",
-    "hong kong",
-
-    "vietnam",
-    "thailand",
-    "malaysia",
-    "indonesia",
-
-    "australia",
-    "india",
-    "bangladesh",
-
-    "south korea",
-    "korea",
-
-    "mexico",
-
-    "florida",
-    "california",
-    "texas",
-    "new york",
-
-    "atlantic ocean",
-    "caribbean",
-
-    "guam",
-
-    "palau",
-
-    "micronesia",
-
-    "fiji",
-
-    "samoa",
+    "United States",
+    "USA",
+    "US",
+    "Japan",
+    "China",
+    "Taiwan",
+    "Hong Kong",
+    "Vietnam",
+    "Thailand",
+    "Indonesia",
+    "Malaysia",
+    "India",
+    "Australia",
+    "Canada",
+    "United Kingdom",
+    "UK",
+    "Europe",
+    "Korea",
+    "South Korea",
   ];
 
-
-  // =====================================================
-  // CHECK TRUSTED PHILIPPINE SOURCE
-  // =====================================================
+  // ===================================================
+  // CHECK TRUSTED SOURCE
+  // ===================================================
 
   const isTrustedSource = (article) => {
-
-    const source = (
-      article.source?.name || ""
-    )
-      .toLowerCase()
-      .trim();
+    const sourceName =
+      article?.source?.name?.toLowerCase() ||
+      "";
 
     return TRUSTED_SOURCES.some(
-      (name) =>
-        source.includes(name)
+      (source) =>
+        sourceName.includes(
+          source.toLowerCase()
+        )
     );
   };
 
-
-  // =====================================================
+  // ===================================================
   // CHECK PHILIPPINE LOCATION
-  // =====================================================
+  // ===================================================
 
   const containsPhilippineLocation = (
-    text
+    article
   ) => {
+    const text = `
+      ${article?.title || ""}
+      ${article?.description || ""}
+      ${article?.content || ""}
+    `.toLowerCase();
 
     return PHILIPPINE_LOCATIONS.some(
       (location) =>
-        text.includes(location)
+        text.includes(
+          location.toLowerCase()
+        )
     );
   };
 
-
-  // =====================================================
+  // ===================================================
   // CHECK FOREIGN LOCATION
-  // =====================================================
+  // ===================================================
 
   const containsForeignLocation = (
-    text
+    article
   ) => {
+    const text = `
+      ${article?.title || ""}
+      ${article?.description || ""}
+      ${article?.content || ""}
+    `.toLowerCase();
 
     return FOREIGN_LOCATIONS.some(
       (location) =>
-        text.includes(location)
+        text.includes(
+          location.toLowerCase()
+        )
     );
   };
 
+  // ===================================================
+  // CHECK WEATHER / TYPHOON NEWS
+  // ===================================================
 
-  // =====================================================
-  // CHECK TYPHOON / WEATHER KEYWORDS
-  // =====================================================
-
-  const containsTyphoonKeyword = (
-    text
-  ) => {
+  const isWeatherNews = (article) => {
+    const text = `
+      ${article?.title || ""}
+      ${article?.description || ""}
+      ${article?.content || ""}
+    `.toLowerCase();
 
     const keywords = [
-
       "typhoon",
       "bagyo",
       "tropical cyclone",
       "tropical storm",
       "tropical depression",
-      "cyclone",
+      "storm",
+      "weather",
+      "rainfall",
+      "rain",
+      "flood",
+      "flooding",
       "pagasa",
-
-      "storm signal",
-      "wind signal",
-      "signal no.",
-      "signal number",
-
-      "rainfall alert",
-      "rainfall warning",
-
-      "yellow alert",
-      "orange alert",
-      "red alert",
-
-      "heavy rainfall",
-      "heavy rain",
-
-      "torrential rain",
-
-      "flood warning",
-      "flood alert",
-
-      "landfall",
-      "storm surge",
+      "monsoon",
+      "habagat",
+      "amihan",
+      "low pressure area",
+      "lpa",
     ];
 
     return keywords.some(
@@ -346,124 +678,16 @@ function MonitoringSection() {
     );
   };
 
+  // ===================================================
+  // LOAD NEWS
+  // ===================================================
 
-  // =====================================================
-  // FINAL PHILIPPINE TYPHOON CHECK
-  // =====================================================
-
-  const isPhilippineTyphoonNews = (
-    article
-  ) => {
-
-    const title = (
-      article.title || ""
-    ).toLowerCase();
-
-    const description = (
-      article.description || ""
-    ).toLowerCase();
-
-    const content = (
-      article.content || ""
-    ).toLowerCase();
-
-    const text =
-      `${title} ${description} ${content}`;
-
-
-    const hasTyphoonKeyword =
-      containsTyphoonKeyword(
-        text
-      );
-
-    if (!hasTyphoonKeyword) {
-      return false;
-    }
-
-
-    const hasPhilippineLocation =
-      containsPhilippineLocation(
-        text
-      );
-
-
-    const hasForeignLocation =
-      containsForeignLocation(
-        text
-      );
-
-
-    const trustedSource =
-      isTrustedSource(article);
-
-
-    const sourceName = (
-      article.source?.name || ""
-    ).toLowerCase();
-
-
-    const officialPhilippineSource =
-      sourceName.includes(
-        "pagasa"
-      ) ||
-      sourceName.includes(
-        "mmda"
-      );
-
-
-    const isPhilippineNews =
-      hasPhilippineLocation ||
-      trustedSource ||
-      officialPhilippineSource;
-
-
-    if (
-      hasTyphoonKeyword &&
-      isPhilippineNews &&
-      !hasForeignLocation
-    ) {
-
-      return true;
-    }
-
-
-    return false;
-  };
-
-
-  // =====================================================
-  // FETCH NEWS
-  // =====================================================
-
-  const fetchNews = async () => {
-
-    console.log(
-      "========================================"
-    );
-
-    console.log(
-      "Fetching Philippine typhoon news..."
-    );
-
-    console.log(
-      "========================================"
-    );
-
-
-    setLoading(true);
-
-
+  const loadNews = async () => {
     try {
-
-      const random =
-        Math.floor(
-          Math.random() * 999999
-        );
-
+      setNewsLoading(true);
 
       const query =
         'typhoon OR bagyo OR "tropical cyclone" OR "tropical storm" OR "tropical depression" OR PAGASA';
-
 
       const url =
         `https://gnews.io/api/v4/search?` +
@@ -472,941 +696,595 @@ function MonitoringSection() {
         `&lang=en` +
         `&max=10` +
         `&sortby=publishedAt` +
-        `&apikey=${API_KEY}` +
-        `&_=${random}`;
-
-
-      console.log(
-        "Sending one GNews request..."
-      );
-
+        `&apikey=${GNEWS_API_KEY}`;
 
       const response =
         await fetch(url);
 
-
-      // =================================================
-      // RATE LIMIT
-      // =================================================
-
-      if (
-        response.status === 429
-      ) {
-
-        console.error(
-          "GNews API rate limit reached (429)."
-        );
-
-        setLoading(false);
-
-        return;
-      }
-
-
-      // =================================================
-      // OTHER API ERROR
-      // =================================================
-
       if (!response.ok) {
-
         throw new Error(
-          `GNews API Error: ${response.status}`
+          `GNews request failed: ${response.status}`
         );
       }
-
-
-      // =================================================
-      // READ RESPONSE
-      // =================================================
 
       const data =
         await response.json();
 
-
-      console.log(
-        "GNews response:",
-        data
-      );
-
-
-      const allArticles =
-        data.articles || [];
-
-
-      console.log(
-        "Articles returned:",
-        allArticles.length
-      );
-
+      const articles =
+        Array.isArray(
+          data?.articles
+        )
+          ? data.articles
+          : [];
 
       // =================================================
-      // FILTER ARTICLES
+      // FILTER NEWS
       // =================================================
 
       const filteredArticles =
-        allArticles.filter(
-          (article) => {
-
-            const result =
-              isPhilippineTyphoonNews(
+        articles
+          .filter((article) =>
+            isWeatherNews(article)
+          )
+          .filter((article) => {
+            const trusted =
+              isTrustedSource(
                 article
               );
 
+            const philippine =
+              containsPhilippineLocation(
+                article
+              );
 
-            console.log(
-              "--------------------------------"
+            const foreign =
+              containsForeignLocation(
+                article
+              );
+
+            return (
+              !foreign &&
+              (trusted || philippine)
             );
-
-            console.log(
-              "Title:",
-              article.title
-            );
-
-            console.log(
-              "Source:",
-              article.source?.name
-            );
-
-            console.log(
-              "Published:",
-              article.publishedAt
-            );
-
-            console.log(
-              "Philippine Typhoon News:",
-              result
-            );
-
-
-            return result;
-          }
-        );
-
-
-      console.log(
-        "Filtered Philippine Typhoon Articles:",
-        filteredArticles.length
-      );
-
-
-      // =================================================
-      // REMOVE DUPLICATES
-      // =================================================
-
-      const uniqueArticles =
-        filteredArticles.filter(
-          (article, index, self) =>
-            index ===
-            self.findIndex(
-              (other) =>
-                other.url ===
-                  article.url ||
-                other.title ===
-                  article.title
-            )
-        );
-
-
-      console.log(
-        "Unique Articles:",
-        uniqueArticles.length
-      );
-
-
-      // =================================================
-      // SORT NEWEST FIRST
-      // =================================================
-
-      uniqueArticles.sort(
-        (a, b) =>
-          new Date(
-            b.publishedAt
-          ) -
-          new Date(
-            a.publishedAt
-          )
-      );
-
-
-      // =================================================
-      // FORMAT ARTICLES
-      // =================================================
-
-      const formatted =
-        uniqueArticles.map(
-          (
-            article,
-            index
-          ) => ({
-
-            id:
-              article.url ||
-              `philippine-typhoon-${index}`,
-
-            category:
-              "Typhoon Advisory",
-
-            source:
-              article.source?.name ||
-              "Philippine News",
-
-            date:
-              new Date(
-                article.publishedAt
-              ).toLocaleString(
-                "en-PH",
-                {
-                  timeZone:
-                    "Asia/Manila",
-                }
-              ),
-
-            title:
-              article.title,
-
-            description:
-              article.description ||
-              "No description available.",
-
-            image:
-              article.image,
-
-            url:
-              article.url,
-
           })
-        );
+          .slice(0, 6);
 
-
-      // =================================================
-      // SHOW MAXIMUM 6 ARTICLES
-      // =================================================
-
-      setNewsItems(
-        formatted.slice(0, 6)
-      );
-
-
-      // =================================================
-      // LAST UPDATED
-      // =================================================
-
-      setLastUpdated(
-        new Date().toLocaleString(
-          "en-PH",
-          {
-            timeZone:
-              "Asia/Manila",
-          }
-        )
-      );
-
-
-      // =================================================
-      // NEXT REFRESH
-      // =================================================
-
-      const next =
-        new Date(
-          Date.now() +
-            5 * 60 * 1000
-        );
-
-
-      setNextRefresh(
-        next.toLocaleTimeString(
-          "en-PH",
-          {
-            timeZone:
-              "Asia/Manila",
-          }
-        )
-      );
-
-
-      // =================================================
-      // NO RESULTS
-      // =================================================
-
-      if (
-        formatted.length === 0
-      ) {
-
-        console.log(
-          "No Philippine typhoon news found."
-        );
-      }
-
+      setNews(filteredArticles);
     } catch (error) {
-
       console.error(
-        "Philippine Typhoon News Error:",
+        "News loading error:",
         error
       );
 
-      setNewsItems([]);
-
+      setNews([]);
     } finally {
-
-      setLoading(false);
-
+      setNewsLoading(false);
     }
   };
 
-
-  // =====================================================
-  // INITIAL FETCH
-  // + REFRESH EVERY 30 MINUTES
-  // =====================================================
+  // ===================================================
+  // NEWS REFRESH
+  // ===================================================
 
   useEffect(() => {
+    loadNews();
 
-    fetchNews();
+    // REFRESH EVERY 30 MINUTES
+    const interval = setInterval(
+      loadNews,
+      30 * 60 * 1000
+    );
 
-    const interval =
-      setInterval(
-        fetchNews,
-        30 * 60 * 1000
-      );
-
-    return () => {
-
+    return () =>
       clearInterval(interval);
-
-    };
-
   }, []);
 
+  // ===================================================
+  // FLOOD DESCRIPTION
+  // ===================================================
 
-  /* =========================================
-     UI
-  ========================================= */
+  const getFloodDescription = () => {
+    if (
+      floodSummary.totalNodes === 0
+    ) {
+      return "No flood monitoring data available.";
+    }
+
+    if (
+      floodSummary.criticalNodes > 0
+    ) {
+      return `${floodSummary.criticalNodes} monitoring ${
+        floodSummary.criticalNodes === 1
+          ? "node is"
+          : "nodes are"
+      } at critical flood level.`;
+    }
+
+    if (
+      floodSummary.warningNodes > 0
+    ) {
+      return `${floodSummary.warningNodes} monitoring ${
+        floodSummary.warningNodes === 1
+          ? "node is"
+          : "nodes are"
+      } reporting warning-level water.`;
+    }
+
+    if (
+      floodSummary.cautionNodes > 0
+    ) {
+      return `${floodSummary.cautionNodes} monitoring ${
+        floodSummary.cautionNodes === 1
+          ? "node is"
+          : "nodes are"
+      } currently at caution level.`;
+    }
+
+    return `${floodSummary.onlineNodes} monitoring ${
+      floodSummary.onlineNodes === 1
+        ? "node is"
+        : "nodes are"
+    } operating normally.`;
+  };
+
+  // ===================================================
+  // TRAFFIC DESCRIPTION
+  // ===================================================
+
+  const getTrafficDescription = () => {
+    if (trafficLoading) {
+      return "Loading live traffic conditions...";
+    }
+
+    if (
+      trafficSummary.totalRoads === 0
+    ) {
+      return "Traffic information is currently unavailable.";
+    }
+
+    return `Highest congestion is ${trafficSummary.highestCongestion}% on ${trafficSummary.highestRoad}.`;
+  };
+
+  // ===================================================
+  // RENDER
+  // ===================================================
 
   return (
-
     <section
+      className="monitoring-section"
       id="monitoring"
-      className="page-section"
     >
+      {/* =================================================
+          HEADER
+      ================================================= */}
 
-
-      {/* =========================================
-          MONITORING HERO
-      ========================================= */}
-
-      <div className="hero-panel">
-
-        <div className="hero-content">
-
-          <p className="eyebrow">
-            REAL-TIME MONITORING
-          </p>
-
-          <h2>
-            Flood Road Eye and Navigation Detection System
-          </h2>
-
-          <p className="hero-description">
-            View live pressure readings, estimated
-            water level, battery condition, and flood
-            warnings transmitted by the ESP32-C3
-            monitoring device.
-          </p>
-
-        </div>
-
-
-        <div className="system-status-card">
-
-          <span>
-            System Status
-          </span>
-
-          <strong>
-            Initializing
-          </strong>
-
-          <small>
-            Waiting for sensor information
-          </small>
-
-        </div>
-
-      </div>
-
-
-      {/* =========================================
-          LIVE SENSOR DATA
-      ========================================= */}
-
-      <div className="section-heading">
-
-        <div>
-
-          <p className="eyebrow">
-            LIVE SENSOR DATA
-          </p>
-
-          <h3>
-            Current Monitoring Values
-          </h3>
-
-        </div>
-
-        <span className="last-update">
-          No data received yet
+      <div className="monitoring-header">
+        <span className="section-label">
+          LIVE MONITORING
         </span>
 
+        <h1>
+          Stay Informed. Stay Safe.
+        </h1>
+
+        <p>
+          Get real-time flood and traffic
+          information across Metro Manila
+          to make smarter and safer travel
+          decisions.
+        </p>
       </div>
 
+      {/* =================================================
+          SUMMARY CARDS
+      ================================================= */}
 
-      <div className="sensor-grid">
+      <div className="monitoring-summary-grid">
 
-        <SensorCard
-          title="Pressure"
-          value="--"
-          unit="hPa"
-          icon="P"
-          type="pressure"
+        {/* =================================================
+            FLOOD SUMMARY
+        ================================================= */}
+
+        <SummaryCard
+          type="flood-summary"
+          icon="🌊"
+          title="Flood Monitoring"
+          value={
+            floodSummary.totalNodes > 0
+              ? `${floodSummary.highestWaterLevelFeet.toFixed(
+                  2
+                )} ft`
+              : "--"
+          }
+          status={
+            floodSummary.overallStatus
+          }
+          description={
+            floodSummary.totalNodes > 0
+              ? `${getFloodDescription()} Highest level recorded at ${floodSummary.highestLocation}.`
+              : "Waiting for live flood sensor data."
+          }
+
+          /* ACTUAL HYPERLINK */
+          link="#nodes"
         />
 
-        <SensorCard
-          title="Water Level"
-          value="--"
-          unit="meters"
-          icon="W"
-          type="water"
-        />
+        {/* =================================================
+            TRAFFIC SUMMARY
+        ================================================= */}
 
-        <SensorCard
-          title="Battery Voltage"
-          value="--"
-          unit="volts"
-          icon="B"
-          type="battery"
-        />
+        <SummaryCard
+          type="traffic-summary"
+          icon="🚗"
+          title="Traffic Monitoring"
+          value={
+            trafficLoading
+              ? "--"
+              : `${trafficSummary.highestCongestion}%`
+          }
+          status={
+            trafficLoading
+              ? "Loading"
+              : trafficSummary.overallStatus
+          }
+          description={
+            getTrafficDescription()
+          }
 
-        <SensorCard
-          title="Flood Status"
-          value="Waiting"
-          unit="No sensor data"
-          icon="!"
-          type="alert"
+          /* ACTUAL HYPERLINK */
+          link="#traffic"
         />
 
       </div>
 
+      {/* =================================================
+          FLOOD QUICK STATUS
+      ================================================= */}
 
-      {/* =========================================
+      <div className="monitoring-status-panel">
+
+        <div className="status-panel-header">
+
+          <div>
+            <span className="section-label">
+              FLOOD STATUS
+            </span>
+
+            <h2>
+              Flood Monitoring Overview
+            </h2>
+          </div>
+
+          <span
+            className={`overall-status ${floodSummary.overallStatus
+              .toLowerCase()
+              .replace(/\s+/g, "-")}`}
+          >
+            {floodSummary.overallStatus}
+          </span>
+
+        </div>
+
+        <div className="status-stat-grid">
+
+          <div className="status-stat">
+            <span>Total Nodes</span>
+            <strong>
+              {floodSummary.totalNodes}
+            </strong>
+          </div>
+
+          <div className="status-stat">
+            <span>Online</span>
+            <strong>
+              {floodSummary.onlineNodes}
+            </strong>
+          </div>
+
+          <div className="status-stat">
+            <span>Offline</span>
+            <strong>
+              {floodSummary.offlineNodes}
+            </strong>
+          </div>
+
+          <div className="status-stat">
+            <span>Normal</span>
+            <strong>
+              {floodSummary.normalNodes}
+            </strong>
+          </div>
+
+          <div className="status-stat">
+            <span>Caution</span>
+            <strong>
+              {floodSummary.cautionNodes}
+            </strong>
+          </div>
+
+          <div className="status-stat">
+            <span>Warning</span>
+            <strong>
+              {floodSummary.warningNodes}
+            </strong>
+          </div>
+
+          <div className="status-stat">
+            <span>Critical</span>
+            <strong>
+              {floodSummary.criticalNodes}
+            </strong>
+          </div>
+
+        </div>
+      </div>
+
+      {/* =================================================
+          TRAFFIC QUICK STATUS
+      ================================================= */}
+
+      <div className="monitoring-status-panel">
+
+        <div className="status-panel-header">
+
+          <div>
+            <span className="section-label">
+              TRAFFIC STATUS
+            </span>
+
+            <h2>
+              Traffic Monitoring Overview
+            </h2>
+          </div>
+
+          <span
+            className={`overall-status ${trafficSummary.overallStatus
+              .toLowerCase()
+              .replace(/\s+/g, "-")}`}
+          >
+            {trafficLoading
+              ? "Loading"
+              : trafficSummary.overallStatus}
+          </span>
+
+        </div>
+
+        <div className="traffic-highlight">
+
+          <div className="traffic-highlight-item">
+            <span>
+              Monitored Roads
+            </span>
+
+            <strong>
+              {trafficSummary.totalRoads}
+            </strong>
+          </div>
+
+          <div className="traffic-highlight-item">
+            <span>
+              Highest Congestion
+            </span>
+
+            <strong>
+              {trafficLoading
+                ? "--"
+                : `${trafficSummary.highestCongestion}%`}
+            </strong>
+          </div>
+
+          <div className="traffic-highlight-item">
+            <span>
+              Most Congested Road
+            </span>
+
+            <strong>
+              {trafficLoading
+                ? "Loading..."
+                : trafficSummary.highestRoad}
+            </strong>
+          </div>
+
+        </div>
+      </div>
+
+      {/* =================================================
           EMERGENCY HOTLINES
-      ========================================= */}
+      ================================================= */}
 
       <div className="emergency-section">
 
         <div className="emergency-header">
 
-          <div>
+          <span className="section-label">
+            EMERGENCY ASSISTANCE
+          </span>
 
-            <p className="eyebrow">
-              EMERGENCY ASSISTANCE
-            </p>
+          <h2>
+            Need Help?
+          </h2>
 
-            <h2>
-              Emergency Hotlines
-            </h2>
-
-            <p>
-              If you are experiencing a flood-related
-              emergency or need immediate assistance,
-              contact the appropriate emergency service.
-            </p>
-
-          </div>
+          <p>
+            Contact the appropriate emergency
+            service when immediate assistance
+            is needed.
+          </p>
 
         </div>
 
-
         <div className="emergency-grid">
-
-
-          {/* =====================================
-              NATIONAL EMERGENCY
-          ===================================== */}
 
           <a
             href="tel:911"
-            className="emergency-card emergency-primary"
+            className="emergency-card"
           >
-
             <div className="emergency-icon">
               🚨
             </div>
 
-            <div className="emergency-info">
-
+            <div>
               <span>
-                NATIONAL EMERGENCY
+                Emergency Hotline
               </span>
 
-              <h3>
+              <strong>
                 911
-              </h3>
+              </strong>
 
               <p>
-                Police, fire, medical, and other
-                emergency assistance.
+                National Emergency Hotline
               </p>
-
             </div>
-
-            <div className="emergency-call">
-              Call →
-            </div>
-
           </a>
 
-
-          {/* =====================================
-              FIRE & RESCUE
-          ===================================== */}
-
           <a
-            href="tel:911"
+            href="tel:160"
             className="emergency-card"
           >
-
             <div className="emergency-icon">
               🔥
             </div>
 
-            <div className="emergency-info">
-
+            <div>
               <span>
-                FIRE & RESCUE
+                Fire Department
               </span>
 
-              <h3>
-                BFP
-              </h3>
+              <strong>
+                160
+              </strong>
 
               <p>
                 Bureau of Fire Protection
-                emergency and rescue assistance.
               </p>
-
             </div>
-
-            <div className="emergency-call">
-              Call →
-            </div>
-
           </a>
 
-
-          {/* =====================================
-              POLICE
-          ===================================== */}
-
           <a
-            href="tel:911"
+            href="tel:117"
             className="emergency-card"
           >
-
             <div className="emergency-icon">
               👮
             </div>
 
-            <div className="emergency-info">
-
+            <div>
               <span>
-                POLICE ASSISTANCE
+                Police
               </span>
 
-              <h3>
-                PNP
-              </h3>
+              <strong>
+                117
+              </strong>
 
               <p>
                 Philippine National Police
-                emergency assistance.
               </p>
-
             </div>
-
-            <div className="emergency-call">
-              Call →
-            </div>
-
           </a>
 
-
-          {/* =====================================
-              MEDICAL
-          ===================================== */}
-
           <a
-            href="tel:911"
+            href="tel:143"
             className="emergency-card"
           >
-
             <div className="emergency-icon">
               🏥
             </div>
 
-            <div className="emergency-info">
-
+            <div>
               <span>
-                MEDICAL EMERGENCY
+                Medical Assistance
               </span>
 
-              <h3>
-                911
-              </h3>
+              <strong>
+                143
+              </strong>
 
               <p>
-                For urgent medical emergencies
-                and ambulance assistance.
+                Philippine Red Cross
               </p>
-
             </div>
-
-            <div className="emergency-call">
-              Call →
-            </div>
-
           </a>
 
         </div>
-
-
-        {/* =====================================
-            EMERGENCY WARNING
-        ===================================== */}
-
-        <div className="emergency-note">
-
-          <span>
-            ⚠️
-          </span>
-
-          <p>
-
-            <strong>
-              Important:
-            </strong>{" "}
-
-            For life-threatening emergencies,
-            call <strong>911</strong> immediately.
-            Provide your exact location and clearly
-            describe the emergency.
-
-          </p>
-
-        </div>
-
       </div>
 
-
-      {/* =========================================
+      {/* =================================================
           ABOUT FRENDS
-      ========================================= */}
+      ================================================= */}
 
-      <div className="frends-home-info-section">
+      <div className="about-frends-section">
 
-        <div className="frends-home-info-header">
+        <div className="about-frends-content">
 
-          <p className="eyebrow">
+          <span className="section-label">
             ABOUT FRENDS
-          </p>
+          </span>
 
           <h2>
-            Your Smart Guide for Safer Journeys
+            Smarter Navigation.
+            <br />
+            Safer Journeys.
           </h2>
 
           <p>
-            FRENDS connects real-time flood monitoring,
-            traffic information, weather conditions, and
-            navigation assistance in one platform to help
-            users make safer and smarter travel decisions.
+            FRENDS provides real-time flood
+            and traffic information to help
+            commuters and motorists make
+            informed travel decisions
+            throughout Metro Manila.
+          </p>
+
+          <p>
+            By combining sensor-based flood
+            monitoring, live traffic
+            information, and timely weather
+            updates, FRENDS helps users
+            identify potentially dangerous
+            areas and plan safer routes.
           </p>
 
         </div>
+      </div>
 
+      {/* =================================================
+          LIVE NEWS
+      ================================================= */}
 
-        {/* =========================================
-            FRENDS INFORMATION CARDS
-        ========================================= */}
+      <div className="news-section">
 
-        <div className="frends-info-grid">
+        <div className="news-header">
 
-
-          {/* FLOOD */}
-
-          <article className="frends-info-card">
-
-            <div className="frends-info-icon">
-              🌊
-            </div>
-
-            <div>
-
-              <h3>
-                Monitor Flood Conditions
-              </h3>
-
-              <p>
-                Get real-time water-level readings
-                and flood status from connected
-                monitoring devices.
-              </p>
-
-            </div>
-
-          </article>
-
-
-          {/* TRAFFIC */}
-
-          <article className="frends-info-card">
-
-            <div className="frends-info-icon">
-              🚦
-            </div>
-
-            <div>
-
-              <h3>
-                Check Traffic Conditions
-              </h3>
-
-              <p>
-                View current traffic information
-                on monitored roads and understand
-                how congestion may affect your journey.
-              </p>
-
-            </div>
-
-          </article>
-
-
-          {/* WEATHER */}
-
-          <article className="frends-info-card">
-
-            <div className="frends-info-icon">
-              ☁️
-            </div>
-
-            <div>
-
-              <h3>
-                Stay Updated With Weather
-              </h3>
-
-              <p>
-                Access current weather information
-                to help you prepare for changing
-                road conditions.
-              </p>
-
-            </div>
-
-          </article>
-
-
-          {/* NAVIGATION */}
-
-          <article className="frends-info-card">
-
-            <div className="frends-info-icon">
-              🗺️
-            </div>
-
-            <div>
-
-              <h3>
-                Make Smarter Travel Decisions
-              </h3>
-
-              <p>
-                Use flood, traffic, and weather
-                information to better understand
-                current conditions before starting
-                your journey.
-              </p>
-
-            </div>
-
-          </article>
-
-        </div>
-
-
-        {/* =========================================
-            HOW FRENDS WORKS
-        ========================================= */}
-
-        <div className="frends-how-section">
-
-          <div className="frends-how-content">
-
-            <p className="eyebrow">
-              HOW FRENDS WORKS
-            </p>
+          <div>
+            <span className="section-label">
+              LIVE NEWS
+            </span>
 
             <h2>
-              From Real-Time Data to Better Decisions
+              Philippine Weather & Typhoon
+              Updates
             </h2>
 
             <p>
-              FRENDS collects information from connected
-              monitoring devices and external data sources,
-              processes the information, and presents it
-              in a simple interface that users can easily
-              understand.
+              Stay updated with the latest
+              weather and typhoon-related
+              news from Philippine sources.
             </p>
-
-          </div>
-
-
-          <div className="frends-process-grid">
-
-
-            {/* STEP 1 */}
-
-            <div className="frends-process-card">
-
-              <span className="process-number">
-                01
-              </span>
-
-              <h4>
-                Collect
-              </h4>
-
-              <p>
-                Sensors collect real-time water-level
-                and environmental data.
-              </p>
-
-            </div>
-
-
-            {/* STEP 2 */}
-
-            <div className="frends-process-card">
-
-              <span className="process-number">
-                02
-              </span>
-
-              <h4>
-                Process
-              </h4>
-
-              <p>
-                FRENDS processes incoming information
-                and determines the current conditions.
-              </p>
-
-            </div>
-
-
-            {/* STEP 3 */}
-
-            <div className="frends-process-card">
-
-              <span className="process-number">
-                03
-              </span>
-
-              <h4>
-                Inform
-              </h4>
-
-              <p>
-                Users receive updated flood, traffic,
-                and weather information.
-              </p>
-
-            </div>
-
-
-            {/* STEP 4 */}
-
-            <div className="frends-process-card">
-
-              <span className="process-number">
-                04
-              </span>
-
-              <h4>
-                Decide
-              </h4>
-
-              <p>
-                Users can make safer and more informed
-                travel decisions.
-              </p>
-
-            </div>
-
           </div>
 
         </div>
 
-      </div>
+        {/* =================================================
+            NEWS LOADING
+        ================================================= */}
 
+        {newsLoading ? (
 
-      {/* =========================================
-          LIVE NEWS
-      ========================================= */}
+          <div className="news-empty">
 
-      <div
-        id="news"
-        className="news-section"
-      >
-
-        <div className="section-heading">
-
-          <div>
-
-            <p className="eyebrow">
-              LIVE NEWS
-            </p>
-
-            <h3>
-              Latest Flood, Traffic & Weather Updates
-            </h3>
-
-            <p className="next-refresh">
-              Next Refresh:{" "}
-              {nextRefresh ||
-                "Calculating..."}
-            </p>
-
-            {lastUpdated && (
-
-              <p className="last-update">
-                Last Updated:{" "}
-                {lastUpdated}
-              </p>
-
-            )}
-
-          </div>
-
-        </div>
-
-
-        {/* =========================================
-            LOADING
-        ========================================= */}
-
-        {loading ? (
-
-          <div className="news-loading">
+            <div className="news-loading-icon">
+              📰
+            </div>
 
             <p>
               Loading latest news...
@@ -1414,95 +1292,123 @@ function MonitoringSection() {
 
           </div>
 
-        ) : newsItems.length === 0 ? (
+        ) : news.length === 0 ? (
+
+          /* =================================================
+              NO NEWS
+          ================================================= */
 
           <div className="news-empty">
 
+            <div className="news-loading-icon">
+              📰
+            </div>
+
             <p>
-              No related flood, traffic,
-              or weather news found.
+              No recent Philippine weather
+              or typhoon news is available
+              right now.
             </p>
 
           </div>
 
         ) : (
 
+          /* =================================================
+              NEWS CARDS
+          ================================================= */
+
           <div className="news-grid">
 
-            {newsItems.map((news) => (
+            {news.map(
+              (article, index) => (
 
-              <article
-                className="news-card"
-                key={news.id}
-              >
+                <article
+                  className="news-card"
+                  key={
+                    article.url ||
+                    article.title ||
+                    index
+                  }
+                >
 
-                {/* NEWS IMAGE */}
+                  {/* NEWS IMAGE */}
 
-                {news.image && (
+                  {article.image && (
+                    <div className="news-image-wrapper">
 
-                  <img
-                    src={news.image}
-                    alt={news.title}
-                    className="news-image"
-                  />
+                      <img
+                        src={article.image}
+                        alt={
+                          article.title
+                        }
+                        className="news-image"
+                      />
 
-                )}
+                    </div>
+                  )}
 
+                  {/* NEWS CONTENT */}
 
-                {/* NEWS META */}
+                  <div className="news-content">
 
-                <div className="news-meta">
+                    <div className="news-source">
+                      {article?.source?.name ||
+                        "Philippine News"}
+                    </div>
 
-                  <span>
-                    {news.category}
-                  </span>
+                    <h3>
+                      {article.title}
+                    </h3>
 
-                  <span>
-                    {news.source}
-                  </span>
+                    {article.description && (
+                      <p>
+                        {article.description}
+                      </p>
+                    )}
 
-                  <time>
-                    {news.date}
-                  </time>
+                    {/* NEWS FOOTER */}
 
-                </div>
+                    <div className="news-footer">
 
+                      <span>
+                        {article.publishedAt
+                          ? new Date(
+                              article.publishedAt
+                            ).toLocaleDateString(
+                              "en-PH",
+                              {
+                                month:
+                                  "short",
+                                day: "numeric",
+                                year:
+                                  "numeric",
+                              }
+                            )
+                          : ""}
+                      </span>
 
-                {/* NEWS TITLE */}
+                      {article.url && (
+                        <a
+                          href={
+                            article.url
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          Read More →
+                        </a>
+                      )}
 
-                <h4>
-                  {news.title}
-                </h4>
+                    </div>
 
+                  </div>
 
-                {/* NEWS DESCRIPTION */}
-
-                <p>
-                  {news.description}
-                </p>
-
-
-                {/* ARTICLE LINK */}
-
-                {news.url && (
-
-                  <a
-                    href={news.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-button"
-                  >
-                    Read Full Article →
-                  </a>
-
-                )}
-
-              </article>
-
-            ))}
+                </article>
+              )
+            )}
 
           </div>
-
         )}
 
       </div>
@@ -1510,5 +1416,3 @@ function MonitoringSection() {
     </section>
   );
 }
-
-export default MonitoringSection;

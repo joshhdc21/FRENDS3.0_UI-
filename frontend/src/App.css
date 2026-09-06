@@ -5264,3 +5264,1241 @@ section:not(.map-section):not(.map-interface) > *:nth-child(8) {
 
 }
 
+/* =========================================================
+   FRENDS MONITORING SECTION
+   COLOR THEME — MATCHING LANDING PAGE
+========================================================= */
+
+html {
+  scroll-behavior: smooth;
+}
+
+.monitoring-section {
+  width: 100%;
+  min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 60px 24px 100px;
+  box-sizing: border-box;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  color: #ffffff;
+}
+
+/* =========================================================
+   MONITORING HEADER
+========================================================= */
+
+.monitoring-header {
+  text-align: center;
+  max-width: 760px;
+  margin: 0 auto 45px;
+}
+
+.monitoring-header .section-label {
+  color: #24d9e8;
+}
+
+.monitoring-header h1 {
+  margin: 0 0 16px;
+  font-size: clamp(32px, 5vw, 52px);
+  line-height: 1.08;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -1.5px;
+}
+
+.monitoring-header p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+/* =========================================================
+   SECTION LABEL
+========================================================= */
+
+.section-label {
+  display: inline-block;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  color: #27d9e8;
+  text-transform: uppercase;
+}
+
+/* =========================================================
+   SUMMARY GRID
+========================================================= */
+
+.monitoring-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+/* =========================================================
+   SUMMARY CARD
+========================================================= */
+
+.summary-card {
+  position: relative;
+  overflow: hidden;
+  padding: 28px;
+  min-height: 280px;
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+
+  background: rgba(8, 67, 99, 0.88);
+
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.20);
+
+  box-sizing: border-box;
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.summary-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 4px;
+
+  background: linear-gradient(
+    90deg,
+    #13d8e7,
+    #168be8
+  );
+}
+
+.summary-card.flood-summary::before {
+  background: linear-gradient(
+    90deg,
+    #13dce9,
+    #168ce8
+  );
+}
+
+.summary-card.traffic-summary::before {
+  background: linear-gradient(
+    90deg,
+    #48c6ff,
+    #6478ff
+  );
+}
+
+.summary-card:hover {
+  transform: translateY(-5px);
+
+  border-color: rgba(37, 217, 232, 0.35);
+
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.28);
+}
+
+/* =========================================================
+   SUMMARY CARD HEADER
+========================================================= */
+
+.summary-card-header {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.summary-card-icon {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 16px;
+
+  background: rgba(20, 218, 232, 0.12);
+  border: 1px solid rgba(20, 218, 232, 0.15);
+
+  font-size: 25px;
+}
+
+.traffic-summary .summary-card-icon {
+  background: rgba(77, 122, 255, 0.15);
+  border-color: rgba(77, 122, 255, 0.2);
+}
+
+.summary-card-title {
+  min-width: 0;
+}
+
+.summary-card-title h3 {
+  margin: 0 0 7px;
+
+  font-size: 17px;
+  font-weight: 800;
+
+  color: #ffffff;
+}
+
+/* =========================================================
+   STATUS BADGES
+========================================================= */
+
+.summary-status,
+.overall-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: fit-content;
+
+  padding: 5px 10px;
+
+  border-radius: 999px;
+
+  font-size: 10px;
+  line-height: 1;
+
+  font-weight: 800;
+  letter-spacing: 0.4px;
+
+  text-transform: uppercase;
+}
+
+/* NORMAL */
+
+.summary-status.normal,
+.overall-status.normal,
+.summary-status.light,
+.overall-status.light {
+  color: #75f3b1;
+  background: rgba(51, 214, 133, 0.13);
+  border: 1px solid rgba(51, 214, 133, 0.18);
+}
+
+/* CAUTION */
+
+.summary-status.caution,
+.overall-status.caution,
+.summary-status.moderate,
+.overall-status.moderate {
+  color: #ffe08a;
+  background: rgba(255, 202, 58, 0.13);
+  border: 1px solid rgba(255, 202, 58, 0.18);
+}
+
+/* WARNING */
+
+.summary-status.warning,
+.overall-status.warning,
+.summary-status.heavy,
+.overall-status.heavy {
+  color: #ffc078;
+  background: rgba(255, 145, 50, 0.14);
+  border: 1px solid rgba(255, 145, 50, 0.2);
+}
+
+/* CRITICAL */
+
+.summary-status.critical,
+.overall-status.critical {
+  color: #ff9292;
+  background: rgba(255, 75, 75, 0.14);
+  border: 1px solid rgba(255, 75, 75, 0.2);
+}
+
+/* OFFLINE */
+
+.summary-status.offline,
+.overall-status.offline {
+  color: #d2dce5;
+  background: rgba(255, 255, 255, 0.09);
+}
+
+/* LOADING */
+
+.summary-status.loading,
+.overall-status.loading {
+  color: #8deeff;
+  background: rgba(39, 217, 232, 0.1);
+}
+
+/* UNAVAILABLE */
+
+.summary-status.unavailable,
+.overall-status.unavailable {
+  color: #d2dce5;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* =========================================================
+   SUMMARY VALUE
+========================================================= */
+
+.summary-card-value {
+  margin-bottom: 10px;
+
+  font-size: clamp(36px, 5vw, 48px);
+  line-height: 1;
+
+  font-weight: 800;
+
+  letter-spacing: -1.5px;
+
+  color: #ffffff;
+}
+
+.traffic-summary .summary-card-value {
+  color: #ffffff;
+}
+
+.summary-card-description {
+  min-height: 48px;
+
+  margin: 0 0 22px;
+
+  color: rgba(255, 255, 255, 0.68);
+
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+/* =========================================================
+   SUMMARY BUTTON / LINK
+========================================================= */
+
+.summary-card-button {
+  width: 100%;
+  min-height: 46px;
+
+  padding: 12px 15px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  box-sizing: border-box;
+
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+
+  background: rgba(255, 255, 255, 0.07);
+
+  color: #ffffff;
+
+  font-family: inherit;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  text-decoration: none;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.summary-card-button:hover {
+  background: #ffffff;
+  color: #063959;
+
+  border-color: #ffffff;
+
+  text-decoration: none;
+}
+
+.summary-card-button span {
+  font-size: 18px;
+
+  color: #27d9e8;
+
+  transition:
+    transform 0.2s ease,
+    color 0.2s ease;
+}
+
+.summary-card-button:hover span {
+  color: #063959;
+  transform: translateX(4px);
+}
+
+/* =========================================================
+   MONITORING STATUS PANEL
+========================================================= */
+
+.monitoring-status-panel {
+  margin-bottom: 24px;
+
+  padding: 28px;
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 22px;
+
+  background: rgba(5, 52, 80, 0.72);
+
+  box-shadow:
+    0 10px 35px rgba(0, 0, 0, 0.16);
+}
+
+.status-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 25px;
+}
+
+.status-panel-header .section-label {
+  margin-bottom: 7px;
+}
+
+.status-panel-header h2 {
+  margin: 0;
+
+  font-size: 22px;
+  font-weight: 800;
+
+  color: #ffffff;
+}
+
+/* =========================================================
+   STATUS STAT GRID
+========================================================= */
+
+.status-stat-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(7, minmax(0, 1fr));
+
+  gap: 12px;
+}
+
+.status-stat {
+  padding: 18px 12px;
+
+  border-radius: 15px;
+
+  background: rgba(255, 255, 255, 0.055);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  text-align: center;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.status-stat:hover {
+  background: rgba(255, 255, 255, 0.09);
+  transform: translateY(-2px);
+}
+
+.status-stat span {
+  display: block;
+
+  margin-bottom: 8px;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.status-stat strong {
+  display: block;
+
+  font-size: 22px;
+  font-weight: 800;
+
+  color: #ffffff;
+}
+
+/* =========================================================
+   TRAFFIC HIGHLIGHT
+========================================================= */
+
+.traffic-highlight {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 15px;
+}
+
+.traffic-highlight-item {
+  min-height: 105px;
+
+  padding: 20px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  border-radius: 16px;
+
+  background: rgba(255, 255, 255, 0.055);
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.traffic-highlight-item span {
+  margin-bottom: 8px;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.traffic-highlight-item strong {
+  font-size: 20px;
+  line-height: 1.3;
+
+  color: #ffffff;
+
+  font-weight: 800;
+}
+
+/* =========================================================
+   EMERGENCY SECTION
+========================================================= */
+
+.emergency-section {
+  margin-top: 60px;
+
+  padding: 34px;
+
+  border-radius: 25px;
+
+  background: rgba(5, 52, 80, 0.75);
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  box-shadow:
+    0 10px 35px rgba(0, 0, 0, 0.15);
+}
+
+.emergency-header {
+  margin-bottom: 25px;
+}
+
+.emergency-header .section-label {
+  margin-bottom: 7px;
+}
+
+.emergency-header h2 {
+  margin: 0 0 8px;
+
+  font-size: 27px;
+  font-weight: 800;
+
+  color: #ffffff;
+}
+
+.emergency-header p {
+  margin: 0;
+
+  color: rgba(255, 255, 255, 0.68);
+
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   EMERGENCY GRID
+========================================================= */
+
+.emergency-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, minmax(0, 1fr));
+
+  gap: 15px;
+}
+
+.emergency-card {
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  min-width: 0;
+
+  padding: 18px;
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  border-radius: 17px;
+
+  background: rgba(255, 255, 255, 0.055);
+
+  text-decoration: none;
+
+  box-sizing: border-box;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.emergency-card:hover {
+  transform: translateY(-3px);
+
+  background: rgba(255, 255, 255, 0.09);
+
+  border-color: rgba(39, 217, 232, 0.3);
+}
+
+.emergency-icon {
+  width: 45px;
+  height: 45px;
+
+  flex-shrink: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 13px;
+
+  background: rgba(255, 255, 255, 0.08);
+
+  font-size: 20px;
+}
+
+.emergency-card span {
+  display: block;
+
+  margin-bottom: 3px;
+
+  font-size: 10px;
+  font-weight: 700;
+
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.emergency-card strong {
+  display: block;
+
+  margin-bottom: 2px;
+
+  font-size: 18px;
+
+  color: #ffffff;
+
+  font-weight: 800;
+}
+
+.emergency-card p {
+  margin: 0;
+
+  font-size: 9px;
+  line-height: 1.4;
+
+  color: rgba(255, 255, 255, 0.5);
+}
+
+/* =========================================================
+   ABOUT FRENDS
+========================================================= */
+
+.about-frends-section {
+  position: relative;
+
+  overflow: hidden;
+
+  margin-top: 60px;
+
+  padding: 55px;
+
+  border-radius: 28px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(8, 67, 99, 0.95),
+      rgba(5, 48, 75, 0.95)
+    );
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  box-shadow:
+    0 15px 40px rgba(0, 0, 0, 0.16);
+}
+
+.about-frends-section::after {
+  content: "";
+
+  position: absolute;
+
+  width: 240px;
+  height: 240px;
+
+  right: -100px;
+  top: -100px;
+
+  border-radius: 50%;
+
+  background:
+    rgba(39, 217, 232, 0.07);
+}
+
+.about-frends-content {
+  position: relative;
+
+  z-index: 1;
+
+  max-width: 720px;
+}
+
+.about-frends-content h2 {
+  margin: 0 0 20px;
+
+  font-size: clamp(30px, 5vw, 44px);
+
+  line-height: 1.15;
+
+  color: #ffffff;
+
+  font-weight: 800;
+
+  letter-spacing: -1px;
+}
+
+.about-frends-content p {
+  margin: 0 0 15px;
+
+  max-width: 680px;
+
+  color: rgba(255, 255, 255, 0.7);
+
+  font-size: 14px;
+
+  line-height: 1.8;
+}
+
+.about-frends-content p:last-child {
+  margin-bottom: 0;
+}
+
+/* =========================================================
+   NEWS SECTION
+========================================================= */
+
+.news-section {
+  margin-top: 60px;
+}
+
+.news-header {
+  margin-bottom: 25px;
+}
+
+.news-header .section-label {
+  margin-bottom: 7px;
+}
+
+.news-header h2 {
+  margin: 0 0 10px;
+
+  font-size: 28px;
+
+  font-weight: 800;
+
+  color: #ffffff;
+}
+
+.news-header p {
+  margin: 0;
+
+  color: rgba(255, 255, 255, 0.65);
+
+  font-size: 13px;
+
+  line-height: 1.7;
+}
+
+/* =========================================================
+   NEWS GRID
+========================================================= */
+
+.news-grid {
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, minmax(0, 1fr));
+
+  gap: 20px;
+}
+
+/* =========================================================
+   NEWS CARD
+========================================================= */
+
+.news-card {
+  overflow: hidden;
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  border-radius: 20px;
+
+  background: rgba(7, 61, 92, 0.9);
+
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.15);
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.news-card:hover {
+  transform: translateY(-4px);
+
+  border-color: rgba(39, 217, 232, 0.25);
+
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.25);
+}
+
+/* =========================================================
+   NEWS IMAGE
+========================================================= */
+
+.news-image-wrapper {
+  width: 100%;
+  height: 180px;
+
+  overflow: hidden;
+
+  background: #06334f;
+}
+
+.news-image {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+
+  transition:
+    transform 0.4s ease;
+}
+
+.news-card:hover .news-image {
+  transform: scale(1.04);
+}
+
+/* =========================================================
+   NEWS CONTENT
+========================================================= */
+
+.news-content {
+  padding: 20px;
+}
+
+.news-source {
+  margin-bottom: 8px;
+
+  font-size: 10px;
+
+  font-weight: 800;
+
+  letter-spacing: 0.6px;
+
+  color: #27d9e8;
+
+  text-transform: uppercase;
+}
+
+.news-content h3 {
+  display: -webkit-box;
+
+  overflow: hidden;
+
+  margin: 0 0 10px;
+
+  color: #ffffff;
+
+  font-size: 15px;
+
+  line-height: 1.45;
+
+  font-weight: 800;
+
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.news-content > p {
+  display: -webkit-box;
+
+  overflow: hidden;
+
+  margin: 0 0 18px;
+
+  color: rgba(255, 255, 255, 0.62);
+
+  font-size: 12px;
+
+  line-height: 1.65;
+
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* =========================================================
+   NEWS FOOTER
+========================================================= */
+
+.news-footer {
+  display: flex;
+
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 10px;
+
+  padding-top: 14px;
+
+  border-top:
+    1px solid rgba(255, 255, 255, 0.09);
+}
+
+.news-footer span {
+  color: rgba(255, 255, 255, 0.45);
+
+  font-size: 10px;
+
+  font-weight: 600;
+}
+
+.news-footer a {
+  color: #27d9e8;
+
+  font-size: 11px;
+
+  font-weight: 800;
+
+  text-decoration: none;
+
+  white-space: nowrap;
+}
+
+.news-footer a:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================
+   NEWS EMPTY / LOADING
+========================================================= */
+
+.news-empty {
+  min-height: 180px;
+
+  display: flex;
+
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+
+  border:
+    1px dashed rgba(255, 255, 255, 0.16);
+
+  border-radius: 20px;
+
+  background:
+    rgba(255, 255, 255, 0.035);
+
+  text-align: center;
+}
+
+.news-loading-icon {
+  margin-bottom: 10px;
+
+  font-size: 30px;
+}
+
+.news-empty p {
+  margin: 0;
+
+  max-width: 450px;
+
+  color: rgba(255, 255, 255, 0.6);
+
+  font-size: 13px;
+
+  line-height: 1.6;
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1000px) {
+  .monitoring-section {
+    padding: 50px 20px 80px;
+  }
+
+  .status-stat-grid {
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr));
+  }
+
+  .emergency-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+
+  .news-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+  .monitoring-section {
+    padding: 35px 15px 80px;
+  }
+
+  .monitoring-header {
+    margin-bottom: 30px;
+  }
+
+  .monitoring-header h1 {
+    font-size: 32px;
+  }
+
+  .monitoring-header p {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  /* SUMMARY */
+
+  .monitoring-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .summary-card {
+    min-height: auto;
+    padding: 22px;
+    border-radius: 20px;
+  }
+
+  .summary-card-value {
+    font-size: 38px;
+  }
+
+  /* STATUS */
+
+  .monitoring-status-panel {
+    padding: 22px;
+    border-radius: 20px;
+  }
+
+  .status-panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .status-panel-header h2 {
+    font-size: 19px;
+  }
+
+  .status-stat-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr));
+
+    gap: 9px;
+  }
+
+  .status-stat {
+    padding: 15px 10px;
+  }
+
+  .status-stat strong {
+    font-size: 20px;
+  }
+
+  /* TRAFFIC */
+
+  .traffic-highlight {
+    grid-template-columns: 1fr;
+  }
+
+  .traffic-highlight-item {
+    min-height: 90px;
+  }
+
+  /* EMERGENCY */
+
+  .emergency-section {
+    margin-top: 40px;
+    padding: 24px 18px;
+    border-radius: 21px;
+  }
+
+  .emergency-header h2 {
+    font-size: 23px;
+  }
+
+  .emergency-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .emergency-card {
+    padding: 15px;
+  }
+
+  /* ABOUT */
+
+  .about-frends-section {
+    margin-top: 40px;
+    padding: 32px 23px;
+    border-radius: 22px;
+  }
+
+  .about-frends-content h2 {
+    font-size: 30px;
+  }
+
+  .about-frends-content p {
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  /* NEWS */
+
+  .news-section {
+    margin-top: 40px;
+  }
+
+  .news-header h2 {
+    font-size: 23px;
+  }
+
+  .news-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .news-image-wrapper {
+    height: 200px;
+  }
+}
+
+/* =========================================================
+   SMALL PHONES
+========================================================= */
+
+@media (max-width: 430px) {
+  .monitoring-section {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .monitoring-header h1 {
+    font-size: 29px;
+  }
+
+  .monitoring-header p {
+    font-size: 12px;
+  }
+
+  .summary-card {
+    padding: 20px;
+  }
+
+  .summary-card-header {
+    gap: 12px;
+  }
+
+  .summary-card-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 21px;
+  }
+
+  .summary-card-title h3 {
+    font-size: 15px;
+  }
+
+  .summary-card-value {
+    font-size: 34px;
+  }
+
+  .summary-card-description {
+    font-size: 12px;
+  }
+
+  .status-stat-grid {
+    grid-template-columns:
+      repeat(2, 1fr);
+  }
+
+  .status-stat span {
+    font-size: 9px;
+  }
+
+  .status-stat strong {
+    font-size: 18px;
+  }
+
+  .emergency-section {
+    padding: 22px 15px;
+  }
+
+  .emergency-card {
+    gap: 11px;
+  }
+
+  .emergency-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 18px;
+  }
+
+  .about-frends-section {
+    padding: 28px 20px;
+  }
+
+  .news-content {
+    padding: 17px;
+  }
+}

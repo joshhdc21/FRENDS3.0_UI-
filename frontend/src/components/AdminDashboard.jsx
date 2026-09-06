@@ -1,13 +1,17 @@
-   import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
-import { onValue, ref } from "firebase/database";
+import {
+  onValue,
+  ref,
+  remove,
+} from "firebase/database";
 
 import { auth, database } from "../firebase/firebaseConfig";
 import "./AdminDashboard.css";
 
-// =========================================================
-// FLOOD LEVEL CLASSIFICATION
-// =========================================================
+// =====================================================
+// FLOOD STATUS
+// =====================================================
 
 function getFloodStatus(waterLevel) {
   const level = Number(waterLevel);
@@ -39,12 +43,9 @@ function getFloodStatus(waterLevel) {
   };
 }
 
-// =========================================================
-// BATTERY VOLTAGE TO PERCENTAGE
-//
-// 7.4 V = 100%
-// 6.0 V = 0%
-// =========================================================
+// =====================================================
+// BATTERY PERCENTAGE
+// =====================================================
 
 function batteryPercentage(voltage) {
   const FULL_VOLTAGE = 7.4;
@@ -61,39 +62,27 @@ function batteryPercentage(voltage) {
       (FULL_VOLTAGE - EMPTY_VOLTAGE)) *
     100;
 
-  return Math.min(
-    Math.max(percentage, 0),
-    100
-  );
+  return Math.min(Math.max(percentage, 0), 100);
 }
 
-// =========================================================
-// NORMALIZE NODE STATUS
-// =========================================================
+// =====================================================
+// NODE STATUS
+// =====================================================
 
 function normalizeNodeStatus(value) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
+  if (value === null || value === undefined) {
     return "offline";
   }
 
   if (typeof value === "boolean") {
-    return value
-      ? "online"
-      : "offline";
+    return value ? "online" : "offline";
   }
 
   if (typeof value === "number") {
-    return value === 1
-      ? "online"
-      : "offline";
+    return value === 1 ? "online" : "offline";
   }
 
-  const status = String(value)
-    .trim()
-    .toLowerCase();
+  const status = String(value).trim().toLowerCase();
 
   if (
     status === "online" ||
@@ -120,24 +109,18 @@ function normalizeNodeStatus(value) {
   return "offline";
 }
 
-// =========================================================
-// GET LATEST READING
-// =========================================================
+// =====================================================
+// GET LATEST NODE READING
+// =====================================================
 
 function getLatestReading(nodeHistory) {
-  if (
-    !nodeHistory ||
-    typeof nodeHistory !== "object"
-  ) {
+  if (!nodeHistory || typeof nodeHistory !== "object") {
     return null;
   }
 
-  const entries = Object.values(
-    nodeHistory
-  ).filter(
+  const entries = Object.values(nodeHistory).filter(
     (entry) =>
-      entry &&
-      typeof entry === "object"
+      entry && typeof entry === "object"
   );
 
   if (entries.length === 0) {
@@ -153,9 +136,9 @@ function getLatestReading(nodeHistory) {
   return sortedEntries[0];
 }
 
-// =========================================================
+// =====================================================
 // FORMAT LAST UPDATE
-// =========================================================
+// =====================================================
 
 function formatLastUpdate(timestamp) {
   if (
@@ -166,52 +149,33 @@ function formatLastUpdate(timestamp) {
     return "No recent data";
   }
 
-  const numericTimestamp =
-    Number(timestamp);
+  const numericTimestamp = Number(timestamp);
 
   let date;
 
-  if (
-    Number.isFinite(
-      numericTimestamp
-    )
-  ) {
-    date = new Date(
-      numericTimestamp * 1000
-    );
+  if (Number.isFinite(numericTimestamp)) {
+    date = new Date(numericTimestamp * 1000);
   } else {
     date = new Date(timestamp);
   }
 
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
+  if (Number.isNaN(date.getTime())) {
     return String(timestamp);
   }
 
   return date.toLocaleString();
 }
 
-// =========================================================
+// =====================================================
 // ADMIN DASHBOARD
-// =========================================================
+// =====================================================
 
 function AdminDashboard() {
-
-  // =======================================================
-  // STATE
-  // =======================================================
-
   const [activePage, setActivePage] =
     useState("dashboard");
 
-  const [users, setUsers] =
-    useState([]);
-
-  const [nodes, setNodes] =
-    useState([]);
+  const [users, setUsers] = useState([]);
+  const [nodes, setNodes] = useState([]);
 
   const [usersLoading, setUsersLoading] =
     useState(true);
@@ -228,19 +192,12 @@ function AdminDashboard() {
   const [databaseConnected, setDatabaseConnected] =
     useState(false);
 
-  // =======================================================
-  // LOAD ACCOUNTS
-  //
-  // Firebase path remains:
-  // users
-  //
-  // The interface simply treats them as ACCOUNTS.
-  // =======================================================
+  // ===================================================
+  // FIREBASE USERS
+  // ===================================================
 
   useEffect(() => {
-
     if (!database) {
-
       console.error(
         "Firebase database is not initialized."
       );
@@ -251,100 +208,74 @@ function AdminDashboard() {
       return;
     }
 
-    const usersRef =
-      ref(database, "users");
+    const usersRef = ref(database, "users");
 
-    const unsubscribe =
-      onValue(
-        usersRef,
-        (snapshot) => {
+    const unsubscribe = onValue(
+      usersRef,
+      (snapshot) => {
+        const data = snapshot.val();
 
-          const data =
-            snapshot.val();
+        console.log("=================================");
+        console.log("FIREBASE ACCOUNTS DATA");
+        console.log(data);
+        console.log("=================================");
 
-          console.log(
-            "================================="
-          );
-
-          console.log(
-            "FIREBASE ACCOUNTS DATA"
-          );
-
-          console.log(data);
-
-          console.log(
-            "================================="
-          );
-
-          if (!data) {
-
-            setUsers([]);
-            setUsersLoading(false);
-            setDatabaseConnected(true);
-
-            return;
-          }
-
-          const accountList =
-            Object.entries(data).map(
-              ([uid, account]) => ({
-
-                uid,
-
-                name:
-                  account?.name ||
-                  account?.displayName ||
-                  account?.fullName ||
-                  "Unnamed Account",
-
-                email:
-                  account?.email ||
-                  "No email",
-
-                status:
-                  account?.status ||
-                  "active",
-
-                createdAt:
-                  account?.createdAt ||
-                  null,
-
-              })
-            );
-
-          setUsers(accountList);
-
+        if (!data) {
+          setUsers([]);
           setUsersLoading(false);
-
           setDatabaseConnected(true);
 
-        },
-        (error) => {
-
-          console.error(
-            "Accounts Firebase error:",
-            error
-          );
-
-          setUsersLoading(false);
-          setDatabaseConnected(false);
-
+          return;
         }
-      );
 
-    return () =>
-      unsubscribe();
+        const accountList = Object.entries(
+          data
+        ).map(([uid, account]) => ({
+          uid,
 
+          name:
+            account?.name ||
+            account?.displayName ||
+            account?.fullName ||
+            "Unnamed Account",
+
+          email:
+            account?.email ||
+            "No email",
+
+          status:
+            account?.status ||
+            "active",
+
+          createdAt:
+            account?.createdAt ||
+            null,
+        }));
+
+        setUsers(accountList);
+        setUsersLoading(false);
+        setDatabaseConnected(true);
+      },
+      (error) => {
+        console.error(
+          "Accounts Firebase error:",
+          error
+        );
+
+        setUsersLoading(false);
+        setDatabaseConnected(false);
+      }
+    );
+
+    return () => unsubscribe();
   }, []);
 
-  // =======================================================
-  // LOAD FLOOD NODES
-  // =======================================================
+  // ===================================================
+  // FIREBASE FLOOD NODES
+  // ===================================================
 
   useEffect(() => {
-
     if (!database) {
-
       console.error(
         "Firebase database is not initialized."
       );
@@ -355,329 +286,294 @@ function AdminDashboard() {
       return;
     }
 
-    const nodesRef =
-      ref(database, "nodes");
-
-    const unsubscribe =
-      onValue(
-        nodesRef,
-        (snapshot) => {
-
-          const rawData =
-            snapshot.val();
-
-          console.log(
-            "================================="
-          );
-
-          console.log(
-            "FIREBASE RAW NODES DATA"
-          );
-
-          console.log(rawData);
-
-          console.log(
-            "================================="
-          );
-
-          if (
-            !snapshot.exists() ||
-            !rawData
-          ) {
-
-            setNodes([]);
-
-            setNodesLoading(false);
-
-            setDatabaseConnected(true);
-
-            return;
-          }
-
-          const latestNodesArray = [];
-
-          // -----------------------------------------------
-          // LOOP THROUGH EACH NODE
-          // -----------------------------------------------
-
-          for (
-            const [
-              nodeKey,
-              nodeHistory,
-            ] of Object.entries(rawData)
-          ) {
-
-            if (
-              !nodeHistory ||
-              typeof nodeHistory !==
-                "object"
-            ) {
-              continue;
-            }
-
-            // ---------------------------------------------
-            // GET LATEST READING
-            // ---------------------------------------------
-
-            const latestEntry =
-              getLatestReading(
-                nodeHistory
-              );
-
-            if (!latestEntry) {
-              continue;
-            }
-
-            // ---------------------------------------------
-            // STATUS
-            // ---------------------------------------------
-
-            const rawStatus =
-              latestEntry.status ??
-              latestEntry.connectionStatus ??
-              latestEntry.online ??
-              latestEntry.active ??
-              null;
-
-            const status =
-              normalizeNodeStatus(
-                rawStatus
-              );
-
-            const isActive =
-              status === "online";
-
-            // ---------------------------------------------
-            // WATER LEVEL
-            // ---------------------------------------------
-
-            let waterLevel =
-              latestEntry.waterLevel ??
-              latestEntry.water_level ??
-              latestEntry.depth ??
-              0;
-
-            waterLevel =
-              Number(waterLevel);
-
-            if (
-              !Number.isFinite(
-                waterLevel
-              )
-            ) {
-              waterLevel = 0;
-            }
-
-            // ---------------------------------------------
-            // PRESSURE
-            // ---------------------------------------------
-
-            let pressure =
-              latestEntry.pressure ??
-              0;
-
-            pressure =
-              Number(pressure);
-
-            if (
-              !Number.isFinite(
-                pressure
-              )
-            ) {
-              pressure = 0;
-            }
-
-            // ---------------------------------------------
-            // BATTERY
-            // ---------------------------------------------
-
-            let battery =
-              latestEntry.battery ??
-              latestEntry.batteryVoltage ??
-              0;
-
-            battery =
-              Number(battery);
-
-            if (
-              !Number.isFinite(
-                battery
-              )
-            ) {
-              battery = 0;
-            }
-
-            // ---------------------------------------------
-            // BATTERY PERCENTAGE
-            // ---------------------------------------------
-
-            const batteryPercent =
-              isActive
-                ? batteryPercentage(
-                    battery
-                  )
-                : 0;
-
-            // ---------------------------------------------
-            // TIMESTAMP
-            // ---------------------------------------------
-
-            const timestamp =
-              latestEntry.timestamp
-                ? Number(
-                    latestEntry.timestamp
-                  )
-                : null;
-
-            // ---------------------------------------------
-            // NORMALIZED NODE
-            // ---------------------------------------------
-
-            const normalizedNode = {
-
-              firebaseKey:
-                nodeKey,
-
-              nodeId:
-                latestEntry.id ||
-                nodeKey,
-
-              id:
-                latestEntry.id ||
-                nodeKey,
-
-              location:
-                latestEntry.location ||
-                `Location ${nodeKey}`,
-
-              waterLevel,
-
-              pressure,
-
-              battery,
-
-              batteryPercent,
-
-              status,
-
-              isActive,
-
-              timestamp,
-
-              lastUpdate:
-                timestamp,
-
-              latitude:
-                latestEntry.latitude ??
-                null,
-
-              longitude:
-                latestEntry.longitude ??
-                null,
-
-            };
-
-            latestNodesArray.push(
-              normalizedNode
-            );
-          }
-
-          console.log(
-            "================================="
-          );
-
-          console.log(
-            "NORMALIZED ADMIN FLOOD NODES"
-          );
-
-          console.log(
-            latestNodesArray
-          );
-
-          console.log(
-            "TOTAL:",
-            latestNodesArray.length
-          );
-
-          console.log(
-            "ACTIVE:",
-            latestNodesArray.filter(
-              (node) =>
-                node.isActive === true
-            ).length
-          );
-
-          console.log(
-            "INACTIVE:",
-            latestNodesArray.filter(
-              (node) =>
-                node.isActive !== true
-            ).length
-          );
-
-          console.log(
-            "================================="
-          );
-
-          setNodes(
-            latestNodesArray
-          );
-
+    const nodesRef = ref(database, "nodes");
+
+    const unsubscribe = onValue(
+      nodesRef,
+      (snapshot) => {
+        const rawData = snapshot.val();
+
+        console.log("=================================");
+        console.log("FIREBASE RAW NODES DATA");
+        console.log(rawData);
+        console.log("=================================");
+
+        if (
+          !snapshot.exists() ||
+          !rawData
+        ) {
+          setNodes([]);
           setNodesLoading(false);
-
           setDatabaseConnected(true);
 
-        },
-        (error) => {
-
-          console.error(
-            "Flood nodes Firebase error:",
-            error
-          );
-
-          setNodesLoading(false);
-
-          setDatabaseConnected(false);
-
+          return;
         }
-      );
 
-    return () =>
-      unsubscribe();
+        const latestNodesArray = [];
 
+        for (const [
+          nodeKey,
+          nodeHistory,
+        ] of Object.entries(rawData)) {
+          if (
+            !nodeHistory ||
+            typeof nodeHistory !== "object"
+          ) {
+            continue;
+          }
+
+          const latestEntry =
+            getLatestReading(nodeHistory);
+
+          if (!latestEntry) {
+            continue;
+          }
+
+          const rawStatus =
+            latestEntry.status ??
+            latestEntry.connectionStatus ??
+            latestEntry.online ??
+            latestEntry.active ??
+            null;
+
+          const status =
+            normalizeNodeStatus(
+              rawStatus
+            );
+
+          const isActive =
+            status === "online";
+
+          // -------------------------------------------
+          // WATER LEVEL
+          // -------------------------------------------
+
+          let waterLevel =
+            latestEntry.waterLevel ??
+            latestEntry.water_level ??
+            latestEntry.depth ??
+            0;
+
+          waterLevel = Number(waterLevel);
+
+          if (!Number.isFinite(waterLevel)) {
+            waterLevel = 0;
+          }
+
+          // -------------------------------------------
+          // PRESSURE
+          // -------------------------------------------
+
+          let pressure =
+            latestEntry.pressure ?? 0;
+
+          pressure = Number(pressure);
+
+          if (!Number.isFinite(pressure)) {
+            pressure = 0;
+          }
+
+          // -------------------------------------------
+          // BATTERY
+          // -------------------------------------------
+
+          let battery =
+            latestEntry.battery ??
+            latestEntry.batteryVoltage ??
+            0;
+
+          battery = Number(battery);
+
+          if (!Number.isFinite(battery)) {
+            battery = 0;
+          }
+
+          const batteryPercent =
+            isActive
+              ? batteryPercentage(battery)
+              : 0;
+
+          // -------------------------------------------
+          // TIMESTAMP
+          // -------------------------------------------
+
+          const timestamp =
+            latestEntry.timestamp
+              ? Number(
+                  latestEntry.timestamp
+                )
+              : null;
+
+          // -------------------------------------------
+          // NORMALIZED NODE
+          // -------------------------------------------
+
+          const normalizedNode = {
+            firebaseKey: nodeKey,
+
+            nodeId:
+              latestEntry.id ||
+              nodeKey,
+
+            id:
+              latestEntry.id ||
+              nodeKey,
+
+            location:
+              latestEntry.location ||
+              `Location ${nodeKey}`,
+
+            waterLevel,
+
+            pressure,
+
+            battery,
+
+            batteryPercent,
+
+            status,
+
+            isActive,
+
+            timestamp,
+
+            lastUpdate:
+              timestamp,
+
+            latitude:
+              latestEntry.latitude ??
+              null,
+
+            longitude:
+              latestEntry.longitude ??
+              null,
+          };
+
+          latestNodesArray.push(
+            normalizedNode
+          );
+        }
+
+        console.log("=================================");
+        console.log(
+          "NORMALIZED ADMIN FLOOD NODES"
+        );
+        console.log(latestNodesArray);
+
+        console.log(
+          "TOTAL:",
+          latestNodesArray.length
+        );
+
+        console.log(
+          "ACTIVE:",
+          latestNodesArray.filter(
+            (node) =>
+              node.isActive === true
+          ).length
+        );
+
+        console.log(
+          "INACTIVE:",
+          latestNodesArray.filter(
+            (node) =>
+              node.isActive !== true
+          ).length
+        );
+
+        console.log("=================================");
+
+        setNodes(latestNodesArray);
+        setNodesLoading(false);
+        setDatabaseConnected(true);
+      },
+      (error) => {
+        console.error(
+          "Flood nodes Firebase error:",
+          error
+        );
+
+        setNodesLoading(false);
+        setDatabaseConnected(false);
+      }
+    );
+
+    return () => unsubscribe();
   }, []);
 
-  // =======================================================
+  // ===================================================
   // LOGOUT
-  // =======================================================
+  // ===================================================
 
   async function handleLogout() {
-
     try {
-
       await signOut(auth);
-
     } catch (error) {
-
       console.error(
         "Logout error:",
         error
       );
-
     }
-
   }
 
-  // =======================================================
-  // ACCOUNT STATISTICS
-  // =======================================================
+  // ===================================================
+  // DELETE ACCOUNT
+  // ===================================================
+
+  async function handleDeleteAccount(
+    uid,
+    name
+  ) {
+    const confirmed = window.confirm(
+      `Are you sure you want to delete the account "${name}"?\n\nThis will remove the account record from the system.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    if (!database) {
+      alert(
+        "Firebase database is not available."
+      );
+
+      return;
+    }
+
+    try {
+      const userRef = ref(
+        database,
+        `users/${uid}`
+      );
+
+      await remove(userRef);
+
+      console.log(
+        "Account deleted successfully:",
+        uid
+      );
+
+      alert(
+        "Account deleted successfully."
+      );
+    } catch (error) {
+      console.error(
+        "Error deleting account:",
+        error
+      );
+
+      alert(
+        "Failed to delete the account. Please try again."
+      );
+    }
+  }
+
+  // ===================================================
+  // DASHBOARD STATISTICS
+  // ===================================================
 
   const totalAccounts =
     users.length;
-
-  // =======================================================
-  // NODE STATISTICS
-  // =======================================================
 
   const totalNodes =
     nodes.length;
@@ -694,21 +590,14 @@ function AdminDashboard() {
         node.isActive !== true
     ).length;
 
-  // =======================================================
-  // LOW BATTERY
-  // =======================================================
-
   const lowBatteryNodes =
     nodes.filter(
       (node) =>
         node.isActive === true &&
-        Number(node.batteryPercent) <=
-          20
+        Number(
+          node.batteryPercent
+        ) <= 20
     ).length;
-
-  // =======================================================
-  // ACTIVE NODES WITH BATTERY
-  // =======================================================
 
   const activeNodesWithBattery =
     nodes.filter(
@@ -721,19 +610,12 @@ function AdminDashboard() {
         )
     );
 
-  // =======================================================
-  // AVERAGE BATTERY
-  // =======================================================
-
   const averageBattery =
     activeNodesWithBattery.length >
     0
       ? Math.round(
           activeNodesWithBattery.reduce(
-            (
-              total,
-              node
-            ) =>
+            (total, node) =>
               total +
               Number(
                 node.batteryPercent
@@ -744,52 +626,33 @@ function AdminDashboard() {
         )
       : 0;
 
-  // =======================================================
-  // CRITICAL FLOOD
-  // =======================================================
-
   const criticalNodes =
     nodes.filter(
       (node) =>
         node.isActive === true &&
-        Number(
-          node.waterLevel
-        ) >= 30
+        Number(node.waterLevel) >= 30
     ).length;
-
-  // =======================================================
-  // WARNING FLOOD
-  // =======================================================
 
   const warningNodes =
-    nodes.filter(
-      (node) => {
-
-        if (
-          node.isActive !== true
-        ) {
-          return false;
-        }
-
-        const level =
-          Number(
-            node.waterLevel
-          );
-
-        return (
-          level > 25
-        );
-
+    nodes.filter((node) => {
+      if (
+        node.isActive !== true
+      ) {
+        return false;
       }
-    ).length;
 
-  // =======================================================
-  // SEARCH ACCOUNTS
-  // =======================================================
+      const level =
+        Number(node.waterLevel);
+
+      return level > 25;
+    }).length;
+
+  // ===================================================
+  // FILTER USERS
+  // ===================================================
 
   const filteredUsers =
     useMemo(() => {
-
       const search =
         userSearch
           .trim()
@@ -811,19 +674,14 @@ function AdminDashboard() {
             .toLowerCase()
             .includes(search)
       );
+    }, [users, userSearch]);
 
-    }, [
-      users,
-      userSearch,
-    ]);
-
-  // =======================================================
-  // SEARCH NODES
-  // =======================================================
+  // ===================================================
+  // FILTER NODES
+  // ===================================================
 
   const filteredNodes =
     useMemo(() => {
-
       const search =
         nodeSearch
           .trim()
@@ -842,20 +700,15 @@ function AdminDashboard() {
             .toLowerCase()
             .includes(search)
       );
+    }, [nodes, nodeSearch]);
 
-    }, [
-      nodes,
-      nodeSearch,
-    ]);
-
-  // =======================================================
+  // ===================================================
   // BATTERY CLASS
-  // =======================================================
+  // ===================================================
 
   function getBatteryClass(
     battery
   ) {
-
     const value =
       Number(battery);
 
@@ -868,21 +721,18 @@ function AdminDashboard() {
     }
 
     return "battery-good";
-
   }
 
-  // =======================================================
-  // DASHBOARD
-  // =======================================================
+  // ===================================================
+  // DASHBOARD PAGE
+  // ===================================================
 
   function renderDashboard() {
-
     return (
       <>
-
-        {/* =================================================
+        {/* ===========================================
             WELCOME
-        ================================================= */}
+        =========================================== */}
 
         <section className="admin-welcome">
 
@@ -922,13 +772,11 @@ function AdminDashboard() {
 
         </section>
 
-        {/* =================================================
-            OVERVIEW
-        ================================================= */}
+        {/* ===========================================
+            OVERVIEW CARDS
+        =========================================== */}
 
         <section className="admin-overview">
-
-          {/* FLOOD NODES */}
 
           <button
             type="button"
@@ -961,8 +809,6 @@ function AdminDashboard() {
 
           </button>
 
-          {/* TRAFFIC */}
-
           <div className="admin-card">
 
             <div className="admin-card-icon">
@@ -986,8 +832,6 @@ function AdminDashboard() {
             </div>
 
           </div>
-
-          {/* ACCOUNTS */}
 
           <button
             type="button"
@@ -1019,8 +863,6 @@ function AdminDashboard() {
 
           </button>
 
-          {/* NEWS */}
-
           <div className="admin-card">
 
             <div className="admin-card-icon">
@@ -1047,9 +889,9 @@ function AdminDashboard() {
 
         </section>
 
-        {/* =================================================
+        {/* ===========================================
             FLOOD NODE STATUS
-        ================================================= */}
+        =========================================== */}
 
         <section className="admin-section">
 
@@ -1120,7 +962,7 @@ function AdminDashboard() {
             <div className="monitor-item">
 
               <span className="monitor-title">
-                Low Battery
+                Battery Management
               </span>
 
               <strong className="warning">
@@ -1133,9 +975,9 @@ function AdminDashboard() {
 
         </section>
 
-        {/* =================================================
+        {/* ===========================================
             BATTERY STATUS
-        ================================================= */}
+        =========================================== */}
 
         <section className="admin-section">
 
@@ -1184,7 +1026,7 @@ function AdminDashboard() {
             <div className="monitor-item">
 
               <span className="monitor-title">
-                Low Battery
+                Battery Management
               </span>
 
               <strong className="warning">
@@ -1196,11 +1038,11 @@ function AdminDashboard() {
             <div className="monitor-item">
 
               <span className="monitor-title">
-                Inactive Nodes
+                Critical Flood Nodes
               </span>
 
               <strong className="offline">
-                {inactiveNodes}
+                {criticalNodes}
               </strong>
 
             </div>
@@ -1209,9 +1051,9 @@ function AdminDashboard() {
 
         </section>
 
-        {/* =================================================
-            SYSTEM MONITORING
-        ================================================= */}
+        {/* ===========================================
+            FLOOD STATUS SUMMARY
+        =========================================== */}
 
         <section className="admin-section">
 
@@ -1220,18 +1062,14 @@ function AdminDashboard() {
             <div>
 
               <p className="admin-label">
-                SYSTEM MONITORING
+                FLOOD MONITORING
               </p>
 
               <h3>
-                FRENDS System Status
+                Flood Level Summary
               </h3>
 
             </div>
-
-            <span className="live-badge">
-              ● LIVE
-            </span>
 
           </div>
 
@@ -1240,51 +1078,19 @@ function AdminDashboard() {
             <div className="monitor-item">
 
               <span className="monitor-title">
-                Firebase Database
-              </span>
-
-              <strong
-                className={
-                  databaseConnected
-                    ? "online"
-                    : "warning"
-                }
-              >
-                {databaseConnected
-                  ? "Connected"
-                  : "Connecting"}
-              </strong>
-
-            </div>
-
-            <div className="monitor-item">
-
-              <span className="monitor-title">
-                Flood Sensors
-              </span>
-
-              <strong
-                className={
-                  activeNodes > 0
-                    ? "online"
-                    : "offline"
-                }
-              >
-                {activeNodes > 0
-                  ? `${activeNodes} Active`
-                  : "Offline"}
-              </strong>
-
-            </div>
-
-            <div className="monitor-item">
-
-              <span className="monitor-title">
-                Traffic API
+                Normal
               </span>
 
               <strong className="online">
-                Active
+                {
+                  nodes.filter(
+                    (node) =>
+                      node.isActive === true &&
+                      Number(
+                        node.waterLevel
+                      ) < 10
+                  ).length
+                }
               </strong>
 
             </div>
@@ -1292,11 +1098,57 @@ function AdminDashboard() {
             <div className="monitor-item">
 
               <span className="monitor-title">
-                News API
+                Moderate
               </span>
 
-              <strong className="online">
-                Active
+              <strong className="warning">
+                {
+                  nodes.filter(
+                    (node) =>
+                      node.isActive === true &&
+                      Number(
+                        node.waterLevel
+                      ) >= 10 &&
+                      Number(
+                        node.waterLevel
+                      ) < 20
+                  ).length
+                }
+              </strong>
+
+            </div>
+
+            <div className="monitor-item">
+
+              <span className="monitor-title">
+                High
+              </span>
+
+              <strong className="warning">
+                {
+                  nodes.filter(
+                    (node) =>
+                      node.isActive === true &&
+                      Number(
+                        node.waterLevel
+                      ) >= 20 &&
+                      Number(
+                        node.waterLevel
+                      ) < 30
+                  ).length
+                }
+              </strong>
+
+            </div>
+
+            <div className="monitor-item">
+
+              <span className="monitor-title">
+                Critical
+              </span>
+
+              <strong className="offline">
+                {criticalNodes}
               </strong>
 
             </div>
@@ -1304,101 +1156,6 @@ function AdminDashboard() {
           </div>
 
         </section>
-
-        {/* =================================================
-            SYSTEM MANAGEMENT
-        ================================================= */}
-
-        <section className="admin-section">
-
-          <div className="admin-section-header">
-
-            <div>
-
-              <p className="admin-label">
-                ADMINISTRATION
-              </p>
-
-              <h3>
-                System Management
-              </h3>
-
-            </div>
-
-          </div>
-
-          <div className="admin-actions">
-
-            {/* ACCOUNT MANAGEMENT */}
-
-            <button
-              type="button"
-              className="admin-action"
-              onClick={() =>
-                setActivePage("users")
-              }
-            >
-
-              <span>
-                👥
-              </span>
-
-              <div>
-
-                <strong>
-                  Account Management
-                </strong>
-
-                <small>
-                  View registered system
-                  accounts
-                </small>
-
-              </div>
-
-              <b>
-                →
-              </b>
-
-            </button>
-
-            {/* FLOOD MONITORING */}
-
-            <button
-              type="button"
-              className="admin-action"
-              onClick={() =>
-                setActivePage("nodes")
-              }
-            >
-
-              <span>
-                💧
-              </span>
-
-              <div>
-
-                <strong>
-                  Flood Monitoring
-                </strong>
-
-                <small>
-                  View real-time flood
-                  node data
-                </small>
-
-              </div>
-
-              <b>
-                →
-              </b>
-
-            </button>
-
-          </div>
-
-        </section>
-
       </>
     );
   }
@@ -1408,7 +1165,6 @@ function AdminDashboard() {
   // =======================================================
 
   function renderUsers() {
-
     return (
       <section className="admin-section admin-management-page">
 
@@ -1417,7 +1173,7 @@ function AdminDashboard() {
           <div>
 
             <p className="admin-label">
-              ADMINISTRATION
+              ACCOUNT MANAGEMENT
             </p>
 
             <h3>
@@ -1438,9 +1194,7 @@ function AdminDashboard() {
 
         </div>
 
-        {/* =================================================
-            ACCOUNT SUMMARY
-        ================================================= */}
+        {/* ACCOUNT SUMMARY */}
 
         <div className="management-summary">
 
@@ -1458,9 +1212,7 @@ function AdminDashboard() {
 
         </div>
 
-        {/* =================================================
-            SEARCH
-        ================================================= */}
+        {/* SEARCH */}
 
         <div className="management-toolbar">
 
@@ -1477,9 +1229,7 @@ function AdminDashboard() {
 
         </div>
 
-        {/* =================================================
-            ACCOUNT DATA
-        ================================================= */}
+        {/* ACCOUNT DATA */}
 
         {usersLoading ? (
 
@@ -1515,6 +1265,10 @@ function AdminDashboard() {
                     STATUS
                   </th>
 
+                  <th>
+                    ACTION
+                  </th>
+
                 </tr>
 
               </thead>
@@ -1525,9 +1279,7 @@ function AdminDashboard() {
                   (account) => (
 
                     <tr
-                      key={
-                        account.uid
-                      }
+                      key={account.uid}
                     >
 
                       <td>
@@ -1548,16 +1300,34 @@ function AdminDashboard() {
                           className={
                             String(
                               account.status
-                            )
-                              .toLowerCase() ===
+                            ).toLowerCase() ===
                             "active"
                               ? "status-active"
                               : "status-inactive"
                           }
                         >
+
                           ●{" "}
                           {account.status}
+
                         </span>
+
+                      </td>
+
+                      <td>
+
+                        <button
+                          type="button"
+                          className="delete-account-button"
+                          onClick={() =>
+                            handleDeleteAccount(
+                              account.uid,
+                              account.name
+                            )
+                          }
+                        >
+                          🗑 Delete
+                        </button>
 
                       </td>
 
@@ -1583,7 +1353,6 @@ function AdminDashboard() {
   // =======================================================
 
   function renderNodes() {
-
     return (
       <section className="admin-section admin-management-page">
 
@@ -1613,9 +1382,7 @@ function AdminDashboard() {
 
         </div>
 
-        {/* =================================================
-            NODE SUMMARY
-        ================================================= */}
+        {/* NODE SUMMARY */}
 
         <div className="management-summary">
 
@@ -1658,7 +1425,7 @@ function AdminDashboard() {
           <div>
 
             <span>
-              LOW BATTERY
+              BATTERY MANAGEMENT
             </span>
 
             <strong className="warning">
@@ -1669,9 +1436,7 @@ function AdminDashboard() {
 
         </div>
 
-        {/* =================================================
-            SEARCH
-        ================================================= */}
+        {/* SEARCH */}
 
         <div className="management-toolbar">
 
@@ -1688,9 +1453,7 @@ function AdminDashboard() {
 
         </div>
 
-        {/* =================================================
-            NODES
-        ================================================= */}
+        {/* NODES */}
 
         {nodesLoading ? (
 
@@ -1733,7 +1496,6 @@ function AdminDashboard() {
                   );
 
                 return (
-
                   <div
                     className={`flood-node-card ${
                       !isActive
@@ -1768,10 +1530,12 @@ function AdminDashboard() {
                             : "node-offline"
                         }
                       >
+
                         ●{" "}
                         {isActive
                           ? "ACTIVE"
                           : "INACTIVE"}
+
                       </span>
 
                     </div>
@@ -1802,9 +1566,7 @@ function AdminDashboard() {
                             </span>
 
                             <strong>
-                              {
-                                node.waterLevel
-                              }
+                              {node.waterLevel}
                             </strong>
 
                           </div>
@@ -1814,9 +1576,7 @@ function AdminDashboard() {
                               flood.className
                             }
                           >
-                            {
-                              flood.label
-                            }
+                            {flood.label}
                           </span>
 
                         </div>
@@ -1832,9 +1592,7 @@ function AdminDashboard() {
                             </span>
 
                             <strong>
-                              {
-                                batteryValue
-                              }%
+                              {batteryValue}%
                             </strong>
 
                           </div>
@@ -1911,7 +1669,6 @@ function AdminDashboard() {
                     </div>
 
                   </div>
-
                 );
               }
             )}
@@ -1929,7 +1686,6 @@ function AdminDashboard() {
   // =======================================================
 
   return (
-
     <div className="admin-page">
 
       {/* =================================================
@@ -1961,9 +1717,7 @@ function AdminDashboard() {
         <button
           type="button"
           className="admin-logout"
-          onClick={
-            handleLogout
-          }
+          onClick={handleLogout}
         >
 
           <span>
@@ -1982,16 +1736,13 @@ function AdminDashboard() {
 
       <main className="admin-content">
 
-        {activePage ===
-          "dashboard" &&
+        {activePage === "dashboard" &&
           renderDashboard()}
 
-        {activePage ===
-          "users" &&
+        {activePage === "users" &&
           renderUsers()}
 
-        {activePage ===
-          "nodes" &&
+        {activePage === "nodes" &&
           renderNodes()}
 
       </main>
@@ -2014,8 +1765,7 @@ function AdminDashboard() {
       </footer>
 
     </div>
-
   );
 }
 
-export default AdminDashboard; 
+export default AdminDashboard;
