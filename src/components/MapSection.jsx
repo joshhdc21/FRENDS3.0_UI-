@@ -228,8 +228,8 @@ export default function MapSection() {
                         const { latitude, longitude, speed } = position.coords;
                         setLiveLocation([latitude, longitude]);
                         
-                        // Optional: You can also use 'speed' (in meters/second) 
-                        // to update the km/h UI element you built!
+                        
+                        // to update the km/h UI element
                     },
                     (error) => {
                         console.error("GPS Tracking Error:", error);
