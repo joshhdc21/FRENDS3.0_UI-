@@ -59,13 +59,17 @@ function SummaryCard({
 }) {
   return (
     <div className={`summary-card ${type || ""}`}>
+
       {/* CARD HEADER */}
+
       <div className="summary-card-header">
+
         <div className="summary-card-icon">
           {icon}
         </div>
 
         <div className="summary-card-title">
+
           <h3>{title}</h3>
 
           {status && (
@@ -77,18 +81,23 @@ function SummaryCard({
               {status}
             </span>
           )}
+
         </div>
+
       </div>
 
       {/* MAIN VALUE */}
+
       <div className="summary-card-value">
         {value}
       </div>
 
       {/* DESCRIPTION */}
+
       <p className="summary-card-description">
         {description}
       </p>
+
     </div>
   );
 }
@@ -98,6 +107,7 @@ function SummaryCard({
 // =====================================================
 
 export default function MonitoringSection() {
+
   // ===================================================
   // FLOOD STATE
   // ===================================================
@@ -135,6 +145,7 @@ export default function MonitoringSection() {
   // ===================================================
 
   const [news, setNews] = useState([]);
+
   const [newsLoading, setNewsLoading] =
     useState(true);
 
@@ -143,14 +154,17 @@ export default function MonitoringSection() {
   // ===================================================
 
   useEffect(() => {
+
     const nodesRef = ref(database, "nodes");
 
     const unsubscribe = onValue(
       nodesRef,
       (snapshot) => {
+
         const data = snapshot.val();
 
         if (!data) {
+
           setFloodSummary({
             totalNodes: 0,
             onlineNodes: 0,
@@ -186,6 +200,7 @@ export default function MonitoringSection() {
 
         Object.entries(data).forEach(
           ([nodeId, nodeData]) => {
+
             totalNodes++;
 
             let latestReading = null;
@@ -198,16 +213,19 @@ export default function MonitoringSection() {
               nodeData &&
               typeof nodeData === "object"
             ) {
+
               const readings =
                 Object.entries(nodeData);
 
               readings.forEach(
                 ([key, reading]) => {
+
                   if (
                     reading &&
                     typeof reading === "object" &&
                     reading.timestamp
                   ) {
+
                     if (
                       !latestReading ||
                       Number(reading.timestamp) >
@@ -215,11 +233,15 @@ export default function MonitoringSection() {
                           latestReading.timestamp
                         )
                     ) {
+
                       latestReading = reading;
+
                     }
                   }
+
                 }
               );
+
             }
 
             // ---------------------------------------------
@@ -227,7 +249,9 @@ export default function MonitoringSection() {
             // ---------------------------------------------
 
             if (!latestReading) {
+
               offlineNodes++;
+
               return;
             }
 
@@ -236,7 +260,9 @@ export default function MonitoringSection() {
             ).toLowerCase();
 
             if (nodeStatus === "offline") {
+
               offlineNodes++;
+
               return;
             }
 
@@ -268,6 +294,7 @@ export default function MonitoringSection() {
             // ---------------------------------------------
 
             switch (floodLevel) {
+
               case "Normal":
                 normalNodes++;
                 break;
@@ -295,11 +322,15 @@ export default function MonitoringSection() {
             if (
               waterLevel > highestWaterLevel
             ) {
-              highestWaterLevel = waterLevel;
+
+              highestWaterLevel =
+                waterLevel;
 
               highestLocation =
                 NODE_NAMES[nodeId] || nodeId;
+
             }
+
           }
         );
 
@@ -310,11 +341,17 @@ export default function MonitoringSection() {
         let overallStatus = "Normal";
 
         if (criticalNodes > 0) {
+
           overallStatus = "Critical";
+
         } else if (warningNodes > 0) {
+
           overallStatus = "Warning";
+
         } else if (cautionNodes > 0) {
+
           overallStatus = "Caution";
+
         }
 
         // =================================================
@@ -322,30 +359,47 @@ export default function MonitoringSection() {
         // =================================================
 
         setFloodSummary({
+
           totalNodes,
+
           onlineNodes,
+
           offlineNodes,
+
           normalNodes,
+
           cautionNodes,
+
           warningNodes,
+
           criticalNodes,
+
           highestWaterLevel,
+
           highestWaterLevelFeet:
             highestWaterLevel *
             CM_TO_FEET,
+
           overallStatus,
+
           highestLocation,
+
         });
+
       },
+
       (error) => {
+
         console.error(
           "Firebase flood monitoring error:",
           error
         );
+
       }
     );
 
     return () => unsubscribe();
+
   }, []);
 
   // ===================================================
@@ -353,10 +407,13 @@ export default function MonitoringSection() {
   // ===================================================
 
   useEffect(() => {
+
     let mounted = true;
 
     const loadTraffic = async () => {
+
       try {
+
         setTrafficLoading(true);
 
         const traffic =
@@ -418,19 +475,29 @@ export default function MonitoringSection() {
         );
 
         if (!overallStatus) {
+
           if (highestCongestion >= 75) {
+
             overallStatus = "Critical";
+
           } else if (
             highestCongestion >= 50
           ) {
+
             overallStatus = "Heavy";
+
           } else if (
             highestCongestion >= 25
           ) {
+
             overallStatus = "Moderate";
+
           } else {
+
             overallStatus = "Light";
+
           }
+
         }
 
         // ---------------------------------------------
@@ -438,6 +505,7 @@ export default function MonitoringSection() {
         // ---------------------------------------------
 
         setTrafficSummary({
+
           totalRoads:
             validRoads.length,
 
@@ -448,41 +516,63 @@ export default function MonitoringSection() {
             "No data",
 
           overallStatus,
+
         });
+
       } catch (error) {
+
         console.error(
           "Traffic monitoring error:",
           error
         );
 
         if (mounted) {
+
           setTrafficSummary({
+
             totalRoads: 0,
+
             highestCongestion: 0,
+
             highestRoad: "Unavailable",
+
             overallStatus: "Unavailable",
+
           });
+
         }
+
       } finally {
+
         if (mounted) {
+
           setTrafficLoading(false);
+
         }
+
       }
+
     };
 
     // INITIAL LOAD
+
     loadTraffic();
 
     // REFRESH EVERY 60 SECONDS
+
     const interval = setInterval(
       loadTraffic,
       60 * 1000
     );
 
     return () => {
+
       mounted = false;
+
       clearInterval(interval);
+
     };
+
   }, []);
 
   // ===================================================
@@ -574,6 +664,7 @@ export default function MonitoringSection() {
   // ===================================================
 
   const isTrustedSource = (article) => {
+
     const sourceName =
       article?.source?.name?.toLowerCase() ||
       "";
@@ -584,6 +675,7 @@ export default function MonitoringSection() {
           source.toLowerCase()
         )
     );
+
   };
 
   // ===================================================
@@ -593,6 +685,7 @@ export default function MonitoringSection() {
   const containsPhilippineLocation = (
     article
   ) => {
+
     const text = `
       ${article?.title || ""}
       ${article?.description || ""}
@@ -605,6 +698,7 @@ export default function MonitoringSection() {
           location.toLowerCase()
         )
     );
+
   };
 
   // ===================================================
@@ -614,6 +708,7 @@ export default function MonitoringSection() {
   const containsForeignLocation = (
     article
   ) => {
+
     const text = `
       ${article?.title || ""}
       ${article?.description || ""}
@@ -626,6 +721,7 @@ export default function MonitoringSection() {
           location.toLowerCase()
         )
     );
+
   };
 
   // ===================================================
@@ -633,6 +729,7 @@ export default function MonitoringSection() {
   // ===================================================
 
   const isWeatherNews = (article) => {
+
     const text = `
       ${article?.title || ""}
       ${article?.description || ""}
@@ -663,6 +760,7 @@ export default function MonitoringSection() {
       (keyword) =>
         text.includes(keyword)
     );
+
   };
 
   // ===================================================
@@ -670,7 +768,9 @@ export default function MonitoringSection() {
   // ===================================================
 
   const loadNews = async () => {
+
     try {
+
       setNewsLoading(true);
 
       const query =
@@ -689,9 +789,11 @@ export default function MonitoringSection() {
         await fetch(url);
 
       if (!response.ok) {
+
         throw new Error(
           `GNews request failed: ${response.status}`
         );
+
       }
 
       const data =
@@ -714,6 +816,7 @@ export default function MonitoringSection() {
             isWeatherNews(article)
           )
           .filter((article) => {
+
             const trusted =
               isTrustedSource(
                 article
@@ -733,20 +836,27 @@ export default function MonitoringSection() {
               !foreign &&
               (trusted || philippine)
             );
+
           })
           .slice(0, 6);
 
       setNews(filteredArticles);
+
     } catch (error) {
+
       console.error(
         "News loading error:",
         error
       );
 
       setNews([]);
+
     } finally {
+
       setNewsLoading(false);
+
     }
+
   };
 
   // ===================================================
@@ -754,9 +864,11 @@ export default function MonitoringSection() {
   // ===================================================
 
   useEffect(() => {
+
     loadNews();
 
     // REFRESH EVERY 30 MINUTES
+
     const interval = setInterval(
       loadNews,
       30 * 60 * 1000
@@ -764,6 +876,7 @@ export default function MonitoringSection() {
 
     return () =>
       clearInterval(interval);
+
   }, []);
 
   // ===================================================
@@ -771,40 +884,49 @@ export default function MonitoringSection() {
   // ===================================================
 
   const getFloodDescription = () => {
+
     if (
       floodSummary.totalNodes === 0
     ) {
+
       return "No flood monitoring data available.";
+
     }
 
     if (
       floodSummary.criticalNodes > 0
     ) {
+
       return `${floodSummary.criticalNodes} monitoring ${
         floodSummary.criticalNodes === 1
           ? "node is"
           : "nodes are"
       } at critical flood level.`;
+
     }
 
     if (
       floodSummary.warningNodes > 0
     ) {
+
       return `${floodSummary.warningNodes} monitoring ${
         floodSummary.warningNodes === 1
           ? "node is"
           : "nodes are"
       } reporting warning-level water.`;
+
     }
 
     if (
       floodSummary.cautionNodes > 0
     ) {
+
       return `${floodSummary.cautionNodes} monitoring ${
         floodSummary.cautionNodes === 1
           ? "node is"
           : "nodes are"
       } currently at caution level.`;
+
     }
 
     return `${floodSummary.onlineNodes} monitoring ${
@@ -812,6 +934,7 @@ export default function MonitoringSection() {
         ? "node is"
         : "nodes are"
     } operating normally.`;
+
   };
 
   // ===================================================
@@ -819,17 +942,23 @@ export default function MonitoringSection() {
   // ===================================================
 
   const getTrafficDescription = () => {
+
     if (trafficLoading) {
+
       return "Loading live traffic conditions...";
+
     }
 
     if (
       trafficSummary.totalRoads === 0
     ) {
+
       return "Traffic information is currently unavailable.";
+
     }
 
     return `Highest congestion is ${trafficSummary.highestCongestion}% on ${trafficSummary.highestRoad}.`;
+
   };
 
   // ===================================================
@@ -837,15 +966,18 @@ export default function MonitoringSection() {
   // ===================================================
 
   return (
+
     <section
       className="monitoring-section"
       id="monitoring"
     >
+
       {/* =================================================
           HEADER
       ================================================= */}
 
       <div className="monitoring-header">
+
         <span className="section-label">
           LIVE MONITORING
         </span>
@@ -860,7 +992,9 @@ export default function MonitoringSection() {
           to make smarter and safer travel
           decisions.
         </p>
+
       </div>
+
 
       {/* =================================================
           SUMMARY CARDS
@@ -876,6 +1010,7 @@ export default function MonitoringSection() {
           type="flood-summary"
           icon="🌊"
           title="Flood Monitoring"
+
           value={
             floodSummary.totalNodes > 0
               ? `${floodSummary.highestWaterLevelFeet.toFixed(
@@ -883,15 +1018,19 @@ export default function MonitoringSection() {
                 )} ft`
               : "--"
           }
+
           status={
             floodSummary.overallStatus
           }
+
           description={
             floodSummary.totalNodes > 0
               ? `${getFloodDescription()} Highest level recorded at ${floodSummary.highestLocation}.`
               : "Waiting for live flood sensor data."
           }
+
         />
+
 
         {/* =================================================
             TRAFFIC SUMMARY
@@ -901,22 +1040,27 @@ export default function MonitoringSection() {
           type="traffic-summary"
           icon="🚗"
           title="Traffic Monitoring"
+
           value={
             trafficLoading
               ? "--"
               : `${trafficSummary.highestCongestion}%`
           }
+
           status={
             trafficLoading
               ? "Loading"
               : trafficSummary.overallStatus
           }
+
           description={
             getTrafficDescription()
           }
+
         />
 
       </div>
+
 
       {/* =================================================
           FLOOD QUICK STATUS
@@ -927,6 +1071,7 @@ export default function MonitoringSection() {
         <div className="status-panel-header">
 
           <div>
+
             <span className="section-label">
               FLOOD STATUS
             </span>
@@ -934,6 +1079,7 @@ export default function MonitoringSection() {
             <h2>
               Flood Monitoring Overview
             </h2>
+
           </div>
 
           <span
@@ -946,59 +1092,75 @@ export default function MonitoringSection() {
 
         </div>
 
+
         <div className="status-stat-grid">
 
           <div className="status-stat">
             <span>Total Nodes</span>
+
             <strong>
               {floodSummary.totalNodes}
             </strong>
           </div>
 
+
           <div className="status-stat">
             <span>Online</span>
+
             <strong>
               {floodSummary.onlineNodes}
             </strong>
           </div>
 
+
           <div className="status-stat">
             <span>Offline</span>
+
             <strong>
               {floodSummary.offlineNodes}
             </strong>
           </div>
 
+
           <div className="status-stat">
             <span>Normal</span>
+
             <strong>
               {floodSummary.normalNodes}
             </strong>
           </div>
 
+
           <div className="status-stat">
             <span>Caution</span>
+
             <strong>
               {floodSummary.cautionNodes}
             </strong>
           </div>
 
+
           <div className="status-stat">
             <span>Warning</span>
+
             <strong>
               {floodSummary.warningNodes}
             </strong>
           </div>
 
+
           <div className="status-stat">
             <span>Critical</span>
+
             <strong>
               {floodSummary.criticalNodes}
             </strong>
           </div>
 
         </div>
+
       </div>
+
 
       {/* =================================================
           TRAFFIC QUICK STATUS
@@ -1009,6 +1171,7 @@ export default function MonitoringSection() {
         <div className="status-panel-header">
 
           <div>
+
             <span className="section-label">
               TRAFFIC STATUS
             </span>
@@ -1016,6 +1179,7 @@ export default function MonitoringSection() {
             <h2>
               Traffic Monitoring Overview
             </h2>
+
           </div>
 
           <span
@@ -1023,16 +1187,20 @@ export default function MonitoringSection() {
               .toLowerCase()
               .replace(/\s+/g, "-")}`}
           >
+
             {trafficLoading
               ? "Loading"
               : trafficSummary.overallStatus}
+
           </span>
 
         </div>
 
+
         <div className="traffic-highlight">
 
           <div className="traffic-highlight-item">
+
             <span>
               Monitored Roads
             </span>
@@ -1040,9 +1208,12 @@ export default function MonitoringSection() {
             <strong>
               {trafficSummary.totalRoads}
             </strong>
+
           </div>
 
+
           <div className="traffic-highlight-item">
+
             <span>
               Highest Congestion
             </span>
@@ -1052,9 +1223,12 @@ export default function MonitoringSection() {
                 ? "--"
                 : `${trafficSummary.highestCongestion}%`}
             </strong>
+
           </div>
 
+
           <div className="traffic-highlight-item">
+
             <span>
               Most Congested Road
             </span>
@@ -1064,10 +1238,13 @@ export default function MonitoringSection() {
                 ? "Loading..."
                 : trafficSummary.highestRoad}
             </strong>
+
           </div>
 
         </div>
+
       </div>
+
 
       {/* =================================================
           EMERGENCY HOTLINES
@@ -1093,19 +1270,26 @@ export default function MonitoringSection() {
 
         </div>
 
+
         <div className="emergency-grid">
+
+          {/* =================================================
+              NATIONAL EMERGENCY
+          ================================================= */}
 
           <a
             href="tel:911"
             className="emergency-card"
           >
+
             <div className="emergency-icon">
               🚨
             </div>
 
             <div>
+
               <span>
-                Emergency Hotline
+                National Emergency
               </span>
 
               <strong>
@@ -1113,68 +1297,63 @@ export default function MonitoringSection() {
               </strong>
 
               <p>
-                National Emergency Hotline
+                Police, Fire, Medical & Disaster Response
               </p>
+
             </div>
+
           </a>
 
+
+          {/* =================================================
+              MMDA / ROAD EMERGENCY
+          ================================================= */}
+
           <a
-            href="tel:160"
+            href="tel:136"
             className="emergency-card"
           >
+
             <div className="emergency-icon">
-              🔥
+              🚗
             </div>
 
             <div>
+
               <span>
-                Fire Department
+                MMDA / Road Emergency
               </span>
 
               <strong>
-                160
+                136
               </strong>
 
               <p>
-                Bureau of Fire Protection
+                Metro Manila Road & Traffic Assistance
               </p>
+
             </div>
+
           </a>
 
-          <a
-            href="tel:117"
-            className="emergency-card"
-          >
-            <div className="emergency-icon">
-              👮
-            </div>
 
-            <div>
-              <span>
-                Police
-              </span>
-
-              <strong>
-                117
-              </strong>
-
-              <p>
-                Philippine National Police
-              </p>
-            </div>
-          </a>
+          {/* =================================================
+              PHILIPPINE RED CROSS
+          ================================================= */}
 
           <a
             href="tel:143"
             className="emergency-card"
           >
+
             <div className="emergency-icon">
               🏥
             </div>
 
             <div>
+
               <span>
-                Medical Assistance
+                Philippine Red Cross
               </span>
 
               <strong>
@@ -1182,13 +1361,49 @@ export default function MonitoringSection() {
               </strong>
 
               <p>
-                Philippine Red Cross
+                Medical & Rescue Assistance
               </p>
+
             </div>
+
+          </a>
+
+
+          {/* =================================================
+              FIRE DEPARTMENT
+          ================================================= */}
+
+          <a
+            href="tel:911"
+            className="emergency-card"
+          >
+
+            <div className="emergency-icon">
+              🔥
+            </div>
+
+            <div>
+
+              <span>
+                Fire Department
+              </span>
+
+              <strong>
+                911
+              </strong>
+
+              <p>
+                Fire & Rescue Emergency Assistance
+              </p>
+
+            </div>
+
           </a>
 
         </div>
+
       </div>
+
 
       {/* =================================================
           ABOUT FRENDS
@@ -1226,7 +1441,9 @@ export default function MonitoringSection() {
           </p>
 
         </div>
+
       </div>
+
 
       {/* =================================================
           LIVE NEWS
@@ -1237,6 +1454,7 @@ export default function MonitoringSection() {
         <div className="news-header">
 
           <div>
+
             <span className="section-label">
               LIVE NEWS
             </span>
@@ -1251,9 +1469,11 @@ export default function MonitoringSection() {
               weather and typhoon-related
               news from Philippine sources.
             </p>
+
           </div>
 
         </div>
+
 
         {/* =================================================
             NEWS LOADING
@@ -1316,6 +1536,7 @@ export default function MonitoringSection() {
                   {/* NEWS IMAGE */}
 
                   {article.image && (
+
                     <div className="news-image-wrapper">
 
                       <img
@@ -1327,32 +1548,42 @@ export default function MonitoringSection() {
                       />
 
                     </div>
+
                   )}
+
 
                   {/* NEWS CONTENT */}
 
                   <div className="news-content">
 
                     <div className="news-source">
+
                       {article?.source?.name ||
                         "Philippine News"}
+
                     </div>
+
 
                     <h3>
                       {article.title}
                     </h3>
 
+
                     {article.description && (
+
                       <p>
                         {article.description}
                       </p>
+
                     )}
+
 
                     {/* NEWS FOOTER */}
 
                     <div className="news-footer">
 
                       <span>
+
                         {article.publishedAt
                           ? new Date(
                               article.publishedAt
@@ -1367,9 +1598,12 @@ export default function MonitoringSection() {
                               }
                             )
                           : ""}
+
                       </span>
 
+
                       {article.url && (
+
                         <a
                           href={
                             article.url
@@ -1379,6 +1613,7 @@ export default function MonitoringSection() {
                         >
                           Read More →
                         </a>
+
                       )}
 
                     </div>
@@ -1386,14 +1621,18 @@ export default function MonitoringSection() {
                   </div>
 
                 </article>
+
               )
             )}
 
           </div>
+
         )}
 
       </div>
 
     </section>
+
   );
+
 }

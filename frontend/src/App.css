@@ -6502,3 +6502,77 @@ html {
     padding: 17px;
   }
 }
+
+/* =========================================================
+   EMERGENCY SECTION — CENTERED
+========================================================= */
+
+.emergency-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.emergency-header {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.emergency-header h2 {
+  text-align: center;
+}
+
+.emergency-header p {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.emergency-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.emergency-card {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.emergency-card > div:last-child {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.emergency-card strong {
+  text-align: center;
+}
+
+.emergency-card p {
+  text-align: center;
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+  .emergency-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .emergency-card {
+    justify-content: center;
+  }
+}
