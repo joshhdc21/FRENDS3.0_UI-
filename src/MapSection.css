@@ -87,7 +87,7 @@ select:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 4px 12p
 /* Remove default leaflet zoom controls so we can hide them entirely or style them */
 .leaflet-control-zoom { display: none !important; }
 
-```css
+
 /* =========================================================
    FRENDS MAP SECTION
    FULL MOBILE RESPONSIVE OVERRIDES
@@ -744,4 +744,4 @@ select:focus { border-color: #2563eb; background: #ffffff; box-shadow: 0 4px 12p
         bottom: 10px !important;
     }
 }
-```
+
