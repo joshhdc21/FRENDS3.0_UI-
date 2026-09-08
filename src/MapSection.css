@@ -1,948 +1,107 @@
 /* =========================================================
-   FRENDS MAP - COMPLETE RESPONSIVE CSS
-   Mobile • iPhone • Android • iPad • Tablet • Laptop • Desktop
+   CLEAN RESPONSIVE CSS - GOOGLE MAPS UI STYLE
    ========================================================= */
 
-:root {
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-right: env(safe-area-inset-right, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-    --safe-left: env(safe-area-inset-left, 0px);
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --text: #0f172a;
-    --muted: #64748b;
-    --border: #e2e8f0;
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
 }
 
-*, *::before, *::after { box-sizing: border-box; }
-
-html, body, #root {
+html,
+body,
+#root {
     width: 100%;
-    min-width: 0;
+    max-width: 100%;
     min-height: 100%;
     margin: 0;
     padding: 0;
-    overflow-x: hidden;
-    -webkit-text-size-adjust: 100%;
+    overflow: hidden;
+    background-color: #131314; /* Google Maps Dark bg */
 }
 
-body { font-family: 'Inter', sans-serif; }
-
-img, video, iframe, canvas, svg { max-width: 100%; }
-button, input, select, textarea { max-width: 100%; font: inherit; }
-button, input, select { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-
-/* =========================================================
-   MAP CONTAINER
-   ========================================================= */
+/* Base Map Container */
 .map-section,
 .map-section-container {
-    position: relative;
-    width: 100%;
-    height: 100vh;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
     height: 100dvh;
-    min-height: 100dvh;
     overflow: hidden;
 }
 
-/* =========================================================
-   GLASS PANEL
-   ========================================================= */
-.glass-panel {
-    position: absolute;
-    top: max(24px, var(--safe-top));
-    left: max(24px, var(--safe-left));
-    width: min(380px, calc(100vw - 48px));
-    max-height: calc(100dvh - 48px);
-    overflow-y: auto;
-    z-index: 1000;
-    background: rgba(255, 255, 255, .85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, .4);
-    border-radius: 24px;
-    padding: 28px;
-    box-shadow: 0 20px 40px -10px rgba(0,0,0,.1);
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
+/* Remove default leaflet zoom controls for a cleaner mobile look */
+.leaflet-control-zoom { 
+    display: none !important; 
 }
 
-.glass-panel::-webkit-scrollbar { width: 0; }
-
-.panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-}
-
-.panel-header h2 {
-    margin: 0;
-    font-size: 24px;
-    line-height: 1.2;
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -.5px;
-}
-
-.panel-header p {
-    margin: 4px 0 0;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--primary);
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-}
-
-.locate-btn {
-    width: 42px;
-    height: 42px;
-    min-width: 42px;
-    padding: 10px;
-    border: 1px solid var(--border);
-    border-radius: 50%;
-    background: #fff;
-    color: var(--text);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,.05);
-    transition: all .2s ease;
-}
-
-.locate-btn:hover {
-    background: #f1f5f9;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 10px -1px rgba(0,0,0,.1);
-}
-
-.locate-btn svg { width: 18px; height: 18px; }
-
-/* =========================================================
-   INPUTS / SEARCH
-   ========================================================= */
-.input-group { display: flex; flex-direction: column; gap: 8px; }
-.input-group label { font-size: 13px; font-weight: 600; color: var(--muted); }
-
-.search-wrapper {
-    position: relative;
-    width: 100%;
-    min-width: 0;
-    display: flex;
-    align-items: center;
-    z-index: 100;
-}
-
-.input-icon {
-    position: absolute;
-    left: 16px;
-    width: 16px;
-    height: 16px;
-    color: var(--muted);
-    pointer-events: none;
-    z-index: 2;
-}
-
-.search-input {
-    width: 100%;
-    min-width: 0;
-    padding: 14px 14px 14px 44px;
-    border: 2px solid transparent;
-    border-radius: 16px;
-    outline: none;
-    background: #f8fafc;
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 500;
-    font-family: 'Inter', sans-serif;
-    transition: all .2s;
-}
-
-.search-input::placeholder { color: #94a3b8; font-weight: 400; }
-.search-input:focus {
-    border-color: var(--primary);
-    background: #fff;
-    box-shadow: 0 4px 12px rgba(37,99,235,.1);
-}
-
-/* Default: suggestions open below on desktop. */
-.suggestions-list {
-    position: absolute;
-    top: calc(100% + 8px);
-    bottom: auto;
-    left: 0;
-    right: 0;
-    width: 100%;
-    max-height: 280px;
-    overflow-y: auto;
-    list-style: none;
-    padding: 8px 0;
-    margin: 0;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: 0 20px 25px -5px rgba(0,0,0,.15);
-    z-index: 5000;
-    -webkit-overflow-scrolling: touch;
-}
-
-.suggestions-list li {
-    min-width: 0;
-    min-height: 48px;
-    padding: 12px 16px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    border-bottom: 1px solid #f1f5f9;
-    transition: background .2s;
-    touch-action: manipulation;
-}
-
-.suggestions-list li:last-child { border-bottom: 0; }
-.suggestions-list li:hover { background: #f8fafc; }
-
-.sugg-icon {
-    width: 32px;
-    height: 32px;
-    min-width: 32px;
-    border-radius: 50%;
-    background: #f1f5f9;
-    color: var(--muted);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.sugg-text {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    width: 100%;
-    overflow: hidden;
-}
-
-.sugg-primary,
-.sugg-secondary {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.sugg-primary { font-size: 14px; font-weight: 600; color: var(--text); }
-.sugg-secondary { margin-top: 2px; font-size: 12px; color: var(--muted); }
-.suggestions-list li:hover .sugg-icon { background: #e0e7ff; color: var(--primary); }
-
-/* =========================================================
-   SELECT / BUTTONS
-   ========================================================= */
-.select-wrapper { position: relative; width: 100%; min-width: 0; }
-
-.select-wrapper::after {
-    content: "▼";
-    position: absolute;
-    right: 18px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    font-size: 10px;
-    pointer-events: none;
-}
-
-select {
-    width: 100%;
-    min-width: 0;
-    padding: 14px 40px 14px 16px;
-    border: 2px solid transparent;
-    border-radius: 16px;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    background: #f8fafc;
-    color: var(--text);
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all .2s;
-}
-
-select:focus {
-    border-color: var(--primary);
-    background: #fff;
-    box-shadow: 0 4px 12px rgba(37,99,235,.1);
-}
-
-.button-group { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
-
-.action-btn {
-    width: 100%;
-    min-height: 46px;
-    padding: 14px 16px;
-    border: 0;
-    border-radius: 16px;
-    font-size: 15px;
-    font-weight: 600;
-    font-family: 'Inter', sans-serif;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all .3s ease;
-}
-
-.btn-primary {
-    background: var(--primary);
-    color: #fff;
-    box-shadow: 0 10px 15px -3px rgba(37,99,235,.3);
-}
-
-.btn-primary:hover {
-    background: var(--primary-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 12px 20px -3px rgba(37,99,235,.4);
-}
-
-.btn-primary:active { transform: translateY(0); }
-.btn-clear { background: #fff; color: #ef4444; border: 1px solid #fee2e2; }
-.btn-clear:hover { background: #fef2f2; border-color: #fca5a5; }
-
-/* =========================================================
-   ROUTE INFORMATION
-   ========================================================= */
-.route-info {
-    position: absolute;
-    left: 50%;
-    bottom: 40px;
-    transform: translateX(-50%);
-    z-index: 1000;
-    opacity: 0;
-    background: #fff;
-    border-radius: 50px;
-    padding: 16px 32px;
-    box-shadow: 0 20px 40px rgba(0,0,0,.15);
-    display: flex;
-    align-items: center;
-    gap: 32px;
-    transition: bottom .5s cubic-bezier(.175,.885,.32,1.275), opacity .3s;
-    max-width: calc(100vw - 40px);
-}
-
-.route-info.show { bottom: 40px; opacity: 1; }
-.stat-group { display: flex; flex-direction: column; align-items: center; min-width: 45px; }
-.stat-label { margin-bottom: 4px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-.stat-value { font-size: 22px; font-weight: 700; color: var(--text); }
-.stat-value span { color: var(--primary); }
-.stat-divider { width: 1px; height: 36px; background: var(--border); }
-
-/* =========================================================
-   LEAFLET
-   ========================================================= */
-.leaflet-control-zoom { margin-right: 10px !important; margin-bottom: 10px !important; }
-.leaflet-control-zoom a { width: 38px !important; height: 38px !important; line-height: 38px !important; font-size: 20px !important; }
-
+/* Sleeker Popups */
 .leaflet-popup-content-wrapper {
-    max-width: calc(100vw - 40px);
-    border-radius: 10px;
+    background-color: #202124 !important;
+    color: #e8eaed !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4) !important;
+}
+
+.leaflet-popup-tip {
+    background-color: #202124 !important;
 }
 
 .leaflet-popup-content {
-    max-width: 240px;
-    margin: 11px 13px;
-    font-size: 12px;
-    line-height: 1.45;
-    overflow-wrap: anywhere;
+    margin: 12px 16px !important;
+    font-size: 13px !important;
+    line-height: 1.5 !important;
 }
 
-.leaflet-popup-tip { width: 12px; height: 12px; }
-
-/* =========================================================
-   LAPTOP / TABLET
-   ========================================================= */
-@media (min-width: 769px) and (max-width: 1199px) {
-    .glass-panel {
-        top: max(20px, var(--safe-top));
-        left: max(20px, var(--safe-left));
-        width: min(360px, calc(100vw - 40px));
-        max-height: calc(100dvh - 40px);
-        padding: 22px;
-        border-radius: 20px;
-        gap: 16px;
-    }
-
-    .route-info { padding: 14px 24px; gap: 24px; }
+/* Better touch targets */
+button,
+select,
+input {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 }
 
-@media (min-width: 481px) and (max-width: 1024px) {
-    .glass-panel {
-        top: max(16px, var(--safe-top));
-        left: max(16px, var(--safe-left));
-        width: min(360px, calc(100vw - 32px));
-        max-height: calc(100dvh - 32px);
-        padding: 20px;
-        gap: 16px;
-        border-radius: 20px;
-    }
+/* Suggestions Scrollbar Hide */
+.suggestions-list::-webkit-scrollbar {
+    width: 0px;
+    display: none;
+}
 
-    .panel-header h2 { font-size: clamp(20px, 3vw, 24px); }
-    .search-input, select { min-height: 44px; }
-    .action-btn { min-height: 46px; }
-    .route-info { bottom: max(24px, var(--safe-bottom)); max-width: calc(100vw - 32px); }
+/* Animations for Bottom Sheet */
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
+
+.bottom-sheet {
+    animation: slideUp 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 /* =========================================================
-   MOBILE - KEYBOARD SAFE AUTOCOMPLETE
-   ========================================================= */
-@media (max-width: 768px) {
-    .map-section,
-    .map-section-container {
-        position: fixed !important;
-        inset: 0 !important;
-        width: 100vw !important;
-        height: 100dvh !important;
-        min-height: 100dvh !important;
-        max-width: 100vw !important;
-        overflow: hidden !important;
-    }
-
-    .glass-panel {
-        top: max(10px, var(--safe-top));
-        left: max(10px, var(--safe-left));
-        right: max(10px, var(--safe-right));
-        width: auto;
-        max-width: none;
-        max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 20px);
-        padding: 16px;
-        gap: 14px;
-        border-radius: 16px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .panel-header h2 { font-size: clamp(18px, 5vw, 22px); line-height: 1.15; }
-    .panel-header p { font-size: 10px; letter-spacing: 1px; }
-
-    .locate-btn { width: 38px; height: 38px; min-width: 38px; padding: 8px; }
-    .input-group { gap: 6px; }
-    .input-group label { font-size: 12px; }
-
-    .input-icon { left: 13px; width: 15px; height: 15px; }
-
-    .search-input,
-    select {
-        width: 100%;
-        min-width: 0;
-        min-height: 44px;
-        height: 44px;
-        font-size: 14px;
-        border-radius: 11px;
-    }
-
-    .search-input { padding: 10px 12px 10px 38px; }
-    select { padding: 10px 36px 10px 12px; }
-
-    /* IMPORTANT: open suggestions UPWARD on phones so the iOS/Android keyboard
-       does not cover the results. */
-    .search-wrapper,
-    .search-wrapper:focus-within {
-        z-index: 5000 !important;
-    }
-
-    .search-wrapper .suggestions-list {
-        position: absolute !important;
-        top: auto !important;
-        bottom: calc(100% + 8px) !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        max-height: min(260px, 34dvh) !important;
-        margin: 0 !important;
-        padding: 6px 0 !important;
-        overflow-y: auto !important;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch !important;
-        z-index: 5001 !important;
-        border-radius: 12px !important;
-    }
-
-    .search-wrapper .suggestions-list li {
-        min-height: 48px !important;
-        padding: 10px 12px !important;
-        gap: 10px !important;
-        touch-action: manipulation !important;
-    }
-
-    .search-wrapper .suggestions-list,
-    .search-wrapper .suggestions-list * {
-        min-width: 0 !important;
-        max-width: 100% !important;
-    }
-
-    .sugg-icon { width: 30px; height: 30px; min-width: 30px; }
-    .sugg-primary { font-size: 13px; }
-    .sugg-secondary { font-size: 11px; }
-
-    .button-group { gap: 9px; margin-top: 4px; }
-    .action-btn { min-height: 44px; padding: 11px 12px; border-radius: 11px; font-size: 14px; }
-
-    .route-info,
-    .map-section-container > div:nth-child(3) {
-        left: 50% !important;
-        right: auto !important;
-        bottom: max(76px, calc(66px + var(--safe-bottom))) !important;
-        width: max-content;
-        max-width: calc(100vw - 20px);
-        padding: 9px 14px;
-        gap: 14px;
-        border-radius: 12px;
-        transform: translateX(-50%) !important;
-        overflow-x: auto;
-        white-space: nowrap;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .route-info.show { bottom: max(76px, calc(66px + var(--safe-bottom))) !important; }
-    .stat-value { font-size: clamp(16px, 5vw, 20px); }
-    .stat-label { font-size: 9px; }
-    .stat-divider { height: 28px; }
-
-    .leaflet-control-zoom {
-        margin-right: max(8px, var(--safe-right)) !important;
-        margin-bottom: max(8px, var(--safe-bottom)) !important;
-    }
-
-    .leaflet-control-zoom a { width: 38px !important; height: 38px !important; line-height: 38px !important; }
-    .leaflet-popup-content-wrapper { max-width: calc(100vw - 32px); }
-    .leaflet-popup-content { max-width: min(240px, calc(100vw - 58px)); margin: 10px 12px; font-size: 12px; }
-
-    button { min-height: 40px; }
-}
-
-/* =========================================================
-   SMALL PHONES
-   ========================================================= */
-@media (max-width: 480px) {
-    .glass-panel {
-        top: max(7px, var(--safe-top));
-        left: max(7px, var(--safe-left));
-        right: max(7px, var(--safe-right));
-        max-width: none;
-        padding: 12px;
-        gap: 11px;
-        border-radius: 13px;
-    }
-
-    .panel-header h2 { font-size: 18px; }
-    .panel-header p { font-size: 9px; letter-spacing: .8px; }
-    .locate-btn { width: 34px; height: 34px; min-width: 34px; }
-
-    .search-input,
-    select { height: 42px; min-height: 42px; font-size: 13px; }
-    .search-input { padding-left: 36px; }
-
-    .search-wrapper .suggestions-list {
-        bottom: calc(100% + 6px) !important;
-        max-height: min(230px, 32dvh) !important;
-    }
-
-    .search-wrapper .suggestions-list li { min-height: 46px !important; padding: 9px 10px !important; }
-    .action-btn { min-height: 42px; font-size: 13px; padding: 9px; }
-
-    .route-info,
-    .map-section-container > div:nth-child(3) {
-        bottom: max(70px, calc(60px + var(--safe-bottom))) !important;
-        max-width: calc(100vw - 14px);
-        padding: 8px 11px;
-        gap: 10px;
-    }
-
-    .route-info.show { bottom: max(70px, calc(60px + var(--safe-bottom))) !important; }
-    .stat-value { font-size: 15px; }
-    .stat-label { font-size: 8px; }
-}
-
-/* =========================================================
-   VERY SMALL PHONES
-   ========================================================= */
-@media (max-width: 380px) {
-    .glass-panel {
-        left: max(5px, var(--safe-left));
-        right: max(5px, var(--safe-right));
-        padding: 10px;
-        gap: 9px;
-    }
-
-    .panel-header h2 { font-size: 16px; }
-    .search-input, select { height: 40px; min-height: 40px; font-size: 12px; }
-    .action-btn { min-height: 40px; font-size: 12px; }
-
-    .search-wrapper .suggestions-list {
-        bottom: calc(100% + 5px) !important;
-        max-height: min(210px, 30dvh) !important;
-    }
-
-    .search-wrapper .suggestions-list li { min-height: 44px !important; padding: 8px 9px !important; }
-
-    .route-info,
-    .map-section-container > div:nth-child(3) {
-        max-width: calc(100vw - 10px);
-        padding: 7px 9px;
-        gap: 8px;
-    }
-
-    .stat-value { font-size: 14px; }
-}
-
-/* =========================================================
-   LANDSCAPE PHONES / SMALL TABLETS
-   ========================================================= */
-@media (max-width: 1024px) and (orientation: landscape) {
-    .glass-panel {
-        top: max(6px, var(--safe-top));
-        left: max(8px, var(--safe-left));
-        right: auto;
-        width: min(390px, calc(100vw - 16px));
-        max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 12px);
-        padding: 10px;
-        gap: 8px;
-    }
-
-    .search-input, select { height: 36px; min-height: 36px; }
-    .action-btn { min-height: 36px; padding: 7px 9px; }
-
-    .search-wrapper .suggestions-list {
-        max-height: min(220px, 45dvh) !important;
-    }
-
-    .route-info,
-    .map-section-container > div:nth-child(3) {
-        bottom: max(8px, var(--safe-bottom)) !important;
-    }
-
-    .route-info.show { bottom: max(8px, var(--safe-bottom)) !important; }
-}
-
-/* =========================================================
-   TOUCH / ACCESSIBILITY
-   ========================================================= */
-@media (hover: none) and (pointer: coarse) {
-    .locate-btn:hover,
-    .btn-primary:hover,
-    .btn-clear:hover { transform: none; }
-
-    .suggestions-list li:hover { background: transparent; }
-    .suggestions-list li:active { background: #f8fafc; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
-        scroll-behavior: auto !important;
-        transition-duration: .01ms !important;
-        animation-duration: .01ms !important;
-        animation-iteration-count: 1 !important;
-    }
-}
-
-/* Prevent any component from creating horizontal scrolling. */
-.map-section-container > * { max-width: 100%; }
-.map-section-container input,
-.map-section-container select,
-.map-section-container button { max-width: 100%; }
-
-/* =========================================================
-   FRENDS APPLE-MAPS-STYLE MOBILE SEARCH OVERRIDE
-   Keeps Origin, Destination, Vehicle Type, Nav Voice,
-   Directions and Clear controls intact.
-   Only changes the mobile visual presentation.
+   3D DRIVE MODE HACK FOR 2D LEAFLET MAPS
    ========================================================= */
 
-@media (max-width: 768px) {
-    /* Clean white mobile routing sheet */
-    .glass-panel {
-        background: #ffffff !important;
-        backdrop-filter: none !important;
-        -webkit-backdrop-filter: none !important;
-        border: 0 !important;
-        box-shadow: 0 2px 12px rgba(0,0,0,.08) !important;
-        border-radius: 0 0 20px 20px !important;
-        padding: 14px 16px 16px !important;
-        gap: 14px !important;
-    }
-
-    /* Keep FRENDS Routing header, but make it lighter and app-like */
-    .panel-header {
-        min-height: 46px;
-        align-items: center !important;
-        padding-bottom: 8px;
-        border-bottom: 1px solid #eeeeee;
-    }
-
-    .panel-header h2 {
-        font-size: 21px !important;
-        font-weight: 600 !important;
-        letter-spacing: -.35px !important;
-        color: #1d1d1f !important;
-    }
-
-    .panel-header p {
-        display: none !important;
-    }
-
-    .locate-btn {
-        width: 38px !important;
-        height: 38px !important;
-        min-width: 38px !important;
-        border: 0 !important;
-        background: #f2f2f7 !important;
-        box-shadow: none !important;
-    }
-
-    /* Apple Maps-like search field */
-    .input-group {
-        gap: 8px !important;
-    }
-
-    .input-group label {
-        color: #6e6e73 !important;
-        font-size: 12px !important;
-        font-weight: 500 !important;
-    }
-
-    .search-wrapper {
-        position: relative !important;
-        z-index: 5000 !important;
-    }
-
-    .search-input {
-        height: 50px !important;
-        min-height: 50px !important;
-        padding: 10px 48px 10px 48px !important;
-        border: 0 !important;
-        border-radius: 26px !important;
-        background: #f2f2f7 !important;
-        color: #1d1d1f !important;
-        font-size: 20px !important;
-        font-weight: 400 !important;
-        box-shadow: none !important;
-    }
-
-    .search-input:focus {
-        border: 0 !important;
-        background: #f2f2f7 !important;
-        box-shadow: none !important;
-    }
-
-    .search-input::placeholder {
-        color: #8e8e93 !important;
-        font-size: 19px !important;
-        font-weight: 400 !important;
-    }
-
-    .input-icon {
-        left: 18px !important;
-        width: 20px !important;
-        height: 20px !important;
-        color: #555 !important;
-    }
-
-    /* Suggestions visually match the reference screenshot */
-    .search-wrapper .suggestions-list {
-        position: absolute !important;
-        left: -8px !important;
-        right: -8px !important;
-        width: calc(100% + 16px) !important;
-        top: auto !important;
-        bottom: calc(100% + 8px) !important;
-        max-height: min(360px, 48dvh) !important;
-        padding: 6px 0 !important;
-        margin: 0 !important;
-        background: #ffffff !important;
-        border: 0 !important;
-        border-radius: 16px !important;
-        box-shadow: 0 5px 20px rgba(0,0,0,.12) !important;
-        overflow-y: auto !important;
-        overscroll-behavior: contain !important;
-        -webkit-overflow-scrolling: touch !important;
-        z-index: 99999 !important;
-    }
-
-    .search-wrapper .suggestions-list li {
-        position: relative !important;
-        min-height: 66px !important;
-        padding: 10px 16px !important;
-        gap: 14px !important;
-        background: #ffffff !important;
-        border-bottom: 1px solid #e5e5e7 !important;
-        border-radius: 0 !important;
-    }
-
-    .search-wrapper .suggestions-list li:first-child {
-        border-radius: 16px 16px 0 0 !important;
-    }
-
-    .search-wrapper .suggestions-list li:last-child {
-        border-bottom: 0 !important;
-        border-radius: 0 0 16px 16px !important;
-    }
-
-    .search-wrapper .suggestions-list li:active {
-        background: #f2f2f7 !important;
-    }
-
-    .sugg-icon {
-        width: 40px !important;
-        height: 40px !important;
-        min-width: 40px !important;
-        background: #f0f1f3 !important;
-        color: #5b5b60 !important;
-        border: 0 !important;
-    }
-
-    .sugg-text {
-        gap: 2px !important;
-    }
-
-    .sugg-primary {
-        color: #1d1d1f !important;
-        font-size: 16px !important;
-        line-height: 1.2 !important;
-        font-weight: 500 !important;
-    }
-
-    .sugg-secondary {
-        color: #6e6e73 !important;
-        font-size: 14px !important;
-        line-height: 1.25 !important;
-        margin-top: 1px !important;
-        font-weight: 400 !important;
-    }
-
-    /* Destination remains unchanged functionally, but gets matching app styling */
-    .map-section-container .input-group:nth-of-type(2) .search-input,
-    .map-section-container input[placeholder*="Destination"],
-    .map-section-container input[placeholder*="destination"] {
-        background: #f2f2f7 !important;
-        border: 0 !important;
-        border-radius: 26px !important;
-    }
-
-    /* Keep vehicle, voice, Directions and Clear controls visible */
-    .button-group {
-        margin-top: 4px !important;
-    }
-
-    .action-btn {
-        min-height: 48px !important;
-        border-radius: 14px !important;
-        font-size: 15px !important;
-    }
-
-    /* Do not let the routing card become wider than the viewport */
-    .glass-panel,
-    .glass-panel * {
-        max-width: 100%;
-    }
+/* Apply this class to your map container div when driveMode is active */
+.drive-mode-3d {
+    position: absolute !important;
+    top: -20% !important;
+    left: 0;
+    width: 100% !important;
+    height: 140% !important;
+    z-index: 1;
+    transform: perspective(1000px) rotateX(60deg) scale(1.2) !important;
+    transform-origin: center center;
+    transition: transform 0.8s ease, top 0.8s ease, height 0.8s ease;
 }
 
-/* =========================================================
-   IPHONE / SMALL PHONE REFINEMENT
-   ========================================================= */
-@media (max-width: 480px) {
-    .glass-panel {
-        top: var(--safe-top) !important;
-        left: 0 !important;
-        right: 0 !important;
-        width: 100vw !important;
-        max-width: 100vw !important;
-        max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom)) !important;
-        padding: 12px 14px 14px !important;
-        border-radius: 0 0 18px 18px !important;
-    }
-
-    .panel-header h2 {
-        font-size: 20px !important;
-    }
-
-    .search-input {
-        height: 48px !important;
-        min-height: 48px !important;
-        font-size: 19px !important;
-    }
-
-    .search-input::placeholder {
-        font-size: 18px !important;
-    }
-
-    .search-wrapper .suggestions-list {
-        left: 0 !important;
-        right: 0 !important;
-        width: 100% !important;
-        max-height: min(330px, 44dvh) !important;
-        border-radius: 14px !important;
-    }
-
-    .search-wrapper .suggestions-list li {
-        min-height: 64px !important;
-        padding: 9px 14px !important;
-    }
-
-    .sugg-icon {
-        width: 38px !important;
-        height: 38px !important;
-        min-width: 38px !important;
-    }
-
-    .sugg-primary {
-        font-size: 15px !important;
-    }
-
-    .sugg-secondary {
-        font-size: 13px !important;
-    }
-}
-
-/* =========================================================
-   VERY SMALL DEVICES
-   ========================================================= */
-@media (max-width: 380px) {
-    .glass-panel {
-        padding: 10px !important;
-    }
-
-    .search-input {
-        height: 46px !important;
-        min-height: 46px !important;
-        font-size: 18px !important;
-        padding-left: 44px !important;
-    }
-
-    .search-wrapper .suggestions-list {
-        max-height: min(290px, 42dvh) !important;
-    }
-
-    .search-wrapper .suggestions-list li {
-        min-height: 60px !important;
-        padding: 8px 11px !important;
-        gap: 10px !important;
-    }
-
-    .sugg-icon {
-        width: 34px !important;
-        height: 34px !important;
-        min-width: 34px !important;
-    }
-
-    .sugg-primary {
-        font-size: 14px !important;
-    }
-
-    .sugg-secondary {
-        font-size: 12px !important;
-    }
+/* Default map state class (apply when driveMode is inactive) */
+.map-default-2d {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 1;
+    transform: none !important;
+    transition: transform 0.8s ease, top 0.8s ease, height 0.8s ease;
 }
