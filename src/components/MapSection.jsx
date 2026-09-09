@@ -17,6 +17,22 @@ const redIcon = new L.Icon({
     iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
 });
 
+// Haversine formula to calculate distance between two coordinates in meters
+const getDistanceInMeters = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3; // Earth radius in meters
+    const p1 = lat1 * Math.PI / 180;
+    const p2 = lat2 * Math.PI / 180;
+    const dp = (lat2 - lat1) * Math.PI / 180;
+    const dl = (lon2 - lon1) * Math.PI / 180;
+
+    const a = Math.sin(dp / 2) * Math.sin(dp / 2) +
+              Math.cos(p1) * Math.cos(p2) *
+              Math.sin(dl / 2) * Math.sin(dl / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return R * c; 
+};
+
 export default function MapSection() {
     const TOMTOM_API_KEY = import.meta.env.VITE_MAPAPI_TOMTOM_API_KEY;
 
@@ -40,12 +56,13 @@ export default function MapSection() {
     const [userReports, setUserReports] = useState({});
     
     const [voices, setVoices] = useState([]);
-    const [selectedVoice, setSelectedVoice] = useState("bisaya_free"); // Default to free Bisaya
+    const [selectedVoice, setSelectedVoice] = useState("bisaya_free"); 
 
     const originRef = useRef(origin);
     const destRef = useRef(destination);
     const isNavigatingRef = useRef(false);
     const searchTimeoutRef = useRef(null);
+    const lastRerouteTime = useRef(0);
     
     useEffect(() => { originRef.current = origin; }, [origin]);
     useEffect(() => { destRef.current = destination; }, [destination]);
@@ -59,7 +76,11 @@ export default function MapSection() {
     const [routeSegments, setRouteSegments] = useState([]);
     const [routeInfo, setRouteInfo] = useState(null); 
     const [isNavigating, setIsNavigating] = useState(false);
+    
+    // Live Location & Heading States
     const [liveLocation, setLiveLocation] = useState(null);
+    const [heading, setHeading] = useState(0); 
+    const [speed, setSpeed] = useState("--");
     const [isCalculating, setIsCalculating] = useState(false);
 
     useEffect(() => { isNavigatingRef.current = isNavigating; }, [isNavigating]);
@@ -73,6 +94,7 @@ export default function MapSection() {
     
     const baseLayerRef = useRef(null);
     const labelLayerRef = useRef(null);
+    const userMarkerRef = useRef(null);
 
     const ui = {
         bg: theme === 'dark' ? '#1e293b' : '#ffffff',
@@ -88,11 +110,27 @@ export default function MapSection() {
         accentRed: '#ea4335'
     };
 
+    // AUTO-LOCATE USER ON LOAD
+    useEffect(() => {
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                (pos) => {
+                    const latlng = [pos.coords.latitude, pos.coords.longitude];
+                    setMapCenter(latlng);
+                    setLiveLocation(latlng);
+                    setOrigin({ latlng, title: "Your Location" });
+                    setOriginQuery("Your Location");
+                },
+                (err) => console.error("Initial GPS Error:", err),
+                { enableHighAccuracy: true }
+            );
+        }
+    }, []);
+
     useEffect(() => {
         const loadVoices = () => {
             const availableVoices = window.speechSynthesis.getVoices();
             setVoices(availableVoices);
-            
             if (availableVoices.length > 0 && !selectedVoice) {
                 const defaultVoice = availableVoices.find(v => v.lang.includes('en') && v.name.includes('Google')) || availableVoices[0];
                 setSelectedVoice(defaultVoice.name);
@@ -114,21 +152,14 @@ export default function MapSection() {
             utterance.pitch = 1.0;
             
             if (selectedVoice === "bisaya_free") {
-                // Hunt for Tagalog, Filipino, or Indonesian voices for exact Bisaya phonetic matches
                 const localVoice = voices.find(v => 
-                    v.lang.includes('fil') || 
-                    v.lang.includes('tl') || 
-                    v.lang.includes('PH') || 
-                    v.lang.includes('id')
+                    v.lang.includes('fil') || v.lang.includes('tl') || v.lang.includes('PH') || v.lang.includes('id')
                 );
-                if (localVoice) {
-                    utterance.voice = localVoice;
-                }
+                if (localVoice) utterance.voice = localVoice;
             } else if (selectedVoice) {
                 const voice = voices.find(v => v.name === selectedVoice);
                 if (voice) utterance.voice = voice;
             }
-
             window.speechUtterance = utterance; 
             window.speechSynthesis.speak(utterance);
         }
@@ -137,9 +168,7 @@ export default function MapSection() {
     useEffect(() => {
         const handleResize = () => {
             setIsMobile(window.innerWidth <= 768);
-            if (mapInstanceRef.current) {
-                setTimeout(() => mapInstanceRef.current.invalidateSize(), 100);
-            }
+            if (mapInstanceRef.current) setTimeout(() => mapInstanceRef.current.invalidateSize(), 100);
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
@@ -163,20 +192,16 @@ export default function MapSection() {
             const layerGroup = L.layerGroup().addTo(map);
             layerGroupRef.current = layerGroup;
 
-            // Map Click Events - Only handle shift key for navigation and regular clicks for pin placement
             map.on('click', (e) => {
                 if (e.originalEvent.shiftKey) {
                     if (isNavigatingRef.current) {
                         const latlng = [e.latlng.lat, e.latlng.lng];
                         setLiveLocation(latlng);
                         if (originRef.current) setOrigin(prev => ({ ...prev, latlng }));
-                    } else {
-                        alert("⚠️ Click 'Directions' first!");
-                    }
+                    } else alert("⚠️ Click 'Directions' first!");
                     return;
                 }
 
-                // Regular click - place pins for origin/destination
                 const latlng = [e.latlng.lat, e.latlng.lng];
                 if (!originRef.current) {
                     setOrigin({ latlng, title: "Dropped Pin" });
@@ -190,12 +215,6 @@ export default function MapSection() {
             mapInstanceRef.current = map;
         }
     }, []);
-
-    useEffect(() => {
-        if (driveMode && liveLocation && mapInstanceRef.current) {
-            mapInstanceRef.current.panTo(liveLocation, { animate: true });
-        }
-    }, [liveLocation, driveMode]);
 
     useEffect(() => {
         if (!mapInstanceRef.current) return;
@@ -212,47 +231,84 @@ export default function MapSection() {
             ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}'
             : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}';
 
-        baseLayerRef.current = L.tileLayer(baseUrl, { maxZoom: 19, zIndex: 1 }).addTo(map);
-        labelLayerRef.current = L.tileLayer(labelUrl, { maxZoom: 19, zIndex: 1000 }).addTo(map);
+        baseLayerRef.current = L.tileLayer(baseUrl, { maxZoom: 19, maxNativeZoom: 16, zIndex: 1 }).addTo(map);
+        labelLayerRef.current = L.tileLayer(labelUrl, { maxZoom: 19, maxNativeZoom: 16, zIndex: 1000 }).addTo(map);
     }, [theme]);
 
-    // Real-Time GPS Tracking for Drive Mode
+    // LIVE GPS TRACKING & SPEED CALCULATION
     useEffect(() => {
         let watchId;
-
         if (driveMode) {
             if ('geolocation' in navigator) {
-                // Request high-accuracy continuous tracking
                 watchId = navigator.geolocation.watchPosition(
                     (position) => {
-                        const { latitude, longitude, speed } = position.coords;
-                        setLiveLocation([latitude, longitude]);
+                        const newLatlng = [position.coords.latitude, position.coords.longitude];
+                        setLiveLocation(newLatlng);
                         
-                        
-                        // to update the km/h UI element
-                    },
-                    (error) => {
-                        console.error("GPS Tracking Error:", error);
-                        // Fallback or error handling here
-                    },
-                    { 
-                        enableHighAccuracy: true, 
-                        maximumAge: 5000, 
-                        timeout: 10000 
-                    }
-                );
-            } else {
-                alert("⚠️ Geolocation is not supported by your browser.");
-            }
-        } else {
-            // Clean up and stop tracking when Drive Mode is turned off
-            if (watchId) navigator.geolocation.clearWatch(watchId);
-        }
+                        if (position.coords.speed !== null) {
+                            setSpeed(Math.round(position.coords.speed * 3.6));
+                        } else {
+                            setSpeed(0);
+                        }
 
-        return () => {
+                        if (position.coords.heading !== null && !isNaN(position.coords.heading)) {
+                            setHeading(position.coords.heading);
+                        }
+
+                        if (mapInstanceRef.current) {
+                            mapInstanceRef.current.panTo(newLatlng, { animate: true, duration: 1.0 });
+                        }
+                    },
+                    (error) => console.error("GPS Tracking Error:", error),
+                    { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+                );
+            } else alert("⚠️ Geolocation is not supported by your browser.");
+        } else {
             if (watchId) navigator.geolocation.clearWatch(watchId);
-        };
+            setSpeed("--");
+        }
+        return () => { if (watchId) navigator.geolocation.clearWatch(watchId); };
     }, [driveMode]);
+
+    // OFF-ROUTE DETECTION & AUTO-REROUTING
+    useEffect(() => {
+        if (!driveMode || !liveLocation || routeSegments.length === 0 || isCalculating) return;
+
+        let minDistance = Infinity;
+
+        routeSegments.forEach(segment => {
+            if (segment.coords) {
+                segment.coords.forEach(pt => {
+                    const lat = pt.latitude !== undefined ? pt.latitude : pt[0];
+                    const lng = pt.longitude !== undefined ? pt.longitude : pt[1];
+                    if (lat && lng) {
+                        const dist = getDistanceInMeters(liveLocation[0], liveLocation[1], lat, lng);
+                        if (dist < minDistance) minDistance = dist;
+                    }
+                });
+            }
+        });
+
+        if (minDistance > 50) {
+            const now = Date.now();
+            if (now - lastRerouteTime.current < 15000) return; 
+            lastRerouteTime.current = now;
+
+            console.log(`Off-route detected! Diverged by ${Math.round(minDistance)} meters.`);
+            
+            setNavStep({ distance: "Rerouting...", action: "Finding new path", arrow: "↻" });
+            
+            setTimeout(() => {
+                const speechText = selectedVoice === "bisaya_free" 
+                    ? "Nasaag ka. Nag calculate ug bag-ong ruta..." 
+                    : "You are off route. Recalculating detour...";
+                speakInstruction(speechText);
+            }, 500);
+
+            setOrigin({ latlng: liveLocation, title: "Current Location" });
+            fetchRoute(true, liveLocation); 
+        }
+    }, [liveLocation, driveMode, routeSegments, isCalculating, selectedVoice]);
 
     useEffect(() => {
         if (mapInstanceRef.current && !driveMode) {
@@ -261,23 +317,62 @@ export default function MapSection() {
         }
     }, [mapCenter, driveMode]);
 
+    // Dynamic Map Rendering
     useEffect(() => {
         const mapGroup = layerGroupRef.current;
         if (!mapGroup) return;
 
         mapGroup.clearLayers();
 
-        if (origin && !driveMode) {
-            L.marker(origin.latlng, { icon: greenIcon }).addTo(mapGroup).bindPopup(origin.title);
-        }
-        if (destination && !driveMode) {
-            L.marker(destination.latlng, { icon: redIcon }).addTo(mapGroup).bindPopup(destination.title);
-        }
+        if (origin && !driveMode) L.marker(origin.latlng, { icon: greenIcon }).addTo(mapGroup).bindPopup(origin.title);
+        if (destination && !driveMode) L.marker(destination.latlng, { icon: redIcon }).addTo(mapGroup).bindPopup(destination.title);
         
         if (liveLocation || (driveMode && origin)) {
             const loc = liveLocation || origin.latlng;
+            
+            // Outer Halo
             L.circleMarker(loc, { radius: 18, fillColor: '#1a73e8', color: 'transparent', fillOpacity: 0.3, pane: 'routePane' }).addTo(mapGroup);
-            L.circleMarker(loc, { radius: 8, fillColor: '#ffffff', color: '#1a73e8', weight: 4, fillOpacity: 1, pane: 'routePane' }).addTo(mapGroup);
+            
+            // Rotating User Arrow Icon
+            const userIconHtml = `
+                <div style="
+                    width: 24px; 
+                    height: 24px; 
+                    background-color: #1a73e8; 
+                    border: 3px solid white; 
+                    border-radius: 50%; 
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+                    position: relative;
+                    transform: rotate(${heading}deg);
+                    transition: transform 0.5s ease;
+                ">
+                    <div style="
+                        width: 0; 
+                        height: 0; 
+                        border-left: 6px solid transparent; 
+                        border-right: 6px solid transparent; 
+                        border-bottom: 10px solid white; 
+                        position: absolute; 
+                        top: -8px; 
+                        left: 3px;
+                    "></div>
+                </div>
+            `;
+
+            const customUserIcon = L.divIcon({
+                html: userIconHtml,
+                className: '',
+                iconSize: [24, 24],
+                iconAnchor: [12, 12]
+            });
+
+            if (!userMarkerRef.current) {
+                userMarkerRef.current = L.marker(loc, { icon: customUserIcon, pane: 'routePane' }).addTo(mapGroup);
+            } else {
+                userMarkerRef.current.setLatLng(loc);
+                userMarkerRef.current.setIcon(customUserIcon);
+                userMarkerRef.current.addTo(mapGroup);
+            }
         }
 
         Object.keys(firebaseNodes).forEach(nodeId => {
@@ -365,7 +460,7 @@ export default function MapSection() {
             mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
         }
 
-    }, [origin, destination, liveLocation, firebaseNodes, userReports, routeSegments, driveMode, isCalculating]);
+    }, [origin, destination, liveLocation, heading, firebaseNodes, userReports, routeSegments, driveMode, isCalculating]);
 
     useEffect(() => {
         const nodesRef = ref(database, 'nodes');
@@ -421,7 +516,7 @@ export default function MapSection() {
 
         if (isNavigatingRef.current && forceReroute) {
             alert("⚠️ Flood detected ahead! Recalculating route...");
-            fetchRoute(true);
+            fetchRoute(true, driveMode ? liveLocation : null);
         }
     };
 
@@ -515,10 +610,14 @@ export default function MapSection() {
         setDestination(null); setDestQuery(""); setDestSuggestions([]);
     };
 
-    const fetchRoute = async (isAutoReroute = false) => {
+    // 5. FETCH ROUTE WITH OVERRIDE INJECTION & CLOSURE SAFETY
+    const fetchRoute = async (isAutoReroute = false, overrideOrigin = null) => {
         const currentOrigin = originRef.current;
         const currentDest = destRef.current;
-        if (!currentOrigin || !currentDest) {
+        const startLat = overrideOrigin ? overrideOrigin[0] : (currentOrigin ? currentOrigin.latlng[0] : null);
+        const startLon = overrideOrigin ? overrideOrigin[1] : (currentOrigin ? currentOrigin.latlng[1] : null);
+
+        if (!startLat || !currentDest) {
             if (!isAutoReroute) alert("⚠️ Please set Origin and Destination.");
             return;
         }
@@ -527,7 +626,7 @@ export default function MapSection() {
         setIsCalculating(true);
 
         const payload = {
-            origin_lat: currentOrigin.latlng[0], origin_lon: currentOrigin.latlng[1],
+            origin_lat: startLat, origin_lon: startLon,
             dest_lat: currentDest.latlng[0], dest_lon: currentDest.latlng[1],
             vehicle_type: vehicleLayer, is_reroute: isAutoReroute
         };
@@ -542,7 +641,7 @@ export default function MapSection() {
             const data = await response.json();
             
             if (data.status === 'SUCCESS' || data.status === 'success') {
-                const startPin = { latitude: currentOrigin.latlng[0], longitude: currentOrigin.latlng[1] };
+                const startPin = { latitude: startLat, longitude: startLon };
                 const endPin = { latitude: currentDest.latlng[0], longitude: currentDest.latlng[1] };
                 
                 let combinedCoords = [];
@@ -562,7 +661,7 @@ export default function MapSection() {
 
                 if (combinedCoords.length > 5) {
                     const nextPoint = combinedCoords[Math.min(5, combinedCoords.length - 1)];
-                    const isRight = nextPoint.longitude > currentOrigin.latlng[1]; 
+                    const isRight = nextPoint.longitude > startLon; 
                     const actionText = isRight ? "Turn right" : "Turn left";
                     const arrowSymbol = isRight ? "↱" : "↰";
 
@@ -590,7 +689,7 @@ export default function MapSection() {
         setDriveMode(true);
         setShowFloodWarning(true);
         
-        if (mapInstanceRef.current && origin) {
+        if (mapInstanceRef.current && (liveLocation || origin)) {
             const startLoc = liveLocation || origin.latlng;
             mapInstanceRef.current.flyTo(startLoc, 19, { animate: true, duration: 1.5 });
         }
@@ -628,7 +727,7 @@ export default function MapSection() {
     };
 
     const recenterMap = () => {
-        if (mapInstanceRef.current && origin) {
+        if (mapInstanceRef.current && (liveLocation || origin)) {
             const loc = liveLocation || origin.latlng;
             mapInstanceRef.current.flyTo(loc, 19, { animate: true, duration: 1.0 });
         }
@@ -826,7 +925,7 @@ export default function MapSection() {
                     </div>
 
                     <div style={{ position: 'absolute', bottom: showFloodWarning ? '240px' : '130px', left: '16px', width: '64px', height: '64px', backgroundColor: '#000', borderRadius: '50%', border: '3px solid #333', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'white', zIndex: 3000, boxShadow: '0 4px 12px rgba(0,0,0,0.4)', transition: 'bottom 0.3s ease' }}>
-                        <span style={{ fontSize: '20px', fontWeight: 'bold', lineHeight: '1' }}>--</span>
+                        <span style={{ fontSize: '20px', fontWeight: 'bold', lineHeight: '1' }}>{speed}</span>
                         <span style={{ fontSize: '11px', fontWeight: '600' }}>km/h</span>
                     </div>
 
