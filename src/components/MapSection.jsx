@@ -17,6 +17,28 @@ const redIcon = new L.Icon({
     iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
 });
 
+// Haversine formula
+const getDistanceInMeters = (lat1, lon1, lat2, lon2) => {
+    const R = 6371e3; 
+    const p1 = lat1 * Math.PI / 180;
+    const p2 = lat2 * Math.PI / 180;
+    const dp = (lat2 - lat1) * Math.PI / 180;
+    const dl = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; 
+};
+
+// Bearing formula
+const getBearing = (lat1, lon1, lat2, lon2) => {
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const toDeg = (rad) => (rad * 180) / Math.PI;
+    const dLon = toRad(lon2 - lon1);
+    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
+    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
+    return (toDeg(Math.atan2(y, x)) + 360) % 360;
+};
+
 export default function MapSection() {
     const TOMTOM_API_KEY = import.meta.env.VITE_MAPAPI_TOMTOM_API_KEY;
 
@@ -26,13 +48,11 @@ export default function MapSection() {
     const [vehicleLayer, setVehicleLayer] = useState("LOW");
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
     
-    // Default to dark theme to match Google Maps UI
     const [theme, setTheme] = useState("dark");
     const [driveMode, setDriveMode] = useState(false);
     const [showFloodWarning, setShowFloodWarning] = useState(false); 
-    const [navStep, setNavStep] = useState({ 
-        distance: '--', action: 'Calculating...', arrow: '↱' 
-    }); 
+    const [showTraffic, setShowTraffic] = useState(true);
+    const [navStep, setNavStep] = useState({ distance: '--', action: 'Calculating...', arrow: '↱' }); 
     
     const [showReportModal, setShowReportModal] = useState(false);
     const [userReports, setUserReports] = useState({});
@@ -40,10 +60,22 @@ export default function MapSection() {
     const [voices, setVoices] = useState([]);
     const [selectedVoice, setSelectedVoice] = useState("bisaya_free"); 
 
+    // Current Location Banner State
+    const [currentLocationName, setCurrentLocationName] = useState("General Mariano Alvarez, Cavite");
+    const [showLocationBanner, setShowLocationBanner] = useState(false);
+
+    // Smart Traffic Prompt States
+    const [showTrafficPrompt, setShowTrafficPrompt] = useState(false);
+    const stoppageTimerRef = useRef(null);
+    const hasPromptedRecentlyRef = useRef(false);
+
     const originRef = useRef(origin);
     const destRef = useRef(destination);
     const isNavigatingRef = useRef(false);
     const searchTimeoutRef = useRef(null);
+    const lastRerouteTime = useRef(0);
+    const lastSpokenDistRef = useRef(Infinity);
+    const warnedHazardsRef = useRef(new Set()); 
     
     useEffect(() => { originRef.current = origin; }, [origin]);
     useEffect(() => { destRef.current = destination; }, [destination]);
@@ -58,10 +90,8 @@ export default function MapSection() {
     const [routeInfo, setRouteInfo] = useState(null); 
     const [isNavigating, setIsNavigating] = useState(false);
     
-    // Enhanced Live Location State to include heading
     const [liveLocation, setLiveLocation] = useState(null);
     const [heading, setHeading] = useState(0); 
-    
     const [speed, setSpeed] = useState("--"); 
     const [isCalculating, setIsCalculating] = useState(false);
 
@@ -73,12 +103,11 @@ export default function MapSection() {
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const layerGroupRef = useRef(null);
-    
     const baseLayerRef = useRef(null);
     const labelLayerRef = useRef(null);
-    const userMarkerRef = useRef(null); // Ref to hold the moving user icon
+    const trafficLayerRef = useRef(null); 
+    const userMarkerRef = useRef(null); 
 
-    // Google Maps Dark Mode Color Palette
     const ui = {
         bg: theme === 'dark' ? '#131314' : '#ffffff',
         panelBg: theme === 'dark' ? '#202124' : '#ffffff',
@@ -92,22 +121,49 @@ export default function MapSection() {
         btnText: theme === 'dark' ? '#202124' : '#ffffff'
     };
 
-    // AUTO-LOCATE USER ON LOAD
+    // AUTO-LOCATE USER & BULLETPROOF LOCATION BANNER ON LOAD
     useEffect(() => {
+        setShowLocationBanner(true);
+        const timer = setTimeout(() => setShowLocationBanner(false), 5000);
+
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
-                (pos) => {
-                    const latlng = [pos.coords.latitude, pos.coords.longitude];
+                async (pos) => {
+                    const lat = pos.coords.latitude;
+                    const lon = pos.coords.longitude;
+                    const latlng = [lat, lon];
                     setMapCenter(latlng);
                     setLiveLocation(latlng);
                     setOrigin({ latlng, title: "Your Location" });
                     setOriginQuery("Your Location");
+
+                    if (TOMTOM_API_KEY && TOMTOM_API_KEY !== "undefined") {
+                        try {
+                            const res = await fetch(`https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json?key=${TOMTOM_API_KEY.trim()}&view=Unified`);
+                            if (res.ok) {
+                                const data = await res.json();
+                                if (data.addresses && data.addresses.length > 0) {
+                                    const addr = data.addresses[0].address;
+                                    const placeName = addr.municipality || addr.city || addr.freeformAddress;
+                                    if (placeName) {
+                                        setCurrentLocationName(placeName);
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.error("Reverse geocode fetch failed:", e);
+                        }
+                    }
                 },
-                (err) => console.error("Initial GPS Error:", err),
+                (err) => {
+                    console.error("Initial GPS Error:", err);
+                },
                 { enableHighAccuracy: true }
             );
         }
-    }, []);
+
+        return () => clearTimeout(timer);
+    }, [TOMTOM_API_KEY]);
 
     useEffect(() => {
         const loadVoices = () => {
@@ -163,10 +219,6 @@ export default function MapSection() {
             map.createPane('routePane');
             map.getPane('routePane').style.zIndex = 500;
 
-            L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`, { 
-                maxZoom: 19, opacity: 0.85, tileSize: 128, zoomOffset: 1, zIndex: 10 
-            }).addTo(map);
-
             const layerGroup = L.layerGroup().addTo(map);
             layerGroupRef.current = layerGroup;
 
@@ -213,7 +265,23 @@ export default function MapSection() {
         labelLayerRef.current = L.tileLayer(labelUrl, { maxZoom: 19, maxNativeZoom: 16, zIndex: 1000 }).addTo(map);
     }, [theme]);
 
-    // 2. LIVE GPS TRACKING & SPEED CALCULATION
+    useEffect(() => {
+        if (!mapInstanceRef.current) return;
+        const map = mapInstanceRef.current;
+
+        if (!trafficLayerRef.current) {
+            trafficLayerRef.current = L.tileLayer(`https://api.tomtom.com/traffic/map/4/tile/flow/relative/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`, { 
+                maxZoom: 19, opacity: 0.85, tileSize: 128, zoomOffset: 1, zIndex: 10 
+            });
+        }
+
+        if (showTraffic) {
+            if (!map.hasLayer(trafficLayerRef.current)) map.addLayer(trafficLayerRef.current);
+        } else {
+            if (map.hasLayer(trafficLayerRef.current)) map.removeLayer(trafficLayerRef.current);
+        }
+    }, [showTraffic, TOMTOM_API_KEY]);
+
     useEffect(() => {
         let watchId;
         if (driveMode) {
@@ -222,23 +290,10 @@ export default function MapSection() {
                     (position) => {
                         const newLatlng = [position.coords.latitude, position.coords.longitude];
                         setLiveLocation(newLatlng);
-                        
-                        // Update Speed
-                        if (position.coords.speed !== null) {
-                            setSpeed(Math.round(position.coords.speed * 3.6));
-                        } else {
-                            setSpeed(0);
-                        }
-
-                        // Update Heading for icon rotation
-                        if (position.coords.heading !== null && !isNaN(position.coords.heading)) {
-                            setHeading(position.coords.heading);
-                        }
-
-                        // Smoothly Pan the map to follow the user
-                        if (mapInstanceRef.current) {
-                            mapInstanceRef.current.panTo(newLatlng, { animate: true, duration: 1.0 });
-                        }
+                        if (position.coords.speed !== null) setSpeed(Math.round(position.coords.speed * 3.6));
+                        else setSpeed(0);
+                        if (position.coords.heading !== null && !isNaN(position.coords.heading)) setHeading(position.coords.heading);
+                        if (mapInstanceRef.current) mapInstanceRef.current.panTo(newLatlng, { animate: true, duration: 1.0 });
                     },
                     (error) => console.error("GPS Tracking Error:", error),
                     { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
@@ -258,7 +313,158 @@ export default function MapSection() {
         }
     }, [mapCenter, driveMode]);
 
-    // Dynamic Map Rendering
+    useEffect(() => {
+        if (!driveMode || !liveLocation || !userReports) return;
+
+        Object.keys(userReports).forEach(key => {
+            const report = userReports[key];
+            if (Date.now() - report.timestamp > 4 * 60 * 60 * 1000) return;
+            if (warnedHazardsRef.current.has(key)) return;
+
+            const dist = getDistanceInMeters(liveLocation[0], liveLocation[1], report.lat, report.lng);
+
+            if (dist < 500) {
+                warnedHazardsRef.current.add(key);
+                let hazardName = report.type.toLowerCase();
+                if (selectedVoice === "bisaya_free") {
+                    if (hazardName === "accident") hazardName = "aksidente";
+                    if (hazardName === "construction") hazardName = "gimbuhaton sa kalsada";
+                    if (hazardName === "police") hazardName = "pulis";
+                }
+
+                const speechText = selectedVoice === "bisaya_free" 
+                    ? `Pag amping, naay nareport nga ${hazardName} sa unahan.` 
+                    : `Caution, ${hazardName} reported ahead.`;
+                
+                speakInstruction(speechText);
+            }
+        });
+    }, [liveLocation, driveMode, userReports, selectedVoice]);
+
+    // UNUSUAL TRAFFIC & HAZARD PROMPT MONITOR
+    useEffect(() => {
+        if (!driveMode || !isNavigating || speed === "--") {
+            if (stoppageTimerRef.current) clearTimeout(stoppageTimerRef.current);
+            setShowTrafficPrompt(false);
+            return;
+        }
+
+        const speedNum = Number(speed);
+
+        if (speedNum <= 5) {
+            if (!stoppageTimerRef.current && !hasPromptedRecentlyRef.current) {
+                stoppageTimerRef.current = setTimeout(() => {
+                    setShowTrafficPrompt(true);
+                    hasPromptedRecentlyRef.current = true;
+                    setTimeout(() => { hasPromptedRecentlyRef.current = false; }, 600000);
+                }, 25000);
+            }
+        } else {
+            if (stoppageTimerRef.current) {
+                clearTimeout(stoppageTimerRef.current);
+                stoppageTimerRef.current = null;
+            }
+        }
+
+        return () => {
+            if (stoppageTimerRef.current) clearTimeout(stoppageTimerRef.current);
+        };
+    }, [speed, driveMode, isNavigating]);
+
+    // ADAPTIVE PATH & OFF-ROUTE DETECTION
+    useEffect(() => {
+        if (!liveLocation || routeSegments.length === 0 || isCalculating) return;
+
+        let minDistance = Infinity;
+        let closestIdx = 0;
+        let flatPath = [];
+
+        routeSegments.forEach(segment => {
+            if (segment.coords) flatPath.push(...segment.coords);
+        });
+
+        if (flatPath.length < 2) return;
+
+        flatPath.forEach((pt, idx) => {
+            const lat = pt.latitude !== undefined ? pt.latitude : pt[0];
+            const lng = pt.longitude !== undefined ? pt.longitude : pt[1];
+            if (lat && lng) {
+                const dist = getDistanceInMeters(liveLocation[0], liveLocation[1], lat, lng);
+                if (dist < minDistance) {
+                    minDistance = dist;
+                    closestIdx = idx;
+                }
+            }
+        });
+
+        const offRouteThreshold = (typeof speed === 'number' && speed > 60) ? 70 : 45;
+
+        if (minDistance > offRouteThreshold) {
+            const now = Date.now();
+            if (now - lastRerouteTime.current < 6000) return; 
+            lastRerouteTime.current = now;
+
+            setRouteSegments([]);
+            setRouteInfo(null);
+
+            setNavStep({ distance: "Rerouting...", action: "Finding new path", arrow: "↻" });
+            speakInstruction(selectedVoice === "bisaya_free" ? "Nasaag ka. Nag calculate ug bag-ong ruta..." : "Recalculating route...");
+            setOrigin({ latlng: liveLocation, title: "Current Location" });
+            fetchRoute(true, liveLocation); 
+            return;
+        }
+
+        if (!driveMode) return;
+
+        let nextTurnIdx = flatPath.length - 1;
+        let action = "Continue straight";
+        let arrow = "↑";
+        
+        for (let i = closestIdx; i < flatPath.length - 2; i++) {
+            const p1 = flatPath[i];
+            const p2 = flatPath[i+1];
+            const p3 = flatPath[i+2];
+            
+            const b1 = getBearing(p1.latitude || p1[0], p1.longitude || p1[1], p2.latitude || p2[0], p2.longitude || p2[1]);
+            const b2 = getBearing(p2.latitude || p2[0], p2.longitude || p2[1], p3.latitude || p3[0], p3.longitude || p3[1]);
+            
+            let angleDiff = b2 - b1;
+            if (angleDiff > 180) angleDiff -= 360;
+            if (angleDiff < -180) angleDiff += 360;
+
+            if (Math.abs(angleDiff) > 40) {
+                nextTurnIdx = i + 1;
+                if (angleDiff > 0) { action = "Turn right"; arrow = "↱"; }
+                else { action = "Turn left"; arrow = "↰"; }
+                break;
+            }
+        }
+
+        const turnPt = flatPath[nextTurnIdx];
+        const distToTurn = Math.round(getDistanceInMeters(liveLocation[0], liveLocation[1], turnPt.latitude || turnPt[0], turnPt.longitude || turnPt[1]));
+        
+        setNavStep({ 
+            distance: distToTurn > 1000 ? `${(distToTurn/1000).toFixed(1)} km` : `${distToTurn} m`, 
+            action: nextTurnIdx === flatPath.length - 1 ? "Arrive at destination" : action, 
+            arrow: nextTurnIdx === flatPath.length - 1 ? "📍" : arrow 
+        });
+
+        if (distToTurn <= 200 && lastSpokenDistRef.current > 200) {
+            lastSpokenDistRef.current = 200;
+            const text = selectedVoice === "bisaya_free" 
+                ? `Sa duha ka gatos ka metro, ${action.includes('right') ? 'liko sa tuo' : 'liko sa wala'}` 
+                : `In 200 meters, ${action}`;
+            speakInstruction(text);
+        } else if (distToTurn <= 50 && lastSpokenDistRef.current > 50) {
+            lastSpokenDistRef.current = 50;
+            const text = selectedVoice === "bisaya_free" ? (action.includes('right') ? 'liko sa tuo karon' : 'liko sa wala karon') : `${action} now`;
+            speakInstruction(text);
+        } else if (distToTurn > 250) {
+            lastSpokenDistRef.current = Infinity; 
+        }
+
+    }, [liveLocation, driveMode, routeSegments, isCalculating, selectedVoice, speed]);
+
     useEffect(() => {
         const mapGroup = layerGroupRef.current;
         if (!mapGroup) return;
@@ -268,47 +474,24 @@ export default function MapSection() {
         if (origin && !driveMode) L.marker(origin.latlng, { icon: greenIcon }).addTo(mapGroup).bindPopup(origin.title);
         if (destination && !driveMode) L.marker(destination.latlng, { icon: redIcon }).addTo(mapGroup).bindPopup(destination.title);
         
-        // --- DYNAMIC USER ICON ---
         if (liveLocation || (driveMode && origin)) {
             const loc = liveLocation || origin.latlng;
-            
-            // Outer Halo (Pulsing Effect)
             L.circleMarker(loc, { radius: 18, fillColor: '#8ab4f8', color: 'transparent', fillOpacity: 0.3, pane: 'routePane' }).addTo(mapGroup);
             
-            // Dynamic Directional Arrow
             const userIconHtml = `
                 <div style="
-                    width: 24px; 
-                    height: 24px; 
-                    background-color: #4285F4; 
-                    border: 3px solid white; 
-                    border-radius: 50%; 
-                    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-                    position: relative;
-                    transform: rotate(${heading}deg);
-                    transition: transform 0.5s ease;
+                    width: 24px; height: 24px; background-color: #4285F4; border: 3px solid white; border-radius: 50%; 
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.4); position: relative; transform: rotate(${heading}deg); transition: transform 0.5s ease;
                 ">
                     <div style="
-                        width: 0; 
-                        height: 0; 
-                        border-left: 6px solid transparent; 
-                        border-right: 6px solid transparent; 
-                        border-bottom: 10px solid white; 
-                        position: absolute; 
-                        top: -8px; 
-                        left: 3px;
+                        width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; 
+                        border-bottom: 10px solid white; position: absolute; top: -8px; left: 3px;
                     "></div>
                 </div>
             `;
 
-            const customUserIcon = L.divIcon({
-                html: userIconHtml,
-                className: '',
-                iconSize: [24, 24],
-                iconAnchor: [12, 12]
-            });
+            const customUserIcon = L.divIcon({ html: userIconHtml, className: '', iconSize: [24, 24], iconAnchor: [12, 12] });
 
-            // Store ref so it moves smoothly instead of re-rendering completely
             if (!userMarkerRef.current) {
                 userMarkerRef.current = L.marker(loc, { icon: customUserIcon, pane: 'routePane' }).addTo(mapGroup);
             } else {
@@ -348,28 +531,78 @@ export default function MapSection() {
 
         Object.keys(userReports).forEach(key => {
             const report = userReports[key];
-            if (!report.lat || !report.lng || Date.now() - report.timestamp > 4 * 60 * 60 * 1000) return;
+            const ageMs = Date.now() - report.timestamp;
+            
+            if (!report.lat || !report.lng || ageMs > 4 * 60 * 60 * 1000) return;
             
             let emoji = "⚠️";
             if (report.type === "Accident") emoji = "💥";
             else if (report.type === "Construction") emoji = "🚧";
             else if (report.type === "Police") emoji = "🚓";
 
-            const reportIcon = L.divIcon({ html: `<div style="font-size: 24px;">${emoji}</div>`, className: '', iconSize: [30, 30] });
-            L.marker([report.lat, report.lng], { icon: reportIcon, pane: 'routePane' }).addTo(mapGroup).bindPopup(`<b>${report.type}</b>`);
+            const reportIcon = L.divIcon({ html: `<div style="font-size: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">${emoji}</div>`, className: '', iconSize: [30, 30] });
+            
+            const minsAgo = Math.floor(ageMs / 60000);
+            const timeString = minsAgo === 0 ? "Just now" : `${minsAgo} min ago`;
+
+            const popupHtml = `
+                <div style="font-family: Inter, sans-serif; text-align: center; padding: 4px;">
+                    <b style="color: #ea4335; font-size: 15px;">${report.type}</b><br/>
+                    <span style="color: #5f6368; font-size: 12px; font-weight: 500;">Reported ${timeString}</span>
+                </div>
+            `;
+
+            L.marker([report.lat, report.lng], { icon: reportIcon, pane: 'routePane' })
+                .addTo(mapGroup)
+                .bindPopup(popupHtml);
         });
 
-        const allPositions = [];
+        // --- SPLIT ROUTE RENDERING (TRAVELED VS REMAINING) ---
+        let flatPath = [];
         routeSegments.forEach(segment => {
             if (!segment || !Array.isArray(segment.coords)) return;
-            const positions = segment.coords.map(c => [c.latitude, c.longitude]);
-            allPositions.push(...positions);
-            L.polyline(positions, { color: driveMode ? '#02416d' : '#202124', weight: driveMode ? 12 : 9, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
-            L.polyline(positions, { color: driveMode ? '#8ab4f8' : (segment.color || ui.accentBlue), weight: driveMode ? 8 : 5, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+            const positions = segment.coords.map(c => [
+                c.latitude !== undefined ? c.latitude : c[0], 
+                c.longitude !== undefined ? c.longitude : c[1]
+            ]);
+            flatPath.push(...positions);
         });
 
-        if (!driveMode && allPositions.length > 0 && mapInstanceRef.current && !isCalculating) {
-            mapInstanceRef.current.fitBounds(L.latLngBounds(allPositions), { padding: [50, 50] });
+        if (flatPath.length > 0) {
+            let closestIdx = 0;
+            const currentLoc = liveLocation || (origin ? origin.latlng : null);
+            
+            if (currentLoc) {
+                let minDistance = Infinity;
+                flatPath.forEach((pt, idx) => {
+                    const dist = getDistanceInMeters(currentLoc[0], currentLoc[1], pt[0], pt[1]);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        closestIdx = idx;
+                    }
+                });
+            }
+
+            const traveledPath = closestIdx > 0 ? flatPath.slice(0, closestIdx + 1) : [];
+            const remainingPath = flatPath.slice(closestIdx);
+
+            // Render Traveled Path (Muted grey/dimmed)
+            if (traveledPath.length > 1) {
+                L.polyline(traveledPath, { color: '#4a5568', weight: driveMode ? 10 : 7, opacity: 0.7, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+            }
+
+            // Render Remaining Path (FRENDS Blue)
+            if (remainingPath.length > 1) {
+                L.polyline(remainingPath, { color: '#111827', weight: driveMode ? 12 : 9, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                L.polyline(remainingPath, { color: ui.accentBlue, weight: driveMode ? 8 : 5, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+            } else if (flatPath.length > 1 && traveledPath.length === 0) {
+                L.polyline(flatPath, { color: '#111827', weight: driveMode ? 12 : 9, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                L.polyline(flatPath, { color: ui.accentBlue, weight: driveMode ? 8 : 5, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+            }
+        }
+
+        if (!driveMode && flatPath.length > 0 && mapInstanceRef.current && !isCalculating) {
+            mapInstanceRef.current.fitBounds(L.latLngBounds(flatPath), { padding: [50, 50] });
         }
     }, [origin, destination, liveLocation, heading, firebaseNodes, userReports, routeSegments, driveMode, isCalculating]);
 
@@ -408,32 +641,80 @@ export default function MapSection() {
 
         if (isNavigatingRef.current && forceReroute) {
             alert("⚠️ Flood detected ahead! Recalculating route...");
-            fetchRoute(true);
+            fetchRoute(true, driveMode ? liveLocation : null);
         }
+    };
+
+    const submitReport = (type) => {
+        const loc = liveLocation || mapCenter; 
+        if (!loc) return;
+
+        const newReportRef = push(ref(database, 'reports'));
+        set(newReportRef, {
+            type: type,
+            lat: loc[0],
+            lng: loc[1],
+            timestamp: Date.now()
+        }).then(() => {
+            alert(`✅ ${type} reported successfully!`);
+            setShowReportModal(false);
+        }).catch(err => {
+            console.error("Failed to report:", err);
+            alert("Failed to send report.");
+        });
     };
 
     const handleSearchInput = (query, isOrigin) => {
         if (isOrigin) setOriginQuery(query);
         else setDestQuery(query);
+        
         if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
 
         searchTimeoutRef.current = setTimeout(async () => {
-            if (query.trim().length < 2) {
-                if (isOrigin) setOriginSuggestions([]); else setDestSuggestions([]);
+            const cleanQuery = query.trim();
+            if (cleanQuery.length < 2) {
+                if (isOrigin) setOriginSuggestions([]); 
+                else setDestSuggestions([]);
                 return;
             }
-            const url = `https://api.tomtom.com/search/2/search/${encodeURIComponent(query)}.json?key=${TOMTOM_API_KEY}&lat=${mapCenter[0]}&lon=${mapCenter[1]}&radius=30000&countrySet=PH&limit=10`;
+
+            const apiKey = TOMTOM_API_KEY?.trim();
+            if (!apiKey || apiKey === "undefined") {
+                console.error("⚠️ TomTom API Key is missing. Check your .env file.");
+                return;
+            }
+
+            const lat = mapCenter[0] ? mapCenter[0].toFixed(5) : "14.56480";
+            const lon = mapCenter[1] ? mapCenter[1].toFixed(5) : "120.99320";
+
+            const url = `https://api.tomtom.com/search/2/search/${encodeURIComponent(cleanQuery)}.json?key=${apiKey}&lat=${lat}&lon=${lon}&radius=30000&countrySet=PH&limit=10&typeahead=true&view=Unified`;
+            
             try {
                 const res = await fetch(url);
+                if (!res.ok) {
+                    const errorDetails = await res.text();
+                    console.error(`🚨 TomTom API 400 Error Details:`, errorDetails);
+                    throw new Error(`API Status ${res.status}`);
+                }
+                
                 const data = await res.json();
                 if (data.results) {
-                    let results = data.results.map(r => ({
+                    const sorted = data.results.sort((a, b) => (b.poi ? 1 : 0) - (a.poi ? 1 : 0));
+                    let results = sorted.map(r => ({
                         lat: r.position.lat, lon: r.position.lon,
                         primary: r.poi ? r.poi.name : (r.address.streetName || r.address.freeformAddress),
                         secondary: r.address.freeformAddress || "Philippines"
                     }));
-                    if (isOrigin) setOriginSuggestions(results.slice(0, 5));
-                    else setDestSuggestions(results.slice(0, 5));
+                    
+                    const unique = [];
+                    const seen = new Set();
+                    results.forEach(item => {
+                        const key = `${item.primary.toLowerCase()}-${item.secondary.toLowerCase()}`;
+                        if (!seen.has(key)) { seen.add(key); unique.push(item); }
+                    });
+                    
+                    if (isOrigin) setOriginSuggestions(unique.slice(0, 10)); 
+                    else setDestSuggestions(unique.slice(0, 10)); 
                 }
             } catch (err) { console.error("Search error:", err); }
         }, 500);
@@ -463,8 +744,17 @@ export default function MapSection() {
         setNavStep({ distance: '--', action: 'Calculating...', arrow: '↱' });
     };
 
-    const fetchRoute = async (isAutoReroute = false) => {
-        if (!origin || !destination) return;
+    const fetchRoute = async (isAutoReroute = false, overrideOrigin = null) => {
+        const currentOrigin = originRef.current;
+        const currentDest = destRef.current;
+        const startLat = overrideOrigin ? overrideOrigin[0] : (currentOrigin ? currentOrigin.latlng[0] : null);
+        const startLon = overrideOrigin ? overrideOrigin[1] : (currentOrigin ? currentOrigin.latlng[1] : null);
+
+        if (!startLat || !currentDest) {
+            if (!isAutoReroute) alert("⚠️ Please set Origin and Destination.");
+            return;
+        }
+
         setIsNavigating(true); setIsCalculating(true);
 
         try {
@@ -472,16 +762,16 @@ export default function MapSection() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    origin_lat: origin.latlng[0], origin_lon: origin.latlng[1],
-                    dest_lat: destination.latlng[0], dest_lon: destination.latlng[1],
+                    origin_lat: startLat, origin_lon: startLon,
+                    dest_lat: currentDest.latlng[0], dest_lon: currentDest.latlng[1],
                     vehicle_type: vehicleLayer, is_reroute: isAutoReroute
                 })
             });
             const data = await response.json();
             
             if (data.status === 'SUCCESS' || data.status === 'success') {
-                const startPin = { latitude: origin.latlng[0], longitude: origin.latlng[1] };
-                const endPin = { latitude: destination.latlng[0], longitude: destination.latlng[1] };
+                const startPin = { latitude: startLat, longitude: startLon };
+                const endPin = { latitude: currentDest.latlng[0], longitude: currentDest.latlng[1] };
 
                 if (data.segments && data.segments.length > 0 && data.segments[0].coords) {
                     data.segments[0].coords.unshift(startPin);
@@ -491,7 +781,7 @@ export default function MapSection() {
                     setRouteSegments([{ coords: [startPin, ...data.path, endPin], color: ui.accentBlue }]); 
                 }
 
-                setNavStep({ distance: "40 m", action: "Head straight", arrow: "↱" });
+                setNavStep({ distance: "Calculating m", action: "Head straight", arrow: "↱" });
                 setRouteInfo({ distance: (data.distance / 1000).toFixed(1), time: Math.round(data.time / 60) });
             }
         } catch (error) { console.error("API error:", error); } 
@@ -503,7 +793,8 @@ export default function MapSection() {
         setShowFloodWarning(true);
         
         if (mapInstanceRef.current && (liveLocation || origin)) {
-            mapInstanceRef.current.flyTo(liveLocation || origin.latlng, 19, { animate: true });
+            const startLoc = liveLocation || origin.latlng;
+            mapInstanceRef.current.flyTo(startLoc, 19, { animate: true });
         }
 
         setTimeout(() => {
@@ -515,9 +806,9 @@ export default function MapSection() {
                 else if (navStep.action.toLowerCase().includes("arrive")) bisayaAction = "naa na ka sa imong padulngan";
                 
                 const distanceText = navStep.distance.replace('m', 'metros');
-                speechText = `Mga ${distanceText} sa unahan, ${bisayaAction}. Amping sa byahe kay basin gibaha ang Metro Manila.`;
+                speechText = `Mga ${distanceText} sa unahan, ${bisayaAction}. Amping sa byahe kay basin naay baha sa imong agianan.`;
             } else {
-                speechText = `In ${navStep.distance}, ${navStep.action.toLowerCase()}. Metro Manila floods may affect your route.`;
+                speechText = `In ${navStep.distance}, ${navStep.action.toLowerCase()}. Local floods may affect your active route.`;
             }
             speakInstruction(speechText);
         }, 800);
@@ -535,7 +826,6 @@ export default function MapSection() {
 
     return (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', zIndex: driveMode ? 9999 : 0 }}>
-            {/* Global UI Hider - Ensures true full-screen overlay for routing */}
             <style>
                 {`
                     nav, footer, header, .header, .nav, .navbar, .bottom-nav, 
@@ -543,184 +833,288 @@ export default function MapSection() {
                     [id*="nav"], [id*="Nav"], [class*="header"], [id*="header"] {
                         display: none !important;
                     }
+                    @keyframes fadeInOut {
+                        0% { opacity: 0; transform: translate(-50%, -10px); }
+                        15% { opacity: 1; transform: translate(-50%, 0); }
+                        85% { opacity: 1; transform: translate(-50%, 0); }
+                        100% { opacity: 0; transform: translate(-50%, -10px); }
+                    }
+                    @keyframes slideDown {
+                        0% { opacity: 0; transform: translate(-50%, -20px); }
+                        100% { opacity: 1; transform: translate(-50%, 0); }
+                    }
                 `}
             </style>
 
             <div ref={mapRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }} />
 
-            {/* GOOGLE MAPS STYLE TOP PANEL */}
-            <div style={{
-                position: 'absolute', 
-                top: 0, 
-                left: 0, width: '100%',
-                backgroundColor: ui.panelBg, zIndex: 1000,
-                display: 'flex', flexDirection: 'column',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
-                transform: driveMode ? 'translateY(-200%)' : 'translateY(0)',
-                transition: 'transform 0.3s ease'
-            }}>
-                <div style={{ padding: '16px 16px 8px 16px', paddingTop: 'max(16px, env(safe-area-inset-top))', display: 'flex', gap: '8px' }}>
-                    
-                    <button onClick={clearMap} style={{ background: 'none', border: 'none', color: ui.textMain, fontSize: '24px', cursor: 'pointer', marginTop: '4px' }}>
-                        ←
-                    </button>
+            {/* CURRENT LOCATION REMINDER TOAST BANNER */}
+            {showLocationBanner && currentLocationName && (
+                <div style={{
+                    position: 'absolute',
+                    bottom: isMobile ? '90px' : '30px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: ui.panelBg,
+                    color: ui.textMain,
+                    padding: '12px 20px',
+                    borderRadius: '28px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+                    zIndex: 4000,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    border: `1px solid ${ui.border}`,
+                    animation: 'fadeInOut 5s ease'
+                }}>
+                    <span style={{ fontSize: '18px' }}>📍</span>
+                    <span>You are currently in <b>{currentLocationName}</b></span>
+                </div>
+            )}
 
-                    {/* Timeline Graphics + Inputs Container */}
-                    <div style={{ flex: 1, display: 'flex', position: 'relative' }}>
-                        
-                        {/* Timeline Graphic */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '24px', marginRight: '12px', marginTop: '14px' }}>
-                            <div style={{ width: '10px', height: '10px', borderRadius: '50%', border: `2px solid ${ui.textMuted}`, backgroundColor: 'transparent' }} />
-                            <div style={{ flex: 1, minHeight: '36px', width: '0px', borderLeft: `3px dotted ${ui.textMuted}`, opacity: 0.6, margin: '4px 0' }} />
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', backgroundColor: ui.accentRed, marginBottom: '22px' }} />
+            {/* WAZE-STYLE UNUSUAL TRAFFIC PROMPT BANNER */}
+            {showTrafficPrompt && (
+                <div style={{
+                    position: 'absolute',
+                    top: '80px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    width: isMobile ? 'calc(100% - 32px)' : '380px',
+                    backgroundColor: ui.panelBg,
+                    color: ui.textMain,
+                    zIndex: 5000,
+                    borderRadius: '16px',
+                    padding: '16px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+                    border: `1px solid ${ui.border}`,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    animation: 'slideDown 0.3s ease'
+                }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '20px' }}>🐢</span>
+                            <span style={{ fontSize: '15px', fontWeight: '600' }}>Heavy traffic ahead</span>
                         </div>
-
-                        {/* Input Fields */}
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            <input 
-                                type="text" value={originQuery} onChange={(e) => handleSearchInput(e.target.value, true)} 
-                                onFocus={() => setActiveInput('origin')} onBlur={() => setTimeout(() => setActiveInput(null), 200)}
-                                placeholder="Your location" 
-                                style={{ width: '100%', background: ui.inputBg, color: ui.textMain, border: 'none', padding: '12px 16px', borderRadius: '8px', fontSize: '15px', outline: 'none' }}
-                            />
-                            <input 
-                                type="text" value={destQuery} onChange={(e) => handleSearchInput(e.target.value, false)} 
-                                onFocus={() => setActiveInput('destination')} onBlur={() => setTimeout(() => setActiveInput(null), 200)}
-                                placeholder="Choose destination"
-                                style={{ width: '100%', background: ui.inputBg, color: ui.textMain, border: 'none', padding: '12px 16px', borderRadius: '8px', fontSize: '15px', outline: 'none' }}
-                            />
-                        </div>
+                        <button 
+                            onClick={() => setShowTrafficPrompt(false)} 
+                            style={{ background: 'none', border: 'none', color: ui.textMuted, fontSize: '18px', cursor: 'pointer' }}
+                        >
+                            ✕
+                        </button>
                     </div>
 
-                    <button onClick={swapLocations} style={{ background: 'none', border: 'none', color: ui.textMain, fontSize: '20px', cursor: 'pointer', alignSelf: 'center', paddingRight: '4px' }}>
-                        ⇅
+                    <span style={{ fontSize: '13px', color: ui.textMuted }}>
+                        Traffic is moving slow. Is there a hazard causing this?
+                    </span>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                        <button 
+                            onClick={() => { submitReport('Accident'); setShowTrafficPrompt(false); }} 
+                            style={{ backgroundColor: ui.inputBg, border: 'none', borderRadius: '10px', padding: '10px 4px', color: ui.textMain, fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+                        >
+                            💥 Accident
+                        </button>
+                        <button 
+                            onClick={() => { submitReport('Construction'); setShowTrafficPrompt(false); }} 
+                            style={{ backgroundColor: ui.inputBg, border: 'none', borderRadius: '10px', padding: '10px 4px', color: ui.textMain, fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+                        >
+                            🚧 Roadwork
+                        </button>
+                        <button 
+                            onClick={() => { submitReport('Hazard'); setShowTrafficPrompt(false); }} 
+                            style={{ backgroundColor: ui.inputBg, border: 'none', borderRadius: '10px', padding: '10px 4px', color: ui.textMain, fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
+                        >
+                            ⚠️ Hazard
+                        </button>
+                    </div>
+
+                    <button 
+                        onClick={() => setShowTrafficPrompt(false)} 
+                        style={{ backgroundColor: 'transparent', border: 'none', color: ui.textMuted, fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center', marginTop: '2px' }}
+                    >
+                        No, just traffic
                     </button>
                 </div>
+            )}
 
-                {/* Google Maps Style Vehicle Tabs (Horizontal Scroll) */}
-                {!routeInfo && (
-                    <div style={{ display: 'flex', gap: '8px', padding: '8px 16px 16px 16px', overflowX: 'auto', borderBottom: `1px solid ${ui.border}` }}>
-                        {['LOW', 'MID', 'HIGH'].map(type => (
-                            <button 
-                                key={type}
-                                onClick={() => setVehicleLayer(type)} 
-                                style={{ 
-                                    background: vehicleLayer === type ? `${ui.accentBlue}22` : 'transparent', 
-                                    color: vehicleLayer === type ? ui.accentBlue : ui.textMain, 
-                                    border: `1px solid ${vehicleLayer === type ? ui.accentBlue : ui.border}`, 
-                                    borderRadius: '16px', padding: '8px 16px', fontSize: '14px', fontWeight: '500', 
-                                    display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', cursor: 'pointer'
-                                }}
-                            >
-                                {type === 'LOW' ? '🚗 Sedan / Hatch' : type === 'MID' ? '🚙 SUV / Pick-up' : '🚌 Truck / Bus'}
-                            </button>
-                        ))}
-                    </div>
-                )}
-
-                {/* Action Bar with Voice Select Restored */}
-                {!routeInfo && (
-                    <div style={{ padding: '16px', paddingTop: '0', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '8px' }}>
-                            <span style={{ fontSize: '14px', color: ui.textMain, fontWeight: '500' }}>Navigation Voice</span>
-                            <select 
-                                value={selectedVoice} 
-                                onChange={(e) => setSelectedVoice(e.target.value)} 
-                                style={{ background: ui.inputBg, color: ui.textMain, border: 'none', padding: '8px 12px', borderRadius: '16px', fontSize: '13px', outline: 'none', maxWidth: '160px', textOverflow: 'ellipsis', cursor: 'pointer' }}
-                            >
-                                <option value="bisaya_free">🇵🇭 Bisaya (Copilot)</option>
-                                {voices.map(voice => (
-                                    <option key={voice.name} value={voice.name}>
-                                        {voice.name.replace(/Microsoft |Google /g, '')}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <button onClick={() => fetchRoute(false)} disabled={isCalculating || !origin || !destination} style={{ width: '100%', background: (!origin || !destination) ? ui.inputBg : ui.accentBlue, color: (!origin || !destination) ? ui.textMuted : ui.btnText, border: 'none', padding: '12px', borderRadius: '24px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>
-                            {isCalculating ? 'Routing...' : 'Directions'}
-                        </button>
-                    </div>
-                )}
-
-                {/* Full Screen Takeover for Suggestions */}
-                {(activeInput === 'origin' && originSuggestions.length > 0) || (activeInput === 'destination' && destSuggestions.length > 0) ? (
-                    <div style={{ background: ui.bg, position: 'absolute', top: '100%', width: '100%', height: '100vh', overflowY: 'auto' }}>
-                        {(activeInput === 'origin' ? originSuggestions : destSuggestions).map((item, idx) => (
-                            <div key={idx} onClick={() => selectLocationItem(item, activeInput === 'origin')} style={{ display: 'flex', alignItems: 'center', padding: '16px 20px', borderBottom: `1px solid ${ui.border}`, cursor: 'pointer' }}>
-                                <div style={{ backgroundColor: ui.inputBg, borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '16px' }}>
-                                    <span style={{ fontSize: '16px', color: ui.textMuted }}>📍</span>
-                                </div>
-                                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span style={{ fontSize: '15px', color: ui.textMain, fontWeight: '500' }}>{item.primary}</span>
-                                    <span style={{ fontSize: '13px', color: ui.textMuted }}>{item.secondary}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : null}
-            </div>
-
-            {/* BOTTOM SHEET - ROUTE INFO */}
-            {routeInfo && !driveMode && (
-                <div style={{
-                    position: 'absolute', bottom: 0, left: 0, width: '100%',
-                    backgroundColor: ui.panelBg, zIndex: 3000,
-                    borderTopLeftRadius: '24px', borderTopRightRadius: '24px',
-                    padding: '20px 20px calc(max(20px, env(safe-area-inset-bottom)) + 90px) 20px',
-                    boxShadow: '0 -4px 16px rgba(0,0,0,0.3)',
-                    display: 'flex', flexDirection: 'column', gap: '16px'
-                }}>
-                    <div style={{ width: '40px', height: '4px', backgroundColor: ui.border, borderRadius: '2px', alignSelf: 'center', marginBottom: '-8px' }} />
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                            <span style={{ fontSize: '32px', fontWeight: 'bold', color: ui.accentGreen }}>{routeInfo.time} min</span>
-                            <span style={{ fontSize: '18px', color: ui.textMuted }}>({routeInfo.distance} km)</span>
-                        </div>
-                        <span style={{ color: ui.textMuted, fontSize: '14px', marginTop: '2px' }}>Fastest route with normal traffic</span>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                        <button style={{ flex: 1, backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', borderRadius: '24px', padding: '14px', fontSize: '15px', fontWeight: 'bold' }}>
-                            Steps
-                        </button>
-                        <button onClick={startDriveMode} style={{ flex: 2, backgroundColor: ui.accentBlue, color: ui.btnText, border: 'none', borderRadius: '24px', padding: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>
-                            Start
-                        </button>
+            {!driveMode && !activeInput && (
+                <div style={{ position: 'absolute', top: isMobile ? '16px' : '24px', right: '16px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div onClick={() => setShowTraffic(!showTraffic)} style={{ width: '44px', height: '44px', backgroundColor: ui.panelBg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', cursor: 'pointer', border: `2px solid ${showTraffic ? ui.accentGreen : ui.border}`, transition: 'all 0.2s ease' }} title={showTraffic ? "Hide Traffic" : "Show Traffic"}>
+                        <span style={{ fontSize: '20px', opacity: showTraffic ? 1 : 0.5 }}>🚦</span>
                     </div>
                 </div>
             )}
 
-            {/* DRIVE MODE UI OVERLAYS */}
+            <div style={{
+                position: 'absolute', top: isMobile ? 0 : '24px', left: isMobile ? 0 : '24px', 
+                width: isMobile ? '100%' : '380px', backgroundColor: ui.panelBg, zIndex: 1000,
+                display: 'flex', flexDirection: 'column', boxShadow: isMobile ? 'none' : '0 4px 12px rgba(0,0,0,0.4)',
+                borderRadius: isMobile ? 0 : '16px', transform: driveMode ? (isMobile ? 'translateY(-200%)' : 'translateX(-150%)') : 'translate(0, 0)',
+                transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), max-height 0.3s ease',
+                paddingBottom: activeInput ? 0 : '4px', maxHeight: isMobile ? (activeInput ? 'calc(100vh - 24px)' : 'auto') : 'none'
+            }}>
+                <div style={{ padding: isMobile ? '12px' : '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button 
+                        onMouseDown={(e) => {
+                            e.preventDefault();
+                            setActiveInput(null);
+                            if (routeInfo) {
+                                setRouteSegments([]);
+                                setRouteInfo(null);
+                            } else {
+                                clearMap();
+                            }
+                        }} 
+                        style={{ width: '38px', height: '38px', flexShrink: 0, background: 'transparent', border: 'none', color: ui.textMain, fontSize: isMobile ? '22px' : '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}
+                    >
+                        ←
+                    </button>
+
+                    <div style={{ width: isMobile ? '20px' : '24px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '2px' }}>
+                        <div style={{ width: '9px', height: '9px', borderRadius: '50%', border: `2px solid ${ui.textMuted}`, backgroundColor: 'transparent' }} />
+                        <div style={{ height: isMobile ? '22px' : '27px', width: '2px', borderLeft: `2px dotted ${ui.textMuted}`, opacity: 0.65 }} />
+                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: ui.accentRed, boxShadow: `0 0 0 3px ${ui.accentRed}22` }} />
+                    </div>
+
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '7px', minWidth: 0 }}>
+                        <input type="text" value={originQuery} onChange={(e) => handleSearchInput(e.target.value, true)} onFocus={() => setActiveInput('origin')} onBlur={() => setTimeout(() => { if (activeInput === 'origin') setActiveInput(null); }, 250)} placeholder="Your location" style={{ width: '100%', height: isMobile ? '40px' : '42px', boxSizing: 'border-box', backgroundColor: ui.inputBg, color: ui.textMain, border: activeInput === 'origin' ? `1px solid ${ui.accentBlue}` : '1px solid transparent', padding: '0 13px', borderRadius: '10px', fontSize: isMobile ? '14px' : '15px', fontWeight: '500', outline: 'none', transition: 'border 0.2s ease' }} />
+                        <input type="text" value={destQuery} onChange={(e) => handleSearchInput(e.target.value, false)} onFocus={() => setActiveInput('destination')} onBlur={() => setTimeout(() => { if (activeInput === 'destination') setActiveInput(null); }, 250)} placeholder="Where to?" style={{ width: '100%', height: isMobile ? '40px' : '42px', boxSizing: 'border-box', backgroundColor: ui.inputBg, color: ui.textMain, border: activeInput === 'destination' ? `1px solid ${ui.accentBlue}` : '1px solid transparent', padding: '0 13px', borderRadius: '10px', fontSize: isMobile ? '14px' : '15px', fontWeight: '500', outline: 'none', transition: 'border 0.2s ease' }} />
+                    </div>
+
+                    <button onClick={swapLocations} style={{ width: '34px', height: '34px', flexShrink: 0, backgroundColor: ui.inputBg, border: 'none', color: ui.textMain, fontSize: '18px', cursor: 'pointer', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.2s ease' }}>
+                        ⇅
+                    </button>
+                </div>
+
+                {activeInput && (
+                    <div style={{ backgroundColor: ui.bg, overflowY: 'auto', maxHeight: isMobile ? 'calc(100vh - 150px)' : '420px', borderTop: `1px solid ${ui.border}` }}>
+                        {(activeInput === 'origin' ? originSuggestions : destSuggestions).length > 0 ? (
+                            (activeInput === 'origin' ? originSuggestions : destSuggestions).map((item, idx) => (
+                                <div key={idx} onMouseDown={() => selectLocationItem(item, activeInput === 'origin')} style={{ display: 'flex', alignItems: 'center', padding: isMobile ? '12px 14px' : '14px 20px', borderBottom: `1px solid ${ui.border}`, cursor: 'pointer', minHeight: isMobile ? '54px' : '58px' }}>
+                                    <div style={{ width: '36px', height: '36px', flexShrink: 0, backgroundColor: ui.inputBg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '12px' }}>
+                                        <span style={{ fontSize: '16px' }}>📍</span>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                        <span style={{ fontSize: '14px', fontWeight: '600', color: ui.textMain, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.primary}</span>
+                                        <span style={{ fontSize: '12px', color: ui.textMuted, marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.secondary}</span>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <div style={{ padding: '24px 16px', textAlign: 'center', color: ui.textMuted, fontSize: '13px' }}>Search for a place or destination</div>
+                        )}
+                    </div>
+                )}
+
+                {!activeInput && !routeInfo && (
+                    <>
+                        <div style={{ padding: isMobile ? '4px 12px 10px' : '8px 16px 14px', display: 'flex', gap: '7px', overflowX: 'auto', scrollbarWidth: 'none', borderTop: `1px solid ${ui.border}` }}>
+                            {[ { type: 'LOW', icon: '🚗', label: 'Sedan / Hatch' }, { type: 'MID', icon: '🚙', label: 'SUV / Pick-up' }, { type: 'HIGH', icon: '🚌', label: 'Truck / Bus' } ].map(vehicle => (
+                                <button key={vehicle.type} onClick={() => setVehicleLayer(vehicle.type)} style={{ flexShrink: 0, backgroundColor: vehicleLayer === vehicle.type ? `${ui.accentBlue}20` : 'transparent', color: vehicleLayer === vehicle.type ? ui.accentBlue : ui.textMain, border: `1px solid ${vehicleLayer === vehicle.type ? ui.accentBlue : ui.border}`, borderRadius: '18px', padding: isMobile ? '7px 11px' : '8px 14px', fontSize: isMobile ? '12px' : '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', cursor: 'pointer', transition: 'all 0.2s ease' }}>
+                                    <span style={{ fontSize: isMobile ? '13px' : '15px' }}>{vehicle.icon}</span>{vehicle.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        <div style={{ padding: isMobile ? '8px 12px 12px' : '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: '9px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                                <span style={{ fontSize: isMobile ? '12px' : '14px', color: ui.textMuted, fontWeight: '500' }}>Navigation voice</span>
+                                <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} style={{ backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', padding: isMobile ? '7px 10px' : '8px 12px', borderRadius: '14px', fontSize: isMobile ? '11px' : '13px', outline: 'none', maxWidth: isMobile ? '145px' : '160px', textOverflow: 'ellipsis', cursor: 'pointer' }}>
+                                    <option value="bisaya_free">🇵🇭 Bisaya (Copilot)</option>
+                                    {voices.map(voice => (
+                                        <option key={voice.name} value={voice.name}>{voice.name.replace(/Microsoft |Google /g, '')}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <button onClick={() => fetchRoute(false)} disabled={isCalculating || !origin || !destination} style={{ width: '100%', height: isMobile ? '42px' : '46px', backgroundColor: (!origin || !destination) ? ui.inputBg : ui.accentBlue, color: (!origin || !destination) ? ui.textMuted : ui.btnText, border: 'none', borderRadius: '14px', fontSize: isMobile ? '14px' : '15px', fontWeight: '700', cursor: (!origin || !destination) ? 'default' : 'pointer', boxShadow: origin && destination ? '0 4px 12px rgba(0,0,0,0.18)' : 'none', transition: 'all 0.2s ease' }}>
+                                {isCalculating ? 'Calculating route...' : 'Directions'}
+                            </button>
+                        </div>
+                    </>
+                )}
+            </div>
+
+            {/* RESPONSIVE BOTTOM SHEET - ROUTE INFO */}
+            {routeInfo && !driveMode && !activeInput && (
+                <div style={{
+                    position: 'absolute', bottom: isMobile ? 0 : '24px', left: isMobile ? 0 : '24px', right: isMobile ? 0 : 'auto', 
+                    width: isMobile ? '100%' : '380px', backgroundColor: ui.panelBg, zIndex: 3000, boxSizing: 'border-box', 
+                    borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding: '20px 20px',
+                    paddingBottom: isMobile ? 'calc(max(20px, env(safe-area-inset-bottom)) + 20px)' : '20px',
+                    boxShadow: '0 -4px 16px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: '16px'
+                }}>
+                    {isMobile && <div style={{ width: '40px', height: '4px', backgroundColor: ui.border, borderRadius: '2px', alignSelf: 'center', marginBottom: '-8px' }} />}
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                            <span style={{ fontSize: '32px', fontWeight: 'bold', color: ui.accentBlue }}>{routeInfo.time} min</span>
+                            <span style={{ fontSize: '18px', color: ui.textMuted }}>({routeInfo.distance} km)</span>
+                        </div>
+                        <span style={{ color: ui.textMuted, fontSize: '14px', marginTop: '2px' }}>Fastest route with normal traffic</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '12px' }}>
+                        <button style={{ flex: 1, backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', borderRadius: '24px', padding: '14px', fontSize: '15px', fontWeight: 'bold' }}>Steps</button>
+                        <button onClick={startDriveMode} style={{ flex: 2, backgroundColor: ui.accentBlue, color: ui.btnText, border: 'none', borderRadius: '24px', padding: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Start</button>
+                    </div>
+                </div>
+            )}
+
+            {/* INCIDENT REPORT MODAL */}
+            {showReportModal && (
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', boxSizing: 'border-box' }}>
+                    <div style={{ backgroundColor: ui.bg, padding: '24px', borderRadius: '20px', width: '100%', maxWidth: '340px', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3 style={{ margin: 0, color: ui.textMain, fontSize: '18px', fontWeight: '600' }}>Report an Incident</h3>
+                            <button onClick={() => setShowReportModal(false)} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: ui.textMuted }}>✕</button>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            {[ { type: 'Accident', icon: '💥' }, { type: 'Construction', icon: '🚧' }, { type: 'Hazard', icon: '⚠️' }, { type: 'Police', icon: '🚓' } ].map(hazard => (
+                                <button key={hazard.type} onClick={() => submitReport(hazard.type)} style={{ padding: '16px', backgroundColor: ui.inputBg, border: 'none', borderRadius: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer', color: ui.textMain }}>
+                                    <span style={{ fontSize: '32px' }}>{hazard.icon}</span>
+                                    <span style={{ fontWeight: '500', fontSize: '14px' }}>{hazard.type}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* RESPONSIVE DRIVE MODE UI OVERLAYS */}
             {driveMode && (
                 <>
-                    {/* Top Directions Banner */}
-                    <div style={{ position: 'absolute', top: '16px', left: '16px', right: '16px', zIndex: 3000, pointerEvents: 'none' }}>
-                        <div style={{ backgroundColor: '#188038', borderRadius: '16px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', color: 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', pointerEvents: 'auto' }}>
+                    <div style={{ position: 'absolute', top: '16px', left: isMobile ? '16px' : '50%', right: isMobile ? '16px' : 'auto', transform: isMobile ? 'none' : 'translateX(-50%)', width: isMobile ? 'auto' : '400px', boxSizing: 'border-box', zIndex: 3000, pointerEvents: 'none' }}>
+                        <div style={{ backgroundColor: ui.accentBlue, borderRadius: '16px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', color: theme === 'dark' ? '#131314' : 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', pointerEvents: 'auto' }}>
                             <span style={{ fontSize: '42px', fontWeight: 'bold', lineHeight: 1 }}>{navStep.arrow}</span>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontSize: '18px', fontWeight: '500', color: '#e0e0e0' }}>{navStep.distance}</span>
+                                <span style={{ fontSize: '18px', fontWeight: '500', opacity: 0.9 }}>{navStep.distance}</span>
                                 <span style={{ fontSize: '24px', fontWeight: '600' }}>{navStep.action}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Bottom Controls & Speedometer */}
-                    <div style={{ position: 'absolute', bottom: '24px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 3000 }}>
-                        <div style={{ backgroundColor: ui.panelBg, borderRadius: '50%', width: '64px', height: '64px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', color: ui.textMain, border: `3px solid ${ui.border}` }}>
+                    <div style={{ position: 'absolute', bottom: '24px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 3000, pointerEvents: 'none' }}>
+                        <div style={{ backgroundColor: ui.panelBg, borderRadius: '50%', width: '64px', height: '64px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', color: ui.textMain, border: `3px solid ${ui.border}`, pointerEvents: 'auto' }}>
                             <span style={{ fontSize: '20px', fontWeight: 'bold', lineHeight: '1' }}>{speed}</span>
                             <span style={{ fontSize: '11px', fontWeight: '600', color: ui.textMuted }}>km/h</span>
                         </div>
 
-                        <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
-                            <div onClick={recenterMap} style={{ backgroundColor: ui.panelBg, borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', color: ui.textMain, fontSize: '24px', cursor: 'pointer' }}>
-                                🧭
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'flex-end', pointerEvents: 'auto' }}>
+                            <div onClick={() => setShowReportModal(true)} style={{ backgroundColor: '#f59e0b', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', cursor: 'pointer' }}>
+                                <span style={{ fontSize: '26px' }}>⚠️</span>
                             </div>
-                            <button onClick={stopDriveMode} style={{ backgroundColor: ui.accentRed, color: '#fff', border: 'none', borderRadius: '24px', padding: '14px 32px', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', cursor: 'pointer' }}>
-                                ✕ Exit
-                            </button>
+
+                            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
+                                <div onClick={recenterMap} style={{ backgroundColor: ui.panelBg, borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', color: ui.textMain, fontSize: '24px', cursor: 'pointer' }}>
+                                    🧭
+                                </div>
+                                <button onClick={stopDriveMode} style={{ backgroundColor: ui.accentRed, color: '#fff', border: 'none', borderRadius: '24px', padding: '14px 32px', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', cursor: 'pointer' }}>
+                                    ✕ Exit
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </>
