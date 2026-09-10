@@ -533,7 +533,7 @@ function AboutUs({ onBack }) {
             <div className="author-info">
 
               <h3>
-                Daphne Grace M. Villagrvo
+                Daphne Grace M. Villarlvo
               </h3>
 
               <span className="author-role">
