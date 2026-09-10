@@ -63,8 +63,8 @@ export default function MapSection({ onNavigate, onLogout }) {
     const [voices, setVoices] = useState([]);
     const [selectedVoice, setSelectedVoice] = useState("bisaya_free"); 
 
-    // Current Location Banner State
-    const [currentLocationName, setCurrentLocationName] = useState("General Mariano Alvarez, Cavite");
+   // Current Location Banner State
+    const [currentLocationName, setCurrentLocationName] = useState("Locating...");
     const [showLocationBanner, setShowLocationBanner] = useState(false);
 
     // Smart Traffic Prompt States
@@ -125,10 +125,10 @@ export default function MapSection({ onNavigate, onLogout }) {
     };
 
     useEffect(() => {
-        setShowLocationBanner(true);
-        const timer = setTimeout(() => setShowLocationBanner(false), 5000);
-
         if ('geolocation' in navigator) {
+            // Show "Locating..." immediately while waiting for GPS
+            setShowLocationBanner(true);
+
             navigator.geolocation.getCurrentPosition(
                 async (pos) => {
                     const lat = pos.coords.latitude;
@@ -152,22 +152,29 @@ export default function MapSection({ onNavigate, onLogout }) {
                                     const placeName = addr.municipality || addr.city || addr.freeformAddress;
                                     if (placeName) {
                                         setCurrentLocationName(placeName);
+                                    } else {
+                                        setCurrentLocationName("your current location");
                                     }
                                 }
                             }
                         } catch (e) {
                             console.error("Reverse geocode fetch failed:", e);
+                            setCurrentLocationName("your current location");
                         }
+                    } else {
+                        setCurrentLocationName("your current location");
                     }
+
+                    // Hide the banner 5 seconds AFTER the actual location is found
+                    setTimeout(() => setShowLocationBanner(false), 5000);
                 },
                 (err) => {
                     console.error("Initial GPS Error:", err);
+                    setShowLocationBanner(false); // Hide the banner if the user denies GPS permissions
                 },
                 { enableHighAccuracy: true }
             );
         }
-
-        return () => clearTimeout(timer);
     }, [TOMTOM_API_KEY]);
 
     useEffect(() => {
