@@ -176,7 +176,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             );
         }
     }, [TOMTOM_API_KEY]);
-
+    
     useEffect(() => {
         const loadVoices = () => {
             const availableVoices = window.speechSynthesis.getVoices();
