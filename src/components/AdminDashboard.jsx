@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { signOut } from "firebase/auth";
-import {
-  onValue,
-  ref,
-  remove,
-} from "firebase/database";
+import { onValue, ref, remove } from "firebase/database";
 
-import { auth, database } from "../firebase/firebaseConfig";
+import { database } from "../firebase/firebaseConfig";
+import { auth } from "../firebase/authConfig";
+
 import "./AdminDashboard.css";
 
 // =====================================================
@@ -119,8 +117,7 @@ function getLatestReading(nodeHistory) {
   }
 
   const entries = Object.values(nodeHistory).filter(
-    (entry) =>
-      entry && typeof entry === "object"
+    (entry) => entry && typeof entry === "object"
   );
 
   if (entries.length === 0) {
@@ -171,8 +168,19 @@ function formatLastUpdate(timestamp) {
 // =====================================================
 
 function AdminDashboard() {
+  // ===================================================
+  // PAGE + SIDEBAR STATE
+  // ===================================================
+
   const [activePage, setActivePage] =
     useState("dashboard");
+
+  const [sidebarOpen, setSidebarOpen] =
+    useState(false);
+
+  // ===================================================
+  // DATA STATE
+  // ===================================================
 
   const [users, setUsers] = useState([]);
   const [nodes, setNodes] = useState([]);
@@ -215,10 +223,19 @@ function AdminDashboard() {
       (snapshot) => {
         const data = snapshot.val();
 
-        console.log("=================================");
-        console.log("FIREBASE ACCOUNTS DATA");
+        console.log(
+          "================================="
+        );
+
+        console.log(
+          "FIREBASE ACCOUNTS DATA"
+        );
+
         console.log(data);
-        console.log("=================================");
+
+        console.log(
+          "================================="
+        );
 
         if (!data) {
           setUsers([]);
@@ -228,34 +245,38 @@ function AdminDashboard() {
           return;
         }
 
-        const accountList = Object.entries(
-          data
-        ).map(([uid, account]) => ({
-          uid,
+        const accountList =
+          Object.entries(data).map(
+            ([uid, account]) => ({
+              uid,
 
-          name:
-            account?.name ||
-            account?.displayName ||
-            account?.fullName ||
-            "Unnamed Account",
+              name:
+                account?.name ||
+                account?.displayName ||
+                account?.fullName ||
+                "Unnamed Account",
 
-          email:
-            account?.email ||
-            "No email",
+              email:
+                account?.email ||
+                "No email",
 
-          status:
-            account?.status ||
-            "active",
+              status:
+                account?.status ||
+                "active",
 
-          createdAt:
-            account?.createdAt ||
-            null,
-        }));
+              createdAt:
+                account?.createdAt ||
+                null,
+            })
+          );
 
         setUsers(accountList);
+
         setUsersLoading(false);
+
         setDatabaseConnected(true);
       },
+
       (error) => {
         console.error(
           "Accounts Firebase error:",
@@ -286,24 +307,38 @@ function AdminDashboard() {
       return;
     }
 
-    const nodesRef = ref(database, "nodes");
+    const nodesRef = ref(
+      database,
+      "nodes"
+    );
 
     const unsubscribe = onValue(
       nodesRef,
       (snapshot) => {
         const rawData = snapshot.val();
 
-        console.log("=================================");
-        console.log("FIREBASE RAW NODES DATA");
+        console.log(
+          "================================="
+        );
+
+        console.log(
+          "FIREBASE RAW NODES DATA"
+        );
+
         console.log(rawData);
-        console.log("=================================");
+
+        console.log(
+          "================================="
+        );
 
         if (
           !snapshot.exists() ||
           !rawData
         ) {
           setNodes([]);
+
           setNodesLoading(false);
+
           setDatabaseConnected(true);
 
           return;
@@ -311,10 +346,12 @@ function AdminDashboard() {
 
         const latestNodesArray = [];
 
-        for (const [
-          nodeKey,
-          nodeHistory,
-        ] of Object.entries(rawData)) {
+        for (
+          const [
+            nodeKey,
+            nodeHistory,
+          ] of Object.entries(rawData)
+        ) {
           if (
             !nodeHistory ||
             typeof nodeHistory !== "object"
@@ -323,7 +360,9 @@ function AdminDashboard() {
           }
 
           const latestEntry =
-            getLatestReading(nodeHistory);
+            getLatestReading(
+              nodeHistory
+            );
 
           if (!latestEntry) {
             continue;
@@ -344,9 +383,9 @@ function AdminDashboard() {
           const isActive =
             status === "online";
 
-          // -------------------------------------------
+          // =================================================
           // WATER LEVEL
-          // -------------------------------------------
+          // =================================================
 
           let waterLevel =
             latestEntry.waterLevel ??
@@ -354,48 +393,66 @@ function AdminDashboard() {
             latestEntry.depth ??
             0;
 
-          waterLevel = Number(waterLevel);
+          waterLevel =
+            Number(waterLevel);
 
-          if (!Number.isFinite(waterLevel)) {
+          if (
+            !Number.isFinite(
+              waterLevel
+            )
+          ) {
             waterLevel = 0;
           }
 
-          // -------------------------------------------
+          // =================================================
           // PRESSURE
-          // -------------------------------------------
+          // =================================================
 
           let pressure =
-            latestEntry.pressure ?? 0;
+            latestEntry.pressure ??
+            0;
 
-          pressure = Number(pressure);
+          pressure =
+            Number(pressure);
 
-          if (!Number.isFinite(pressure)) {
+          if (
+            !Number.isFinite(
+              pressure
+            )
+          ) {
             pressure = 0;
           }
 
-          // -------------------------------------------
+          // =================================================
           // BATTERY
-          // -------------------------------------------
+          // =================================================
 
           let battery =
             latestEntry.battery ??
             latestEntry.batteryVoltage ??
             0;
 
-          battery = Number(battery);
+          battery =
+            Number(battery);
 
-          if (!Number.isFinite(battery)) {
+          if (
+            !Number.isFinite(
+              battery
+            )
+          ) {
             battery = 0;
           }
 
           const batteryPercent =
             isActive
-              ? batteryPercentage(battery)
+              ? batteryPercentage(
+                  battery
+                )
               : 0;
 
-          // -------------------------------------------
+          // =================================================
           // TIMESTAMP
-          // -------------------------------------------
+          // =================================================
 
           const timestamp =
             latestEntry.timestamp
@@ -404,12 +461,13 @@ function AdminDashboard() {
                 )
               : null;
 
-          // -------------------------------------------
+          // =================================================
           // NORMALIZED NODE
-          // -------------------------------------------
+          // =================================================
 
           const normalizedNode = {
-            firebaseKey: nodeKey,
+            firebaseKey:
+              nodeKey,
 
             nodeId:
               latestEntry.id ||
@@ -454,11 +512,13 @@ function AdminDashboard() {
           );
         }
 
-        console.log("=================================");
         console.log(
           "NORMALIZED ADMIN FLOOD NODES"
         );
-        console.log(latestNodesArray);
+
+        console.log(
+          latestNodesArray
+        );
 
         console.log(
           "TOTAL:",
@@ -481,12 +541,15 @@ function AdminDashboard() {
           ).length
         );
 
-        console.log("=================================");
+        setNodes(
+          latestNodesArray
+        );
 
-        setNodes(latestNodesArray);
         setNodesLoading(false);
+
         setDatabaseConnected(true);
       },
+
       (error) => {
         console.error(
           "Flood nodes Firebase error:",
@@ -507,11 +570,86 @@ function AdminDashboard() {
 
   async function handleLogout() {
     try {
+      console.log(
+        "================================="
+      );
+
+      console.log(
+        "SIGN OUT BUTTON CLICKED"
+      );
+
+      console.log(
+        "Current Firebase user:",
+        auth?.currentUser
+      );
+
+      console.log(
+        "================================="
+      );
+
+      if (!auth) {
+        console.error(
+          "Firebase Authentication is not initialized."
+        );
+
+        alert(
+          "Authentication service is not available."
+        );
+
+        return;
+      }
+
       await signOut(auth);
+
+      console.log(
+        "Firebase logout successful."
+      );
+
+      // =================================================
+      // CLEAR LOCAL STORAGE
+      // =================================================
+
+      try {
+        localStorage.removeItem(
+          "user"
+        );
+
+        localStorage.removeItem(
+          "currentUser"
+        );
+
+        localStorage.removeItem(
+          "isAdmin"
+        );
+
+        localStorage.removeItem(
+          "userRole"
+        );
+      } catch (storageError) {
+        console.warn(
+          "Could not clear localStorage:",
+          storageError
+        );
+      }
+
+      // =================================================
+      // REDIRECT TO LOGIN
+      // =================================================
+
+      window.location.replace("/");
+
     } catch (error) {
       console.error(
         "Logout error:",
         error
+      );
+
+      alert(
+        "Failed to sign out.\n\n" +
+          (
+            error?.message ||
+            "Please try again."
+          )
       );
     }
   }
@@ -524,9 +662,10 @@ function AdminDashboard() {
     uid,
     name
   ) {
-    const confirmed = window.confirm(
-      `Are you sure you want to delete the account "${name}"?\n\nThis will remove the account record from the system.`
-    );
+    const confirmed =
+      window.confirm(
+        `Are you sure you want to delete the account "${name}"?\n\nThis will remove the account record from the system.`
+      );
 
     if (!confirmed) {
       return;
@@ -541,12 +680,15 @@ function AdminDashboard() {
     }
 
     try {
-      const userRef = ref(
-        database,
-        `users/${uid}`
-      );
+      const userRef =
+        ref(
+          database,
+          `users/${uid}`
+        );
 
-      await remove(userRef);
+      await remove(
+        userRef
+      );
 
       console.log(
         "Account deleted successfully:",
@@ -556,6 +698,7 @@ function AdminDashboard() {
       alert(
         "Account deleted successfully."
       );
+
     } catch (error) {
       console.error(
         "Error deleting account:",
@@ -599,53 +742,14 @@ function AdminDashboard() {
         ) <= 20
     ).length;
 
-  const activeNodesWithBattery =
-    nodes.filter(
-      (node) =>
-        node.isActive === true &&
-        Number.isFinite(
-          Number(
-            node.batteryPercent
-          )
-        )
-    );
-
-  const averageBattery =
-    activeNodesWithBattery.length >
-    0
-      ? Math.round(
-          activeNodesWithBattery.reduce(
-            (total, node) =>
-              total +
-              Number(
-                node.batteryPercent
-              ),
-            0
-          ) /
-            activeNodesWithBattery.length
-        )
-      : 0;
-
   const criticalNodes =
     nodes.filter(
       (node) =>
         node.isActive === true &&
-        Number(node.waterLevel) >= 30
+        Number(
+          node.waterLevel
+        ) >= 30
     ).length;
-
-  const warningNodes =
-    nodes.filter((node) => {
-      if (
-        node.isActive !== true
-      ) {
-        return false;
-      }
-
-      const level =
-        Number(node.waterLevel);
-
-      return level > 25;
-    }).length;
 
   // ===================================================
   // FILTER USERS
@@ -674,7 +778,10 @@ function AdminDashboard() {
             .toLowerCase()
             .includes(search)
       );
-    }, [users, userSearch]);
+    }, [
+      users,
+      userSearch,
+    ]);
 
   // ===================================================
   // FILTER NODES
@@ -700,7 +807,10 @@ function AdminDashboard() {
             .toLowerCase()
             .includes(search)
       );
-    }, [nodes, nodeSearch]);
+    }, [
+      nodes,
+      nodeSearch,
+    ]);
 
   // ===================================================
   // BATTERY CLASS
@@ -730,9 +840,7 @@ function AdminDashboard() {
   function renderDashboard() {
     return (
       <>
-        {/* ===========================================
-            WELCOME
-        =========================================== */}
+        {/* WELCOME */}
 
         <section className="admin-welcome">
 
@@ -772,11 +880,11 @@ function AdminDashboard() {
 
         </section>
 
-        {/* ===========================================
-            OVERVIEW CARDS
-        =========================================== */}
+        {/* OVERVIEW CARDS */}
 
         <section className="admin-overview">
+
+          {/* FLOOD NODES */}
 
           <button
             type="button"
@@ -809,6 +917,8 @@ function AdminDashboard() {
 
           </button>
 
+          {/* TRAFFIC */}
+
           <div className="admin-card">
 
             <div className="admin-card-icon">
@@ -826,12 +936,15 @@ function AdminDashboard() {
               </strong>
 
               <small>
-                Monitor traffic conditions
+                Monitor traffic
+                conditions
               </small>
 
             </div>
 
           </div>
+
+          {/* ACCOUNTS */}
 
           <button
             type="button"
@@ -856,12 +969,15 @@ function AdminDashboard() {
               </strong>
 
               <small>
-                Registered system accounts
+                Registered system
+                accounts
               </small>
 
             </div>
 
           </button>
+
+          {/* NEWS */}
 
           <div className="admin-card">
 
@@ -880,7 +996,8 @@ function AdminDashboard() {
               </strong>
 
               <small>
-                Flood and traffic news
+                Flood and traffic
+                news
               </small>
 
             </div>
@@ -889,9 +1006,7 @@ function AdminDashboard() {
 
         </section>
 
-        {/* ===========================================
-            FLOOD NODE STATUS
-        =========================================== */}
+        {/* FLOOD NODE STATUS */}
 
         <section className="admin-section">
 
@@ -975,85 +1090,7 @@ function AdminDashboard() {
 
         </section>
 
-        {/* ===========================================
-            BATTERY STATUS
-        =========================================== */}
-
-        <section className="admin-section">
-
-          <div className="admin-section-header">
-
-            <div>
-
-              <p className="admin-label">
-                FLOOD NODES
-              </p>
-
-              <h3>
-                Battery Status
-              </h3>
-
-            </div>
-
-          </div>
-
-          <div className="system-monitor-grid">
-
-            <div className="monitor-item">
-
-              <span className="monitor-title">
-                Active Nodes
-              </span>
-
-              <strong className="online">
-                {activeNodes}
-              </strong>
-
-            </div>
-
-            <div className="monitor-item">
-
-              <span className="monitor-title">
-                Average Battery
-              </span>
-
-              <strong>
-                {averageBattery}%
-              </strong>
-
-            </div>
-
-            <div className="monitor-item">
-
-              <span className="monitor-title">
-                Battery Management
-              </span>
-
-              <strong className="warning">
-                {lowBatteryNodes}
-              </strong>
-
-            </div>
-
-            <div className="monitor-item">
-
-              <span className="monitor-title">
-                Critical Flood Nodes
-              </span>
-
-              <strong className="offline">
-                {criticalNodes}
-              </strong>
-
-            </div>
-
-          </div>
-
-        </section>
-
-        {/* ===========================================
-            FLOOD STATUS SUMMARY
-        =========================================== */}
+        {/* FLOOD STATUS SUMMARY */}
 
         <section className="admin-section">
 
@@ -1075,6 +1112,8 @@ function AdminDashboard() {
 
           <div className="system-monitor-grid">
 
+            {/* NORMAL */}
+
             <div className="monitor-item">
 
               <span className="monitor-title">
@@ -1082,18 +1121,23 @@ function AdminDashboard() {
               </span>
 
               <strong className="online">
+
                 {
                   nodes.filter(
                     (node) =>
-                      node.isActive === true &&
+                      node.isActive ===
+                        true &&
                       Number(
                         node.waterLevel
                       ) < 10
                   ).length
                 }
+
               </strong>
 
             </div>
+
+            {/* MODERATE */}
 
             <div className="monitor-item">
 
@@ -1102,10 +1146,12 @@ function AdminDashboard() {
               </span>
 
               <strong className="warning">
+
                 {
                   nodes.filter(
                     (node) =>
-                      node.isActive === true &&
+                      node.isActive ===
+                        true &&
                       Number(
                         node.waterLevel
                       ) >= 10 &&
@@ -1114,9 +1160,12 @@ function AdminDashboard() {
                       ) < 20
                   ).length
                 }
+
               </strong>
 
             </div>
+
+            {/* HIGH */}
 
             <div className="monitor-item">
 
@@ -1125,10 +1174,12 @@ function AdminDashboard() {
               </span>
 
               <strong className="warning">
+
                 {
                   nodes.filter(
                     (node) =>
-                      node.isActive === true &&
+                      node.isActive ===
+                        true &&
                       Number(
                         node.waterLevel
                       ) >= 20 &&
@@ -1137,9 +1188,12 @@ function AdminDashboard() {
                       ) < 30
                   ).length
                 }
+
               </strong>
 
             </div>
+
+            {/* CRITICAL */}
 
             <div className="monitor-item">
 
@@ -1160,9 +1214,9 @@ function AdminDashboard() {
     );
   }
 
-  // =======================================================
+  // ===================================================
   // ACCOUNT MANAGEMENT
-  // =======================================================
+  // ===================================================
 
   function renderUsers() {
     return (
@@ -1252,23 +1306,10 @@ function AdminDashboard() {
               <thead>
 
                 <tr>
-
-                  <th>
-                    NAME
-                  </th>
-
-                  <th>
-                    EMAIL
-                  </th>
-
-                  <th>
-                    STATUS
-                  </th>
-
-                  <th>
-                    ACTION
-                  </th>
-
+                  <th>NAME</th>
+                  <th>EMAIL</th>
+                  <th>STATUS</th>
+                  <th>ACTION</th>
                 </tr>
 
               </thead>
@@ -1279,19 +1320,25 @@ function AdminDashboard() {
                   (account) => (
 
                     <tr
-                      key={account.uid}
+                      key={
+                        account.uid
+                      }
                     >
 
                       <td>
 
                         <strong>
-                          {account.name}
+                          {
+                            account.name
+                          }
                         </strong>
 
                       </td>
 
                       <td>
-                        {account.email}
+                        {
+                          account.email
+                        }
                       </td>
 
                       <td>
@@ -1308,7 +1355,10 @@ function AdminDashboard() {
                         >
 
                           ●{" "}
-                          {account.status}
+
+                          {
+                            account.status
+                          }
 
                         </span>
 
@@ -1348,9 +1398,9 @@ function AdminDashboard() {
     );
   }
 
-  // =======================================================
+  // ===================================================
   // FLOOD NODE MANAGEMENT
-  // =======================================================
+  // ===================================================
 
   function renderNodes() {
     return (
@@ -1475,7 +1525,8 @@ function AdminDashboard() {
               (node) => {
 
                 const isActive =
-                  node.isActive === true;
+                  node.isActive ===
+                  true;
 
                 const flood =
                   getFloodStatus(
@@ -1496,6 +1547,7 @@ function AdminDashboard() {
                   );
 
                 return (
+
                   <div
                     className={`flood-node-card ${
                       !isActive
@@ -1518,7 +1570,9 @@ function AdminDashboard() {
                         </span>
 
                         <h4>
-                          {node.nodeId}
+                          {
+                            node.nodeId
+                          }
                         </h4>
 
                       </div>
@@ -1526,15 +1580,14 @@ function AdminDashboard() {
                       <span
                         className={
                           isActive
-                            ? "node-online"
-                            : "node-offline"
+                            ? "status-badge status-online"
+                            : "status-badge status-offline"
                         }
                       >
 
-                        ●{" "}
                         {isActive
-                          ? "ACTIVE"
-                          : "INACTIVE"}
+                          ? "● ONLINE"
+                          : "○ OFFLINE"}
 
                       </span>
 
@@ -1545,130 +1598,113 @@ function AdminDashboard() {
                     <div className="node-location">
 
                       📍{" "}
-                      {node.location}
+
+                      {
+                        node.location
+                      }
 
                     </div>
 
-                    {/* ACTIVE NODE */}
+                    {/* METRICS */}
 
-                    {isActive ? (
+                    <div className="node-metrics-grid">
 
-                      <>
+                      {/* WATER LEVEL */}
 
-                        {/* WATER */}
+                      <div className="metric-box">
 
-                        <div className="node-data-row">
+                        <span className="metric-label">
+                          WATER LEVEL
+                        </span>
 
-                          <div className="node-data">
+                        <strong className="metric-value">
 
-                            <span>
-                              WATER LEVEL
-                            </span>
+                          {isActive
+                            ? `${node.waterLevel} cm`
+                            : "--"}
 
-                            <strong>
-                              {node.waterLevel}
-                            </strong>
+                        </strong>
 
-                          </div>
+                        <span
+                          className={`flood-badge ${flood.className}`}
+                        >
 
-                          <span
-                            className={
-                              flood.className
-                            }
-                          >
-                            {flood.label}
-                          </span>
+                          {isActive
+                            ? flood.label
+                            : "OFFLINE"}
 
-                        </div>
+                        </span>
 
-                        {/* BATTERY */}
+                      </div>
 
-                        <div className="battery-section">
+                      {/* PRESSURE */}
 
-                          <div className="battery-header">
+                      <div className="metric-box">
 
-                            <span>
-                              BATTERY
-                            </span>
+                        <span className="metric-label">
+                          PRESSURE
+                        </span>
 
-                            <strong>
-                              {batteryValue}%
-                            </strong>
+                        <strong className="metric-value">
 
-                          </div>
+                          {isActive
+                            ? `${node.pressure} kPa`
+                            : "--"}
 
-                          <div className="battery-bar">
+                        </strong>
 
-                            <div
-                              className={getBatteryClass(
-                                batteryValue
-                              )}
-                              style={{
-                                width: `${batteryValue}%`,
-                              }}
-                            />
+                      </div>
 
-                          </div>
+                      {/* BATTERY */}
 
-                        </div>
+                      <div className="metric-box">
 
-                      </>
+                        <span className="metric-label">
+                          BATTERY
+                        </span>
 
-                    ) : (
+                        <strong
+                          className={`metric-value ${getBatteryClass(
+                            batteryValue
+                          )}`}
+                        >
 
-                      <div className="node-offline-data">
+                          {isActive
+                            ? `${batteryValue}%`
+                            : "--"}
 
-                        <div className="offline-data-item">
+                        </strong>
 
-                          <span>
-                            WATER LEVEL
-                          </span>
+                        <small className="battery-voltage">
 
-                          <strong>
-                            INACTIVE
-                          </strong>
+                          {isActive
+                            ? `${node.battery}V`
+                            : "--"}
 
-                        </div>
-
-                        <div className="offline-data-item">
-
-                          <span>
-                            BATTERY
-                          </span>
-
-                          <strong>
-                            INACTIVE
-                          </strong>
-
-                        </div>
-
-                        <small>
-                          Sensor data is
-                          unavailable while
-                          this node is inactive.
                         </small>
 
                       </div>
 
-                    )}
+                    </div>
 
-                    {/* LAST UPDATE */}
+                    {/* FOOTER */}
 
-                    <div className="node-last-update">
+                    <div className="node-card-footer">
 
-                      <span>
-                        LAST UPDATE
-                      </span>
+                      <small>
 
-                      <strong>
+                        Last Update:{" "}
+
                         {formatLastUpdate(
                           node.lastUpdate
                         )}
-                      </strong>
+
+                      </small>
 
                     </div>
 
                   </div>
+
                 );
               }
             )}
@@ -1681,88 +1717,180 @@ function AdminDashboard() {
     );
   }
 
-  // =======================================================
-  // MAIN RENDER
-  // =======================================================
+  // ===================================================
+  // MAIN RETURN
+  // ===================================================
 
   return (
-    <div className="admin-page">
+    <div className="admin-dashboard-container">
 
       {/* =================================================
-          HEADER
-      ================================================= */}
+          HAMBURGER / SLIDE BUTTON
+          ================================================= */}
 
-      <header className="admin-header">
+      <button
+        type="button"
+        className="admin-menu-button"
+        onClick={() =>
+          setSidebarOpen(true)
+        }
+        aria-label="Open navigation menu"
+      >
+        ☰
+      </button>
 
-        <div className="admin-brand">
+      {/* =================================================
+          SIDEBAR OVERLAY
+          ================================================= */}
 
-          <div className="admin-logo">
-            F
-          </div>
+      <div
+        className={`admin-sidebar-overlay ${
+          sidebarOpen
+            ? "active"
+            : ""
+        }`}
+        onClick={() =>
+          setSidebarOpen(false)
+        }
+      />
 
-          <div>
+      {/* =================================================
+          SLIDE-OUT SIDEBAR
+          ================================================= */}
 
-            <h1>
-              FRENDS
-            </h1>
+      <aside
+        className={`admin-sidebar ${
+          sidebarOpen
+            ? "open"
+            : ""
+        }`}
+      >
 
-            <span>
-              ADMINISTRATOR
-            </span>
-
-          </div>
-
-        </div>
+        {/* CLOSE BUTTON */}
 
         <button
           type="button"
-          className="admin-logout"
-          onClick={handleLogout}
+          className="admin-sidebar-close"
+          onClick={() =>
+            setSidebarOpen(false)
+          }
+          aria-label="Close navigation menu"
         >
-
-          <span>
-            ↪
-          </span>
-
-          Logout
-
+          ×
         </button>
 
-      </header>
+        {/* NAVIGATION */}
+
+        <nav className="admin-nav">
+
+          {/* DASHBOARD */}
+
+          <button
+            type="button"
+            className={
+              activePage ===
+              "dashboard"
+                ? "active"
+                : ""
+            }
+            onClick={() => {
+
+              setActivePage(
+                "dashboard"
+              );
+
+              setSidebarOpen(false);
+
+            }}
+          >
+            📊 Dashboard
+          </button>
+
+          {/* FLOOD NODES */}
+
+          <button
+            type="button"
+            className={
+              activePage ===
+              "nodes"
+                ? "active"
+                : ""
+            }
+            onClick={() => {
+
+              setActivePage(
+                "nodes"
+              );
+
+              setSidebarOpen(false);
+
+            }}
+          >
+            💧 Flood Nodes
+          </button>
+
+          {/* ACCOUNTS */}
+
+          <button
+            type="button"
+            className={
+              activePage ===
+              "users"
+                ? "active"
+                : ""
+            }
+            onClick={() => {
+
+              setActivePage(
+                "users"
+              );
+
+              setSidebarOpen(false);
+
+            }}
+          >
+            👥 Accounts
+          </button>
+
+        </nav>
+
+        {/* =================================================
+            SIGN OUT
+            ================================================= */}
+
+        <div className="admin-sidebar-footer">
+
+          <button
+            type="button"
+            className="admin-logout-button"
+            onClick={handleLogout}
+          >
+            🚪 Sign Out
+          </button>
+
+        </div>
+
+      </aside>
 
       {/* =================================================
-          CONTENT
-      ================================================= */}
+          MAIN CONTENT
+          ================================================= */}
 
-      <main className="admin-content">
+      <main className="admin-main-content">
 
-        {activePage === "dashboard" &&
+        {activePage ===
+          "dashboard" &&
           renderDashboard()}
 
-        {activePage === "users" &&
-          renderUsers()}
-
-        {activePage === "nodes" &&
+        {activePage ===
+          "nodes" &&
           renderNodes()}
 
+        {activePage ===
+          "users" &&
+          renderUsers()}
+
       </main>
-
-      {/* =================================================
-          FOOTER
-      ================================================= */}
-
-      <footer className="admin-footer">
-
-        <span>
-          FRENDS — Flood Road Eye and
-          Navigation Detection System
-        </span>
-
-        <span>
-          Administrator Panel
-        </span>
-
-      </footer>
 
     </div>
   );

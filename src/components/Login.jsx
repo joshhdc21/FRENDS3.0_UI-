@@ -1,4 +1,5 @@
 import { useState } from "react";
+
 import {
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -7,7 +8,7 @@ import {
 import {
   auth,
   googleProvider,
-} from "../firebase/firebaseConfig";
+} from "../firebase/authConfig";
 
 import CreateAccount from "./CreateAccount";
 import "../../Login.css";
@@ -90,25 +91,6 @@ function Login() {
       // =======================================
       // LOGIN SUCCESS
       // =======================================
-      //
-      // IMPORTANT:
-      // We DO NOT ask the user to select
-      // Admin or User.
-      //
-      // Firebase has authenticated the account.
-      //
-      // App.jsx will use the Firebase UID to
-      // check:
-      //
-      // users/{uid}/role
-      //
-      // If role = "admin"
-      //     → Admin Interface
-      //
-      // If role = "user"
-      //     → User Interface
-      //
-      // =======================================
 
       console.log("=================================");
       console.log("LOGIN SUCCESSFUL");
@@ -118,12 +100,8 @@ function Login() {
 
       setSuccess("Login successful!");
 
-      // Do NOT manually redirect here.
-      //
-      // onAuthStateChanged() in App.jsx will
-      // detect the authenticated account and
-      // determine which interface to display.
-
+      // App.jsx should handle the authenticated
+      // user's destination using onAuthStateChanged().
     } catch (error) {
       console.error("Login error:", error);
 
@@ -191,6 +169,10 @@ function Login() {
     setGoogleLoading(true);
 
     try {
+      // =======================================
+      // GOOGLE POPUP LOGIN
+      // =======================================
+
       const userCredential =
         await signInWithPopup(
           auth,
@@ -202,67 +184,116 @@ function Login() {
       // =======================================
       // GOOGLE LOGIN SUCCESS
       // =======================================
-      //
-      // The same role system applies:
-      //
-      // Firebase UID
-      //      ↓
-      // users/{uid}/role
-      //      ↓
-      // admin OR user
-      //
-      // App.jsx handles the destination.
-      // =======================================
 
       console.log("=================================");
       console.log("GOOGLE LOGIN SUCCESSFUL");
       console.log("Email:", loggedInUser.email);
       console.log("UID:", loggedInUser.uid);
+      console.log("Name:", loggedInUser.displayName);
       console.log("=================================");
 
       setSuccess("Google login successful!");
-
     } catch (error) {
-      console.error("Google login error:", error);
+      // =======================================
+      // DETAILED GOOGLE ERROR
+      // =======================================
 
-      if (
-        error.code ===
-        "auth/popup-closed-by-user"
-      ) {
-        setError(
-          "Google sign-in was cancelled."
-        );
+      console.error("=================================");
+      console.error("GOOGLE LOGIN ERROR");
+      console.error("Error Code:", error.code);
+      console.error("Error Message:", error.message);
+      console.error("Full Error:", error);
+      console.error("=================================");
 
-      } else if (
-        error.code ===
-        "auth/operation-not-allowed"
-      ) {
-        setError(
-          "Google sign-in is not enabled in Firebase."
-        );
+      // =======================================
+      // FIREBASE GOOGLE ERROR HANDLING
+      // =======================================
 
-      } else if (
-        error.code ===
-        "auth/popup-blocked"
-      ) {
-        setError(
-          "Google sign-in popup was blocked by the browser."
-        );
+      switch (error.code) {
+        case "auth/popup-closed-by-user":
+          setError(
+            "Google sign-in was cancelled."
+          );
+          break;
 
-      } else if (
-        error.code ===
-        "auth/network-request-failed"
-      ) {
-        setError(
-          "Network error. Please check your internet connection."
-        );
+        case "auth/popup-blocked":
+          setError(
+            "Google sign-in popup was blocked by the browser. Please allow popups for this site."
+          );
+          break;
 
-      } else {
-        setError(
-          "Unable to sign in with Google."
-        );
+        case "auth/operation-not-allowed":
+          setError(
+            "Google sign-in is not enabled in Firebase Authentication."
+          );
+          break;
+
+        case "auth/network-request-failed":
+          setError(
+            "Network error. Please check your internet connection."
+          );
+          break;
+
+        case "auth/unauthorized-domain":
+          setError(
+            "This website domain is not authorized in Firebase Authentication."
+          );
+          break;
+
+        case "auth/invalid-api-key":
+          setError(
+            "Invalid Firebase API key. Please check authConfig.js."
+          );
+          break;
+
+        case "auth/api-key-not-valid":
+          setError(
+            "The Firebase API key is not valid for this project."
+          );
+          break;
+
+        case "auth/app-not-authorized":
+          setError(
+            "This app is not authorized to use Firebase Authentication."
+          );
+          break;
+
+        case "auth/account-exists-with-different-credential":
+          setError(
+            "An account already exists using a different sign-in method."
+          );
+          break;
+
+        case "auth/cancelled-popup-request":
+          setError(
+            "Another Google sign-in popup is already open."
+          );
+          break;
+
+        case "auth/popup-operation-in-progress":
+          setError(
+            "A Google sign-in operation is already in progress."
+          );
+          break;
+
+        case "auth/internal-error":
+          setError(
+            "Firebase encountered an internal authentication error."
+          );
+          break;
+
+        default:
+          // =====================================
+          // SHOW ACTUAL FIREBASE ERROR
+          // =====================================
+
+          setError(
+            `${error.code || "auth/unknown-error"}: ${
+              error.message ||
+              "Unknown Firebase authentication error."
+            }`
+          );
       }
-
     } finally {
       setGoogleLoading(false);
     }
@@ -331,13 +362,11 @@ function Login() {
           : "intro-active"
       }`}
     >
-
       {/* =====================================
           BACKGROUND
       ===================================== */}
 
       <div className="login-background">
-
         <div className="background-circle circle-one"></div>
 
         <div className="background-circle circle-two"></div>
@@ -347,7 +376,6 @@ function Login() {
         <div className="background-wave wave-one"></div>
 
         <div className="background-wave wave-two"></div>
-
       </div>
 
       {/* =====================================
@@ -361,17 +389,14 @@ function Login() {
             : ""
         }`}
       >
-
         {/* LOGO */}
 
         <div className="intro-logo">
-
           <img
             src={frendsLogo}
             alt="FRENDS Logo"
             className="splash-logo"
           />
-
         </div>
 
         {/* DESCRIPTION */}
@@ -384,9 +409,7 @@ function Login() {
         {/* LOADING ANIMATION */}
 
         <div className="intro-loading">
-
           <span></span>
-
         </div>
 
         {/* START BUTTON */}
@@ -396,7 +419,6 @@ function Login() {
           className="intro-start-button"
           onClick={handleStartUp}
         >
-
           <span>
             START UP
           </span>
@@ -404,9 +426,7 @@ function Login() {
           <span className="start-button-arrow">
             →
           </span>
-
         </button>
-
       </div>
 
       {/* =====================================
@@ -420,27 +440,22 @@ function Login() {
             : "card-hidden"
         }`}
       >
-
         {/* HEADER */}
 
         <div className="login-header">
-
           <p className="card-subtitle">
             WELCOME TO FRENDS
           </p>
-
         </div>
 
         {/* SYSTEM STATUS */}
 
         <div className="system-status">
-
           <span className="status-dot"></span>
 
           <span>
             Monitoring System Online
           </span>
-
         </div>
 
         {/* ===================================
@@ -451,7 +466,6 @@ function Login() {
           onSubmit={handleLogin}
           className="login-form"
         >
-
           {/* EMAIL */}
 
           <div
@@ -461,13 +475,11 @@ function Login() {
                 : ""
             }`}
           >
-
             <label htmlFor="email">
               Email
             </label>
 
             <div className="input-wrapper">
-
               <span
                 className="input-icon"
                 aria-hidden="true"
@@ -489,9 +501,7 @@ function Login() {
                 autoComplete="email"
                 disabled={isLoading}
               />
-
             </div>
-
           </div>
 
           {/* PASSWORD */}
@@ -503,13 +513,11 @@ function Login() {
                 : ""
             }`}
           >
-
             <label htmlFor="password">
               Password
             </label>
 
             <div className="input-wrapper">
-
               <span
                 className="input-icon"
                 aria-hidden="true"
@@ -556,9 +564,7 @@ function Login() {
               >
                 👁
               </button>
-
             </div>
-
           </div>
 
           {/* =================================
@@ -570,7 +576,6 @@ function Login() {
               className="login-message login-error"
               role="alert"
             >
-
               <span>
                 ⚠
               </span>
@@ -578,7 +583,6 @@ function Login() {
               <p>
                 {error}
               </p>
-
             </div>
           )}
 
@@ -591,7 +595,6 @@ function Login() {
               className="login-message login-success"
               role="status"
             >
-
               <span>
                 ✓
               </span>
@@ -599,7 +602,6 @@ function Login() {
               <p>
                 {success}
               </p>
-
             </div>
           )}
 
@@ -616,7 +618,6 @@ function Login() {
             }`}
             disabled={isLoading}
           >
-
             {loading ? (
               <>
                 <span className="spinner"></span>
@@ -636,9 +637,7 @@ function Login() {
                 </span>
               </>
             )}
-
           </button>
-
         </form>
 
         {/* ===================================
@@ -652,7 +651,6 @@ function Login() {
               : ""
           }`}
         >
-
           <span>
             Don't have an account?
           </span>
@@ -664,7 +662,6 @@ function Login() {
           >
             Create Account
           </button>
-
         </div>
 
         {/* ===================================
@@ -678,7 +675,6 @@ function Login() {
               : ""
           }`}
         >
-
           <span></span>
 
           <p>
@@ -686,7 +682,6 @@ function Login() {
           </p>
 
           <span></span>
-
         </div>
 
         {/* ===================================
@@ -703,7 +698,6 @@ function Login() {
           onClick={handleGoogleLogin}
           disabled={isLoading}
         >
-
           {googleLoading ? (
             <>
               <span className="spinner"></span>
@@ -723,7 +717,6 @@ function Login() {
               </span>
             </>
           )}
-
         </button>
 
         {/* ===================================
@@ -737,23 +730,17 @@ function Login() {
               : ""
           }`}
         >
-
           <small>
             Real-Time Flood &amp; Traffic Monitoring
           </small>
 
           <div className="footer-status">
-
             <span className="status-dot"></span>
 
             System Ready
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 }

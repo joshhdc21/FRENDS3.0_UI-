@@ -8,6 +8,7 @@
   --primary: #2b5485;
   --primary-dark: #17385f;
   --primary-deep: #0c2340;
+
   --blue: #3d78b8;
   --blue-light: #5f95cf;
 
@@ -35,12 +36,14 @@
   --moderate: #e5a94d;
   --high: #ed814e;
 
-  --shadow:
-    0 15px 40px rgba(0, 0, 0, 0.22);
+  --shadow: 0 15px 40px rgba(0, 0, 0, 0.22);
 
   --radius: 18px;
   --radius-small: 12px;
+
+  --sidebar-width: 240px;
 }
+
 
 /* =========================================================
    RESET
@@ -50,8 +53,15 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   background: var(--bg);
   color: var(--text);
@@ -62,143 +72,452 @@ input {
   font-family: inherit;
 }
 
+
 /* =========================================================
-   MAIN ADMIN PAGE
+   MAIN ADMIN DASHBOARD
 ========================================================= */
 
-.admin-page {
+.admin-dashboard-container {
   min-height: 100vh;
+  width: 100%;
+  display: flex;
+
   background:
     radial-gradient(
       circle at top right,
-      rgba(43, 84, 133, 0.25),
+      rgba(43, 84, 133, 0.22),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at bottom left,
+      rgba(22, 67, 108, 0.18),
       transparent 35%
     ),
     linear-gradient(
       135deg,
-      #07182b 0%,
-      #0b2038 45%,
-      #0d2846 100%
+      #061426 0%,
+      #091d34 45%,
+      #0c2743 100%
     );
 }
 
+
 /* =========================================================
-   HEADER
+   MENU / HAMBURGER BUTTON
 ========================================================= */
 
-.admin-header {
-  width: 100%;
-  min-height: 82px;
-  padding: 16px 5%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.admin-menu-button {
+  position: fixed;
 
-  background: #2b5485;
+  top: 22px;
+  left: 22px;
 
-  border-bottom: 1px solid
-    rgba(255, 255, 255, 0.12);
-
-  box-shadow:
-    0 5px 25px rgba(0, 0, 0, 0.18);
-
-  position: sticky;
-  top: 0;
-  z-index: 100;
-}
-
-.admin-brand {
-  display: flex;
-  align-items: center;
-  gap: 13px;
-}
-
-.admin-logo {
-  width: 46px;
-  height: 46px;
+  width: 44px;
+  height: 44px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border-radius: 13px;
+  border: 1px solid rgba(117, 164, 210, 0.22);
+  border-radius: 12px;
 
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-
-  color: white;
-  font-size: 22px;
-  font-weight: 800;
-}
-
-.admin-brand h1 {
-  margin: 0;
+  background: rgba(13, 37, 64, 0.92);
+  color: var(--text);
 
   font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 1px;
+  line-height: 1;
+
+  cursor: pointer;
+
+  z-index: 1100;
+
+  box-shadow:
+    0 8px 25px rgba(0, 0, 0, 0.2);
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.admin-brand span {
-  display: block;
-  margin-top: 2px;
+.admin-menu-button:hover {
+  background: rgba(43, 84, 133, 0.95);
 
-  color: rgba(255, 255, 255, 0.7);
+  border-color:
+    rgba(95, 149, 207, 0.45);
 
-  font-size: 9px;
-  font-weight: 700;
-  letter-spacing: 1.8px;
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.25);
 }
+
+.admin-menu-button:active {
+  transform: translateY(0);
+}
+
+.admin-menu-button:focus-visible {
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(95, 149, 207, 0.15);
+}
+
 
 /* =========================================================
-   LOGOUT
+   SLIDE-OUT SIDEBAR
 ========================================================= */
 
-.admin-logout {
+.admin-sidebar {
+  position: fixed;
+
+  top: 0;
+  left: 0;
+
+  width: var(--sidebar-width);
+  height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  padding: 28px 16px 18px;
+
+  background:
+    linear-gradient(
+      180deg,
+      #102d4c 0%,
+      #0b2139 55%,
+      #081a2f 100%
+    );
+
+  border-right:
+    1px solid var(--border);
+
+  box-shadow:
+    12px 0 35px rgba(0, 0, 0, 0.25);
+
+  z-index: 1000;
+
+  /* CLOSED STATE */
+  transform: translateX(-105%);
+
+  transition:
+    transform 0.28s ease;
+
+  overflow-y: auto;
+}
+
+
+/* OPEN STATE */
+
+.admin-sidebar.open {
+  transform: translateX(0);
+}
+
+
+/* =========================================================
+   SIDEBAR CLOSE BUTTON
+========================================================= */
+
+.admin-sidebar-close {
+  position: absolute;
+
+  top: 18px;
+  right: 16px;
+
+  width: 34px;
+  height: 34px;
+
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
 
-  padding: 10px 17px;
+  padding: 0;
 
-  border: 1px solid
-    rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(117, 164, 210, 0.15);
+  border-radius: 9px;
 
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
 
-  background: rgba(0, 0, 0, 0.12);
+  color: var(--text-secondary);
 
-  color: white;
-
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 21px;
+  line-height: 1;
 
   cursor: pointer;
 
   transition:
     background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
     transform 0.2s ease;
 }
 
-.admin-logout:hover {
-  background: rgba(0, 0, 0, 0.22);
-  transform: translateY(-1px);
+.admin-sidebar-close:hover {
+  background:
+    rgba(240, 100, 100, 0.12);
+
+  border-color:
+    rgba(240, 100, 100, 0.3);
+
+  color: #ff8585;
+
+  transform: rotate(2deg);
 }
 
-.admin-logout span {
-  font-size: 18px;
+.admin-sidebar-close:focus-visible {
+  outline: none;
+
+  box-shadow:
+    0 0 0 3px rgba(240, 100, 100, 0.1);
 }
+
+
+/* =========================================================
+   SIDEBAR OVERLAY
+========================================================= */
+
+.admin-sidebar-overlay {
+  position: fixed;
+
+  inset: 0;
+
+  background:
+    rgba(0, 0, 0, 0.48);
+
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+
+  z-index: 900;
+
+  opacity: 0;
+  visibility: hidden;
+
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease;
+}
+
+.admin-sidebar-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+
+/* =========================================================
+   SIDEBAR SCROLLBAR
+========================================================= */
+
+.admin-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.admin-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.admin-sidebar::-webkit-scrollbar-thumb {
+  background: rgba(95, 149, 207, 0.25);
+  border-radius: 20px;
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+.admin-nav {
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+
+  margin-top: 45px;
+}
+
+
+/* Navigation Buttons */
+
+.admin-nav button {
+  width: 100%;
+  min-height: 48px;
+
+  display: flex;
+  align-items: center;
+
+  padding: 0 15px;
+
+  border: 1px solid transparent;
+  border-radius: 11px;
+
+  background: transparent;
+
+  color: var(--text-secondary);
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+
+/* Navigation Hover */
+
+.admin-nav button:hover {
+  background:
+    rgba(95, 149, 207, 0.09);
+
+  color: var(--text);
+
+  border-color:
+    rgba(95, 149, 207, 0.12);
+
+  transform: translateX(2px);
+}
+
+
+/* Active Navigation */
+
+.admin-nav button.active {
+  background:
+    linear-gradient(
+      135deg,
+      rgba(61, 120, 184, 0.32),
+      rgba(43, 84, 133, 0.22)
+    );
+
+  color: #ffffff;
+
+  border-color:
+    rgba(95, 149, 207, 0.25);
+
+  box-shadow:
+    inset 3px 0 0 #5f95cf,
+    0 5px 15px rgba(0, 0, 0, 0.12);
+}
+
+
+/* =========================================================
+   SIDEBAR FOOTER
+========================================================= */
+
+.admin-sidebar-footer {
+  width: 100%;
+
+  margin-top: auto;
+
+  padding-top: 18px;
+
+  border-top:
+    1px solid rgba(117, 164, 210, 0.12);
+}
+
+
+/* =========================================================
+   SIGN OUT BUTTON
+========================================================= */
+
+.admin-logout-button {
+  width: 100%;
+  min-height: 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  padding: 11px 15px;
+
+  border:
+    1px solid rgba(240, 100, 100, 0.25);
+
+  border-radius: 11px;
+
+  background:
+    rgba(240, 100, 100, 0.07);
+
+  color: #ff8585;
+
+  font-family: inherit;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.admin-logout-button:hover {
+  background:
+    rgba(240, 100, 100, 0.15);
+
+  border-color:
+    rgba(240, 100, 100, 0.5);
+
+  color: #ff9b9b;
+
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 8px 20px
+    rgba(240, 100, 100, 0.12);
+}
+
+.admin-logout-button:active {
+  transform: translateY(0);
+
+  box-shadow: none;
+}
+
+.admin-logout-button:focus-visible {
+  outline: none;
+
+  border-color:
+    var(--danger);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(240, 100, 100, 0.12);
+}
+
 
 /* =========================================================
    MAIN CONTENT
 ========================================================= */
 
-.admin-content {
-  width: min(1400px, 92%);
-  margin: 0 auto;
+.admin-main-content {
+  flex: 1;
 
-  padding: 38px 0 55px;
+  width: 100%;
+  min-width: 0;
+
+  padding: 38px 4% 55px;
+
+  /* Sidebar no longer occupies layout space */
+  margin-left: 0;
 }
+
 
 /* =========================================================
    WELCOME
@@ -222,11 +541,14 @@ input {
       rgba(16, 45, 76, 0.88)
     );
 
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--border);
 
-  border-radius: var(--radius);
+  border-radius:
+    var(--radius);
 
-  box-shadow: var(--shadow);
+  box-shadow:
+    var(--shadow);
 }
 
 .admin-label {
@@ -243,7 +565,8 @@ input {
 .admin-welcome h2 {
   margin: 0;
 
-  font-size: clamp(23px, 3vw, 32px);
+  font-size:
+    clamp(23px, 3vw, 32px);
 
   font-weight: 800;
 }
@@ -256,19 +579,27 @@ input {
   color: var(--text-secondary);
 
   font-size: 13px;
+
   line-height: 1.7;
 }
+
+
+/* =========================================================
+   SYSTEM STATUS
+========================================================= */
 
 .admin-status {
   display: flex;
   align-items: center;
+
   gap: 9px;
 
   padding: 10px 15px;
 
   border-radius: 30px;
 
-  background: rgba(0, 0, 0, 0.16);
+  background:
+    rgba(0, 0, 0, 0.16);
 
   color: #dceafa;
 
@@ -282,21 +613,29 @@ input {
   width: 9px;
   height: 9px;
 
+  flex-shrink: 0;
+
   border-radius: 50%;
 
-  background: var(--success);
+  background:
+    var(--success);
 
   box-shadow:
-    0 0 0 4px rgba(56, 211, 159, 0.12),
-    0 0 14px rgba(56, 211, 159, 0.5);
+    0 0 0 4px
+      rgba(56, 211, 159, 0.12),
+    0 0 14px
+      rgba(56, 211, 159, 0.5);
 }
 
 .status-dot.offline {
-  background: var(--danger);
+  background:
+    var(--danger);
 
   box-shadow:
-    0 0 0 4px rgba(240, 100, 100, 0.12);
+    0 0 0 4px
+      rgba(240, 100, 100, 0.12);
 }
+
 
 /* =========================================================
    OVERVIEW CARDS
@@ -320,11 +659,14 @@ input {
 
   display: flex;
   align-items: center;
+
   gap: 16px;
 
-  border-radius: var(--radius);
+  border-radius:
+    var(--radius);
 
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--border);
 
   background:
     linear-gradient(
@@ -336,7 +678,8 @@ input {
   color: var(--text);
 
   box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.15);
+    0 10px 30px
+    rgba(0, 0, 0, 0.15);
 
   text-align: left;
 }
@@ -353,7 +696,8 @@ input {
 }
 
 .admin-card-button:hover {
-  transform: translateY(-3px);
+  transform:
+    translateY(-3px);
 
   border-color:
     rgba(95, 149, 207, 0.5);
@@ -381,7 +725,8 @@ input {
   background:
     rgba(95, 149, 207, 0.14);
 
-  border: 1px solid
+  border:
+    1px solid
     rgba(95, 149, 207, 0.16);
 
   font-size: 22px;
@@ -421,6 +766,7 @@ input {
   font-size: 10px;
 }
 
+
 /* =========================================================
    SECTIONS
 ========================================================= */
@@ -437,12 +783,15 @@ input {
       rgba(10, 31, 52, 0.96)
     );
 
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--border);
 
-  border-radius: var(--radius);
+  border-radius:
+    var(--radius);
 
   box-shadow:
-    0 12px 35px rgba(0, 0, 0, 0.16);
+    0 12px 35px
+    rgba(0, 0, 0, 0.16);
 }
 
 .admin-section-header {
@@ -473,9 +822,11 @@ input {
   background:
     var(--success-bg);
 
-  color: var(--success);
+  color:
+    var(--success);
 
-  border: 1px solid
+  border:
+    1px solid
     rgba(56, 211, 159, 0.2);
 
   font-size: 10px;
@@ -493,11 +844,13 @@ input {
 }
 
 .live-button:hover {
-  transform: translateY(-1px);
+  transform:
+    translateY(-1px);
 
   background:
     rgba(56, 211, 159, 0.18);
 }
+
 
 /* =========================================================
    MONITOR GRID
@@ -526,12 +879,14 @@ input {
   background:
     rgba(5, 21, 37, 0.52);
 
-  border: 1px solid
+  border:
+    1px solid
     rgba(117, 164, 210, 0.1);
 }
 
 .monitor-title {
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 10px;
   font-weight: 700;
@@ -542,23 +897,28 @@ input {
 .monitor-item strong {
   margin-top: 8px;
 
-  color: var(--text);
+  color:
+    var(--text);
 
   font-size: 22px;
   font-weight: 800;
 }
 
 .monitor-item strong.online {
-  color: var(--success);
+  color:
+    var(--success);
 }
 
 .monitor-item strong.offline {
-  color: var(--danger);
+  color:
+    var(--danger);
 }
 
 .monitor-item strong.warning {
-  color: var(--warning);
+  color:
+    var(--warning);
 }
+
 
 /* =========================================================
    ADMIN ACTIONS
@@ -587,14 +947,16 @@ input {
 
   padding: 18px;
 
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--border);
 
   border-radius: 15px;
 
   background:
     rgba(7, 25, 43, 0.6);
 
-  color: var(--text);
+  color:
+    var(--text);
 
   text-align: left;
 
@@ -607,7 +969,8 @@ input {
 }
 
 .admin-action:hover {
-  transform: translateY(-2px);
+  transform:
+    translateY(-2px);
 
   border-color:
     rgba(95, 149, 207, 0.45);
@@ -643,16 +1006,19 @@ input {
 
   margin-top: 4px;
 
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 10px;
 }
 
 .admin-action b {
-  color: var(--blue-light);
+  color:
+    var(--blue-light);
 
   font-size: 20px;
 }
+
 
 /* =========================================================
    MANAGEMENT PAGE
@@ -667,12 +1033,15 @@ input {
 
   border-radius: 10px;
 
-  border: 1px solid var(--border-light);
+  border:
+    1px solid
+    var(--border-light);
 
   background:
     rgba(95, 149, 207, 0.08);
 
-  color: var(--text-secondary);
+  color:
+    var(--text-secondary);
 
   font-size: 11px;
   font-weight: 700;
@@ -688,8 +1057,10 @@ input {
   background:
     rgba(95, 149, 207, 0.16);
 
-  color: white;
+  color:
+    white;
 }
+
 
 /* =========================================================
    MANAGEMENT SUMMARY
@@ -714,14 +1085,16 @@ input {
   background:
     rgba(5, 21, 37, 0.5);
 
-  border: 1px solid
+  border:
+    1px solid
     rgba(117, 164, 210, 0.1);
 }
 
 .management-summary span {
   display: block;
 
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 9px;
   font-weight: 800;
@@ -739,16 +1112,20 @@ input {
 }
 
 .management-summary strong.online {
-  color: var(--success);
+  color:
+    var(--success);
 }
 
 .management-summary strong.offline {
-  color: var(--danger);
+  color:
+    var(--danger);
 }
 
 .management-summary strong.warning {
-  color: var(--warning);
+  color:
+    var(--warning);
 }
+
 
 /* =========================================================
    SEARCH TOOLBAR
@@ -760,21 +1137,22 @@ input {
 
 .management-toolbar input {
   width: 100%;
-
   height: 46px;
 
   padding: 0 16px;
 
   border-radius: 11px;
 
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--border);
 
   outline: none;
 
   background:
     rgba(5, 21, 37, 0.72);
 
-  color: white;
+  color:
+    white;
 
   font-size: 12px;
 
@@ -784,7 +1162,8 @@ input {
 }
 
 .management-toolbar input::placeholder {
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 }
 
 .management-toolbar input:focus {
@@ -795,6 +1174,7 @@ input {
     0 0 0 3px
     rgba(95, 149, 207, 0.08);
 }
+
 
 /* =========================================================
    ACCOUNT MANAGEMENT TABLE
@@ -807,7 +1187,8 @@ input {
 
   border-radius: 14px;
 
-  border: 1px solid var(--border);
+  border:
+    1px solid var(--border);
 }
 
 .admin-data-table {
@@ -826,7 +1207,8 @@ input {
 .admin-data-table th {
   padding: 15px 17px;
 
-  color: #83a7cb;
+  color:
+    #83a7cb;
 
   font-size: 9px;
   font-weight: 800;
@@ -835,17 +1217,20 @@ input {
 
   text-align: left;
 
-  border-bottom: 1px solid var(--border);
+  border-bottom:
+    1px solid var(--border);
 }
 
 .admin-data-table td {
   padding: 16px 17px;
 
-  color: var(--text-secondary);
+  color:
+    var(--text-secondary);
 
   font-size: 11px;
 
-  border-bottom: 1px solid
+  border-bottom:
+    1px solid
     rgba(117, 164, 210, 0.08);
 }
 
@@ -864,10 +1249,12 @@ input {
 }
 
 .admin-data-table td strong {
-  color: var(--text);
+  color:
+    var(--text);
 
   font-size: 12px;
 }
+
 
 /* =========================================================
    ROLE BADGES
@@ -875,7 +1262,6 @@ input {
 
 .role-badge {
   display: inline-flex;
-
   align-items: center;
 
   padding: 5px 9px;
@@ -889,24 +1275,29 @@ input {
 }
 
 .role-badge.admin {
-  color: #9ec5ef;
+  color:
+    #9ec5ef;
 
   background:
     rgba(95, 149, 207, 0.13);
 
-  border: 1px solid
+  border:
+    1px solid
     rgba(95, 149, 207, 0.2);
 }
 
 .role-badge.user {
-  color: #9fdcc7;
+  color:
+    #9fdcc7;
 
   background:
     rgba(56, 211, 159, 0.1);
 
-  border: 1px solid
+  border:
+    1px solid
     rgba(56, 211, 159, 0.16);
 }
+
 
 /* =========================================================
    ACCOUNT STATUS
@@ -915,17 +1306,19 @@ input {
 .status-active,
 .status-inactive {
   font-size: 10px;
-
   font-weight: 700;
 }
 
 .status-active {
-  color: var(--success);
+  color:
+    var(--success);
 }
 
 .status-inactive {
-  color: var(--danger);
+  color:
+    var(--danger);
 }
+
 
 /* =========================================================
    FLOOD NODE GRID
@@ -940,6 +1333,7 @@ input {
   gap: 17px;
 }
 
+
 /* =========================================================
    FLOOD NODE CARD
 ========================================================= */
@@ -953,7 +1347,8 @@ input {
 
   border-radius: 16px;
 
-  border: 1px solid
+  border:
+    1px solid
     rgba(95, 149, 207, 0.16);
 
   background:
@@ -972,13 +1367,15 @@ input {
 }
 
 .flood-node-card:hover {
-  transform: translateY(-3px);
+  transform:
+    translateY(-3px);
 
   border-color:
     rgba(95, 149, 207, 0.38);
 
   box-shadow:
-    0 14px 35px rgba(0, 0, 0, 0.2);
+    0 14px 35px
+    rgba(0, 0, 0, 0.2);
 }
 
 .flood-node-card::before {
@@ -1005,6 +1402,7 @@ input {
     var(--danger);
 }
 
+
 /* =========================================================
    NODE HEADER
 ========================================================= */
@@ -1013,7 +1411,6 @@ input {
   display: flex;
 
   justify-content: space-between;
-
   align-items: flex-start;
 
   gap: 10px;
@@ -1024,7 +1421,8 @@ input {
 .node-label {
   display: block;
 
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 8px;
   font-weight: 800;
@@ -1035,7 +1433,8 @@ input {
 .node-card-header h4 {
   margin: 5px 0 0;
 
-  color: var(--text);
+  color:
+    var(--text);
 
   font-size: 16px;
   font-weight: 800;
@@ -1058,12 +1457,15 @@ input {
 }
 
 .node-online {
-  color: var(--success);
+  color:
+    var(--success);
 }
 
 .node-offline {
-  color: var(--danger);
+  color:
+    var(--danger);
 }
+
 
 /* =========================================================
    LOCATION
@@ -1079,7 +1481,8 @@ input {
   background:
     rgba(5, 21, 37, 0.5);
 
-  color: var(--text-secondary);
+  color:
+    var(--text-secondary);
 
   font-size: 10px;
 
@@ -1090,6 +1493,7 @@ input {
   text-overflow: ellipsis;
 }
 
+
 /* =========================================================
    NODE DATA
 ========================================================= */
@@ -1098,7 +1502,6 @@ input {
   display: flex;
 
   align-items: flex-end;
-
   justify-content: space-between;
 
   gap: 12px;
@@ -1109,7 +1512,8 @@ input {
 .node-data span {
   display: block;
 
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 8px;
   font-weight: 800;
@@ -1122,11 +1526,13 @@ input {
 
   margin-top: 5px;
 
-  color: var(--text);
+  color:
+    var(--text);
 
   font-size: 25px;
   font-weight: 800;
 }
+
 
 /* =========================================================
    FLOOD BADGES
@@ -1151,32 +1557,37 @@ input {
 }
 
 .flood-normal {
-  color: var(--success);
+  color:
+    var(--success);
 
   background:
     rgba(56, 211, 159, 0.1);
 }
 
 .flood-moderate {
-  color: var(--warning);
+  color:
+    var(--warning);
 
   background:
     rgba(245, 185, 66, 0.1);
 }
 
 .flood-high {
-  color: var(--high);
+  color:
+    var(--high);
 
   background:
     rgba(237, 129, 78, 0.1);
 }
 
 .flood-critical {
-  color: var(--danger);
+  color:
+    var(--danger);
 
   background:
     rgba(240, 100, 100, 0.1);
 }
+
 
 /* =========================================================
    BATTERY
@@ -1187,7 +1598,8 @@ input {
 
   padding-top: 14px;
 
-  border-top: 1px solid
+  border-top:
+    1px solid
     rgba(117, 164, 210, 0.1);
 }
 
@@ -1195,14 +1607,14 @@ input {
   display: flex;
 
   justify-content: space-between;
-
   align-items: center;
 
   margin-bottom: 8px;
 }
 
 .battery-header span {
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 8px;
   font-weight: 800;
@@ -1211,14 +1623,14 @@ input {
 }
 
 .battery-header strong {
-  color: var(--text-secondary);
+  color:
+    var(--text-secondary);
 
   font-size: 11px;
 }
 
 .battery-bar {
   width: 100%;
-
   height: 6px;
 
   overflow: hidden;
@@ -1239,16 +1651,20 @@ input {
 }
 
 .battery-good {
-  background: var(--success);
+  background:
+    var(--success);
 }
 
 .battery-low {
-  background: var(--warning);
+  background:
+    var(--warning);
 }
 
 .battery-critical {
-  background: var(--danger);
+  background:
+    var(--danger);
 }
+
 
 /* =========================================================
    OFFLINE NODE
@@ -1262,7 +1678,8 @@ input {
   background:
     rgba(240, 100, 100, 0.045);
 
-  border: 1px solid
+  border:
+    1px solid
     rgba(240, 100, 100, 0.09);
 }
 
@@ -1270,12 +1687,12 @@ input {
   display: flex;
 
   justify-content: space-between;
-
   align-items: center;
 
   padding: 7px 0;
 
-  border-bottom: 1px solid
+  border-bottom:
+    1px solid
     rgba(240, 100, 100, 0.07);
 }
 
@@ -1284,7 +1701,8 @@ input {
 }
 
 .offline-data-item span {
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 8px;
   font-weight: 800;
@@ -1293,7 +1711,8 @@ input {
 }
 
 .offline-data-item strong {
-  color: var(--danger);
+  color:
+    var(--danger);
 
   font-size: 9px;
 }
@@ -1303,12 +1722,14 @@ input {
 
   margin-top: 10px;
 
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 9px;
 
   line-height: 1.5;
 }
+
 
 /* =========================================================
    LAST UPDATE
@@ -1318,7 +1739,6 @@ input {
   display: flex;
 
   justify-content: space-between;
-
   align-items: center;
 
   gap: 10px;
@@ -1327,12 +1747,14 @@ input {
 
   padding-top: 13px;
 
-  border-top: 1px solid
+  border-top:
+    1px solid
     rgba(117, 164, 210, 0.09);
 }
 
 .node-last-update span {
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 8px;
   font-weight: 800;
@@ -1341,12 +1763,14 @@ input {
 }
 
 .node-last-update strong {
-  color: var(--text-secondary);
+  color:
+    var(--text-secondary);
 
   font-size: 8px;
 
   text-align: right;
 }
+
 
 /* =========================================================
    EMPTY / LOADING
@@ -1365,14 +1789,118 @@ input {
   background:
     rgba(5, 21, 37, 0.5);
 
-  border: 1px dashed
+  border:
+    1px dashed
     rgba(117, 164, 210, 0.18);
 
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 12px;
   font-weight: 600;
 }
+
+
+/* =========================================================
+   DELETE ACCOUNT BUTTON
+========================================================= */
+
+.delete-account-button {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 7px;
+
+  padding: 8px 13px;
+
+  border:
+    1px solid
+    rgba(240, 100, 100, 0.25);
+
+  border-radius: 8px;
+
+  background:
+    rgba(240, 100, 100, 0.08);
+
+  color:
+    var(--danger);
+
+  font-family: inherit;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.delete-account-button:hover {
+  background:
+    rgba(240, 100, 100, 0.16);
+
+  border-color:
+    rgba(240, 100, 100, 0.5);
+
+  color:
+    #ff8585;
+
+  transform:
+    translateY(-1px);
+
+  box-shadow:
+    0 5px 15px
+    rgba(240, 100, 100, 0.12);
+}
+
+.delete-account-button:active {
+  transform:
+    translateY(0);
+
+  box-shadow: none;
+}
+
+.delete-account-button:focus-visible {
+  outline: none;
+
+  border-color:
+    var(--danger);
+
+  box-shadow:
+    0 0 0 3px
+    rgba(240, 100, 100, 0.12);
+}
+
+.delete-account-button:disabled {
+  opacity: 0.45;
+
+  cursor: not-allowed;
+
+  transform: none;
+
+  box-shadow: none;
+}
+
+.delete-account-button span {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.admin-data-table td:last-child {
+  white-space: nowrap;
+}
+
+.admin-data-table .delete-account-button {
+  min-width: 72px;
+}
+
 
 /* =========================================================
    FOOTER
@@ -1389,21 +1917,29 @@ input {
 
   gap: 20px;
 
-  border-top: 1px solid var(--border);
+  border-top:
+    1px solid var(--border);
 
   background:
     rgba(4, 16, 29, 0.72);
 
-  color: var(--text-muted);
+  color:
+    var(--text-muted);
 
   font-size: 9px;
 }
+
 
 /* =========================================================
    RESPONSIVE — TABLET
 ========================================================= */
 
 @media (max-width: 1100px) {
+
+  .admin-main-content {
+    padding-left: 3%;
+    padding-right: 3%;
+  }
 
   .admin-overview {
     grid-template-columns:
@@ -1424,8 +1960,8 @@ input {
     grid-template-columns:
       repeat(2, minmax(0, 1fr));
   }
-
 }
+
 
 /* =========================================================
    RESPONSIVE — MOBILE
@@ -1433,40 +1969,57 @@ input {
 
 @media (max-width: 700px) {
 
-  .admin-header {
-    min-height: 70px;
+  .admin-dashboard-container {
+    display: block;
 
-    padding:
-      12px 4%;
+    min-height: 100vh;
   }
 
-  .admin-logo {
-    width: 40px;
-    height: 40px;
+
+  /* -----------------------------------------
+     MENU BUTTON
+  ----------------------------------------- */
+
+  .admin-menu-button {
+    top: 14px;
+    left: 14px;
+
+    width: 42px;
+    height: 42px;
 
     font-size: 18px;
   }
 
-  .admin-brand h1 {
-    font-size: 17px;
-  }
 
-  .admin-brand span {
-    font-size: 7px;
-  }
+  /* -----------------------------------------
+     SIDEBAR
+  ----------------------------------------- */
 
-  .admin-logout {
-    padding: 8px 11px;
+  .admin-sidebar {
+    width: 270px;
 
-    font-size: 10px;
-  }
-
-  .admin-content {
-    width: 94%;
+    max-width: 85vw;
 
     padding:
-      25px 0 40px;
+      20px 14px 16px;
   }
+
+
+  /* -----------------------------------------
+     MAIN CONTENT
+  ----------------------------------------- */
+
+  .admin-main-content {
+    width: 100%;
+
+    padding:
+      72px 16px 40px;
+  }
+
+
+  /* -----------------------------------------
+     WELCOME
+  ----------------------------------------- */
 
   .admin-welcome {
     padding: 22px;
@@ -1480,6 +2033,11 @@ input {
     align-self: flex-start;
   }
 
+
+  /* -----------------------------------------
+     OVERVIEW
+  ----------------------------------------- */
+
   .admin-overview {
     grid-template-columns: 1fr;
 
@@ -1491,6 +2049,11 @@ input {
 
     padding: 18px;
   }
+
+
+  /* -----------------------------------------
+     SECTIONS
+  ----------------------------------------- */
 
   .admin-section {
     padding: 19px;
@@ -1514,6 +2077,11 @@ input {
     align-self: flex-start;
   }
 
+
+  /* -----------------------------------------
+     MONITOR
+  ----------------------------------------- */
+
   .system-monitor-grid {
     grid-template-columns: 1fr;
 
@@ -1526,9 +2094,19 @@ input {
     padding: 15px;
   }
 
+
+  /* -----------------------------------------
+     ACTIONS
+  ----------------------------------------- */
+
   .admin-actions {
     grid-template-columns: 1fr;
   }
+
+
+  /* -----------------------------------------
+     MANAGEMENT
+  ----------------------------------------- */
 
   .admin-management-page {
     padding: 19px;
@@ -1549,6 +2127,11 @@ input {
     font-size: 20px;
   }
 
+
+  /* -----------------------------------------
+     FLOOD NODES
+  ----------------------------------------- */
+
   .node-grid {
     grid-template-columns: 1fr;
   }
@@ -1561,6 +2144,11 @@ input {
     font-size: 23px;
   }
 
+
+  /* -----------------------------------------
+     FOOTER
+  ----------------------------------------- */
+
   .admin-footer {
     flex-direction: column;
 
@@ -1568,7 +2156,22 @@ input {
       18px 4%;
   }
 
+
+  /* -----------------------------------------
+     DELETE BUTTON
+  ----------------------------------------- */
+
+  .delete-account-button {
+    padding: 8px 11px;
+
+    font-size: 9px;
+  }
+
+  .delete-account-button span {
+    font-size: 12px;
+  }
 }
+
 
 /* =========================================================
    VERY SMALL PHONES
@@ -1576,16 +2179,21 @@ input {
 
 @media (max-width: 420px) {
 
-  .admin-brand span {
-    display: none;
+  .admin-sidebar {
+    width: 250px;
   }
 
-  .admin-logout span {
-    display: none;
+  .admin-menu-button {
+    width: 40px;
+    height: 40px;
+
+    top: 12px;
+    left: 12px;
   }
 
-  .admin-logout {
-    padding: 8px 10px;
+  .admin-main-content {
+    padding:
+      68px 12px 35px;
   }
 
   .admin-welcome h2 {
@@ -1607,11 +2215,30 @@ input {
     width: 40px;
     height: 40px;
   }
-
 }
 
+
 /* =========================================================
-   SCROLLBAR
+   ACCESSIBILITY
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .admin-sidebar,
+  .admin-sidebar-overlay,
+  .admin-menu-button,
+  .admin-sidebar-close,
+  .admin-nav button,
+  .admin-card-button,
+  .admin-action,
+  .flood-node-card {
+    transition: none;
+  }
+}
+
+
+/* =========================================================
+   GLOBAL SCROLLBAR
 ========================================================= */
 
 ::-webkit-scrollbar {
@@ -1620,112 +2247,18 @@ input {
 }
 
 ::-webkit-scrollbar-track {
-  background: #07182b;
+  background:
+    #07182b;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #274e78;
+  background:
+    #274e78;
 
   border-radius: 20px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #386b9e;
-}
-
-/* =========================================================
-   DELETE ACCOUNT BUTTON
-========================================================= */
-
-.delete-account-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-
-  padding: 8px 13px;
-
-  border: 1px solid rgba(240, 100, 100, 0.25);
-  border-radius: 8px;
-
-  background: rgba(240, 100, 100, 0.08);
-  color: var(--danger);
-
-  font-family: inherit;
-  font-size: 10px;
-  font-weight: 800;
-
-  cursor: pointer;
-
-  transition:
-    background 0.2s ease,
-    border-color 0.2s ease,
-    color 0.2s ease,
-    transform 0.2s ease,
-    box-shadow 0.2s ease;
-}
-
-.delete-account-button:hover {
-  background: rgba(240, 100, 100, 0.16);
-  border-color: rgba(240, 100, 100, 0.5);
-  color: #ff8585;
-
-  transform: translateY(-1px);
-
-  box-shadow:
-    0 5px 15px rgba(240, 100, 100, 0.12);
-}
-
-.delete-account-button:active {
-  transform: translateY(0);
-  box-shadow: none;
-}
-
-.delete-account-button:focus-visible {
-  outline: none;
-
-  border-color: var(--danger);
-
-  box-shadow:
-    0 0 0 3px rgba(240, 100, 100, 0.12);
-}
-
-.delete-account-button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
-}
-
-/* Delete icon */
-.delete-account-button span {
-  font-size: 13px;
-  line-height: 1;
-}
-
-/* =========================================================
-   DELETE BUTTON — TABLE CELL
-========================================================= */
-
-.admin-data-table td:last-child {
-  white-space: nowrap;
-}
-
-.admin-data-table .delete-account-button {
-  min-width: 72px;
-}
-
-/* =========================================================
-   DELETE BUTTON — MOBILE
-========================================================= */
-
-@media (max-width: 700px) {
-  .delete-account-button {
-    padding: 8px 11px;
-    font-size: 9px;
-  }
-
-  .delete-account-button span {
-    font-size: 12px;
-  }
+  background:
+    #386b9e;
 }

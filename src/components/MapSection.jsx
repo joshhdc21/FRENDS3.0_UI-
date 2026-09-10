@@ -39,8 +39,11 @@ const getBearing = (lat1, lon1, lat2, lon2) => {
     return (toDeg(Math.atan2(y, x)) + 360) % 360;
 };
 
-export default function MapSection() {
+export default function MapSection({ onNavigate, onLogout }) {
     const TOMTOM_API_KEY = import.meta.env.VITE_MAPAPI_TOMTOM_API_KEY;
+
+    // FRENDS LEFT SLIDE-OUT MENU
+    const [menuOpen, setMenuOpen] = useState(false);
 
     const [mapCenter, setMapCenter] = useState([14.5648, 120.9932]);
     const [origin, setOrigin] = useState(null); 
@@ -789,6 +792,7 @@ export default function MapSection() {
     };
 
     const startDriveMode = () => {
+        setMenuOpen(false);
         setDriveMode(true); 
         setShowFloodWarning(true);
         
@@ -843,10 +847,890 @@ export default function MapSection() {
                         0% { opacity: 0; transform: translate(-50%, -20px); }
                         100% { opacity: 1; transform: translate(-50%, 0); }
                     }
+
+                    .frends-map-menu-toggle {
+                        position: absolute;
+                        top: 24px;
+                        left: 24px;
+                        width: 48px;
+                        height: 48px;
+                        border: 1px solid rgba(255,255,255,0.06);
+                        border-radius: 15px;
+                        background: ${ui.inputBg};
+                        color: ${ui.textMain};
+                        box-shadow: 0 4px 14px rgba(0,0,0,0.30);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 22px;
+                        line-height: 1;
+                        cursor: pointer;
+                        z-index: 7500;
+                        transition: transform .18s ease, background .18s ease;
+                        -webkit-tap-highlight-color: transparent;
+                    }
+                    .frends-map-menu-toggle:hover { background: ${ui.border}; transform: scale(1.03); }
+                    .frends-map-menu-toggle:active { transform: scale(.97); }
+
+                    .frends-map-menu-overlay {
+                        position: absolute;
+                        inset: 0;
+                        background: rgba(0,0,0,0.44);
+                        backdrop-filter: blur(1.5px);
+                        -webkit-backdrop-filter: blur(1.5px);
+                        z-index: 6800;
+                    }
+
+                    /* Sidebar styled to match the supplied FRENDS navigation reference. */
+                    .frends-map-menu {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: min(560px, 92vw);
+                        height: 100%;
+                        box-sizing: border-box;
+                        background: ${ui.panelBg};
+                        color: ${ui.textMain};
+                        z-index: 7000;
+                        transform: translateX(-105%);
+                        transition: transform .30s cubic-bezier(.22,1,.36,1);
+                        box-shadow: 10px 0 34px rgba(0,0,0,0.42);
+                        display: flex;
+                        flex-direction: column;
+                        overflow: hidden;
+                        padding-top: env(safe-area-inset-top);
+                    }
+                    .frends-map-menu.open { transform: translateX(0); }
+
+                    .frends-map-menu-header {
+                        display: flex;
+                        align-items: flex-start;
+                        justify-content: space-between;
+                        gap: 18px;
+                        padding: 34px 38px 24px;
+                    }
+                    .frends-map-menu-brand {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-start;
+                        min-width: 0;
+                    }
+                    .frends-map-menu-kicker {
+                        margin: 0 0 8px;
+                        font-size: 16px;
+                        line-height: 1;
+                        font-weight: 700;
+                        letter-spacing: 1.1px;
+                        color: ${ui.textMuted};
+                    }
+                    .frends-map-menu-title {
+                        display: block;
+                        min-width: 0;
+                    }
+                    .frends-map-menu-title strong {
+                        display: block;
+                        font-size: 31px;
+                        line-height: 1.05;
+                        letter-spacing: -.5px;
+                        font-weight: 700;
+                        color: ${ui.textMain};
+                    }
+                    .frends-map-menu-title span { display: none; }
+
+                    .frends-map-menu-close {
+                        width: 56px;
+                        height: 56px;
+                        flex: 0 0 56px;
+                        border: 0;
+                        border-radius: 16px;
+                        background: ${ui.inputBg};
+                        color: ${ui.textMain};
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        position: relative;
+                        transition: background .18s ease, transform .18s ease;
+                    }
+                    .frends-map-close-x,
+                    .frends-map-close-x::after {
+                        position: absolute;
+                        width: 27px;
+                        height: 2px;
+                        background: ${ui.textMain};
+                        border-radius: 2px;
+                        content: '';
+                        transform: rotate(45deg);
+                    }
+                    .frends-map-close-x::after {
+                        transform: rotate(90deg);
+                        left: 0;
+                        top: 0;
+                    }
+                    .frends-map-menu-close:hover { background: ${ui.border}; }
+                    .frends-map-menu-close:active { transform: scale(.96); }
+
+                    .frends-map-menu-items {
+                        flex: 1;
+                        overflow-y: auto;
+                        padding: 4px 26px 24px;
+                        scrollbar-width: thin;
+                    }
+                    .frends-map-menu-section {
+                        padding: 22px 12px 10px;
+                        font-size: 16px;
+                        line-height: 1;
+                        font-weight: 700;
+                        color: ${ui.textMuted};
+                        letter-spacing: 1.15px;
+                        text-transform: uppercase;
+                    }
+                    .frends-map-menu-section:first-child { padding-top: 10px; }
+
+                    .frends-map-menu-item {
+                        width: 100%;
+                        min-height: 70px;
+                        padding: 10px 12px;
+                        margin: 2px 0;
+                        border: 0;
+                        border-radius: 14px;
+                        background: transparent;
+                        color: ${ui.textMain};
+                        display: flex;
+                        align-items: center;
+                        gap: 18px;
+                        text-align: left;
+                        font-size: 20px;
+                        font-weight: 600;
+                        cursor: pointer;
+                        transition: background .18s ease, transform .18s ease;
+                    }
+                    .frends-map-menu-item:hover { background: ${ui.inputBg}; }
+                    .frends-map-menu-item:active { transform: scale(.992); }
+                    .frends-map-menu-item.active { background: transparent; color: ${ui.textMain}; }
+
+                    .frends-map-menu-icon {
+                        width: 44px;
+                        height: 44px;
+                        flex: 0 0 44px;
+                        border-radius: 13px;
+                        background: ${ui.inputBg};
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 21px;
+                        font-weight: 600;
+                        color: ${ui.textMain};
+                        line-height: 1;
+                    }
+                    .frends-map-menu-item.active .frends-map-menu-icon { background: ${ui.inputBg}; }
+                    .frends-map-menu-icon.traffic { font-size: 22px; }
+                    .frends-map-menu-icon.news { font-size: 19px; }
+
+                    .frends-map-menu-footer {
+                        border-top: 1px solid ${ui.border};
+                        padding: 18px 38px calc(18px + env(safe-area-inset-bottom));
+                    }
+                    .frends-map-menu-status {
+                        display: flex;
+                        align-items: center;
+                        gap: 10px;
+                        color: ${ui.textMuted};
+                        font-size: 15px;
+                    }
+                    .frends-map-menu-status-dot {
+                        width: 12px;
+                        height: 12px;
+                        flex: 0 0 12px;
+                        border-radius: 50%;
+                        background: ${ui.accentGreen};
+                        box-shadow: 0 0 0 4px rgba(129,201,149,.13);
+                    }
+
+                    @media (max-width: 768px) {
+                        .frends-map-menu-toggle {
+                            top: max(12px, env(safe-area-inset-top));
+                            left: 12px;
+                            width: 44px;
+                            height: 44px;
+                            border-radius: 13px;
+                            font-size: 20px;
+                        }
+                        .frends-map-menu { width: min(390px, 92vw); }
+                        .frends-map-menu-header { padding: 24px 22px 18px; }
+                        .frends-map-menu-kicker { font-size: 13px; }
+                        .frends-map-menu-title strong { font-size: 27px; }
+                        .frends-map-menu-close { width: 48px; height: 48px; flex-basis: 48px; border-radius: 14px; }
+                        .frends-map-close-x, .frends-map-close-x::after { width: 24px; }
+                        .frends-map-menu-items { padding: 4px 14px 18px; }
+                        .frends-map-menu-section { padding: 20px 10px 8px; font-size: 13px; }
+                        .frends-map-menu-item { min-height: 60px; padding: 8px 10px; gap: 14px; font-size: 17px; }
+                        .frends-map-menu-icon { width: 40px; height: 40px; flex-basis: 40px; border-radius: 12px; }
+                        .frends-map-menu-footer { padding: 14px 22px calc(14px + env(safe-area-inset-bottom)); }
+                        .frends-map-menu-status { font-size: 13px; }
+                    }
                 `}
             </style>
 
             <div ref={mapRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }} />
+
+ {/* =========================================================
+    FRENDS SLIDE-OUT NAVIGATION MENU
+    ========================================================= */}
+
+{!driveMode && (
+   <aside
+  aria-label="FRENDS Navigation"
+  style={{
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    bottom: 0,
+    width: 'calc(100% - 48px)', // Leaves a narrow slice on mobile (e.g. iPhone XR)
+    maxWidth: '450px',           // Keeps a clean sidebar width on iPad and Desktop
+    backgroundColor: ui.panelBg,
+    color: ui.textMain,
+    zIndex: 7000,
+    display: 'flex',
+    flexDirection: 'column',
+    boxSizing: 'border-box',
+
+            /* LEFT SLIDE */
+            transform: menuOpen
+                ? 'translateX(0)'
+                : 'translateX(-105%)',
+
+            transition:
+                'transform 0.3s cubic-bezier(.22,1,.36,1)',
+
+            boxShadow: '10px 0 34px rgba(0,0,0,0.42)',
+            overflow: 'hidden',
+            paddingTop: 'env(safe-area-inset-top)'
+        }}
+    >
+
+        {/* =====================================================
+            MENU HEADER
+            ===================================================== */}
+        <div
+            style={{
+                padding: isMobile
+                    ? '24px 24px 18px'
+                    : '25px 32px 18px',
+
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+
+                borderBottom:
+                    `1px solid ${ui.border}`,
+
+                flexShrink: 0,
+                boxSizing: 'border-box'
+            }}
+        >
+
+            {/* BRAND */}
+            <div>
+                <div
+                    style={{
+                        fontSize: isMobile ? '14px' : '15px',
+                        fontWeight: 700,
+                        letterSpacing: '1.4px',
+                         color: theme === 'dark' ? '#9AA0A6' : '#5F6368',
+                        textTransform: 'uppercase',
+                        marginBottom: '3px'
+                    }}
+                >
+                    FRENDS
+                </div>
+
+                <div
+                    style={{
+                        fontSize: isMobile ? '27px' : '30px',
+                        fontWeight: 700,
+                        lineHeight: 1.1,
+                        color: ui.textMain
+                    }}
+                >
+                    Navigation
+                </div>
+            </div>
+
+            {/* CLOSE BUTTON */}
+            <button
+                type="button"
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close navigation"
+                style={{
+                    width: isMobile ? '48px' : '52px',
+                    height: isMobile ? '48px' : '52px',
+
+                    minWidth: isMobile ? '48px' : '52px',
+                    minHeight: isMobile ? '48px' : '52px',
+
+                    border: `1px solid ${ui.border}`,
+                    borderRadius: '14px',
+
+                    backgroundColor: ui.inputBg,
+                    color: ui.textMain,
+
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+
+                    fontSize: '25px',
+                    fontWeight: 400,
+
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                }}
+
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                        theme === 'dark'
+                            ? '#3c4043'
+                            : '#e8eaed';
+                }}
+
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                        ui.inputBg;
+                }}
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        {/* =====================================================
+            MENU ITEMS
+            ===================================================== */}
+        <div
+            style={{
+                flex: 1,
+                overflowY: 'auto',
+
+                padding: isMobile
+                    ? '4px 20px 18px'
+                    : '4px 24px 22px',
+
+                boxSizing: 'border-box'
+            }}
+        >
+
+            {/* =================================================
+                MAIN
+                ================================================= */}
+            <div
+                style={{
+                    padding: isMobile
+                        ? '17px 8px 9px'
+                        : '18px 10px 9px',
+
+                    fontSize: isMobile
+                        ? '12px'
+                        : '13px',
+
+                    fontWeight: 700,
+                    letterSpacing: '1.1px',
+                    color: ui.textMuted,
+                    textTransform: 'uppercase'
+                }}
+            >
+                MAIN
+            </div>
+
+
+            {/* MAP */}
+            <button
+                type="button"
+                onClick={() => {
+                    setMenuOpen(false);
+                }}
+                style={{
+                    width: '100%',
+                    minHeight: isMobile ? '52px' : '56px',
+
+                    padding: '7px 10px',
+
+                    border: 'none',
+                    borderRadius: '13px',
+
+                    backgroundColor: 'transparent',
+                    color: ui.textMain,
+
+                    display: 'flex',
+                    alignItems: 'center',
+
+                    gap: isMobile ? '12px' : '14px',
+
+                    fontSize: isMobile
+                        ? '16px'
+                        : '17px',
+
+                    fontWeight: 600,
+
+                    cursor: 'pointer',
+                    textAlign: 'left',
+
+                    transition:
+                        'background-color 0.18s ease'
+                }}
+
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                        theme === 'dark'
+                            ? '#303134'
+                            : '#f1f3f4';
+                }}
+
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                        'transparent';
+                }}
+            >
+
+                <span
+                    style={{
+                        width: isMobile ? '36px' : '38px',
+                        height: isMobile ? '36px' : '38px',
+
+                        minWidth: isMobile ? '36px' : '38px',
+                        minHeight: isMobile ? '36px' : '38px',
+
+                        borderRadius: '11px',
+
+                        backgroundColor: ui.inputBg,
+
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+
+                        fontSize: isMobile
+                            ? '18px'
+                            : '19px',
+
+                        lineHeight: 1
+                    }}
+                >
+                    ◉
+                </span>
+
+                <span>
+                    Map
+                </span>
+
+            </button>
+
+
+            {/* =================================================
+                MONITORING
+                ================================================= */}
+            <div
+                style={{
+                    padding: isMobile
+                        ? '19px 8px 9px'
+                        : '20px 10px 9px',
+
+                    fontSize: isMobile
+                        ? '12px'
+                        : '13px',
+
+                    fontWeight: 700,
+                    letterSpacing: '1.1px',
+                    color: ui.textMuted,
+                    textTransform: 'uppercase'
+                }}
+            >
+                MONITORING
+            </div>
+
+
+            {/* FLOOD / TRAFFIC / NEWS */}
+            {[
+                {
+                    label: 'Flood',
+                    icon: '≋',
+                    action: 'nodes'
+                },
+                {
+                    label: 'Traffic',
+                    icon: '🚦',
+                    action: 'traffic'
+                },
+                {
+                    label: 'News',
+                    icon: '▣',
+                    action: 'dashboard'
+                }
+            ].map((item) => (
+
+                <button
+                    key={item.label}
+                    type="button"
+
+                    onClick={() => {
+                        setMenuOpen(false);
+
+                        if (onNavigate) {
+                            onNavigate(item.action);
+                        }
+                    }}
+
+                    style={{
+                        width: '100%',
+                        minHeight: isMobile
+                            ? '52px'
+                            : '56px',
+
+                        padding: '7px 10px',
+
+                        border: 'none',
+                        borderRadius: '13px',
+
+                        backgroundColor: 'transparent',
+                        color: ui.textMain,
+
+                        display: 'flex',
+                        alignItems: 'center',
+
+                        gap: isMobile
+                            ? '12px'
+                            : '14px',
+
+                        fontSize: isMobile
+                            ? '16px'
+                            : '17px',
+
+                        fontWeight: 600,
+
+                        cursor: 'pointer',
+                        textAlign: 'left',
+
+                        transition:
+                            'background-color 0.18s ease'
+                    }}
+
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                            theme === 'dark'
+                                ? '#303134'
+                                : '#f1f3f4';
+                    }}
+
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor =
+                            'transparent';
+                    }}
+                >
+
+                    <span
+                        style={{
+                            width: isMobile ? '36px' : '38px',
+                            height: isMobile ? '36px' : '38px',
+
+                            minWidth: isMobile
+                                ? '36px'
+                                : '38px',
+
+                            minHeight: isMobile
+                                ? '36px'
+                                : '38px',
+
+                            borderRadius: '11px',
+
+                            backgroundColor: ui.inputBg,
+
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+
+                            fontSize:
+                                item.label === 'Traffic'
+                                    ? '18px'
+                                    : '19px',
+
+                            lineHeight: 1
+                        }}
+                    >
+                        {item.icon}
+                    </span>
+
+                    <span>
+                        {item.label}
+                    </span>
+
+                </button>
+
+            ))}
+
+
+            {/* =================================================
+                INFORMATION
+                ================================================= */}
+            <div
+                style={{
+                    padding: isMobile
+                        ? '19px 8px 9px'
+                        : '20px 10px 9px',
+
+                    fontSize: isMobile
+                        ? '12px'
+                        : '13px',
+
+                    fontWeight: 700,
+                    letterSpacing: '1.1px',
+                    color: ui.textMuted,
+                    textTransform: 'uppercase'
+                }}
+            >
+                INFORMATION
+            </div>
+
+
+            {/* ABOUT FRENDS */}
+            <button
+                type="button"
+                onClick={() => {
+                    setMenuOpen(false);
+
+                    if (onNavigate) {
+                        onNavigate('about');
+                    }
+                }}
+
+                style={{
+                    width: '100%',
+                    minHeight: isMobile
+                        ? '52px'
+                        : '56px',
+
+                    padding: '7px 10px',
+
+                    border: 'none',
+                    borderRadius: '13px',
+
+                    backgroundColor: 'transparent',
+                    color: ui.textMain,
+
+                    display: 'flex',
+                    alignItems: 'center',
+
+                    gap: isMobile
+                        ? '12px'
+                        : '14px',
+
+                    fontSize: isMobile
+                        ? '16px'
+                        : '17px',
+
+                    fontWeight: 600,
+
+                    cursor: 'pointer',
+                    textAlign: 'left',
+
+                    transition:
+                        'background-color 0.18s ease'
+                }}
+
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                        theme === 'dark'
+                            ? '#303134'
+                            : '#f1f3f4';
+                }}
+
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                        'transparent';
+                }}
+            >
+
+                <span
+                    style={{
+                        width: isMobile ? '36px' : '38px',
+                        height: isMobile ? '36px' : '38px',
+
+                        minWidth: isMobile
+                            ? '36px'
+                            : '38px',
+
+                        minHeight: isMobile
+                            ? '36px'
+                            : '38px',
+
+                        borderRadius: '11px',
+
+                        backgroundColor: ui.inputBg,
+
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+
+                        fontSize: '19px',
+                        lineHeight: 1
+                    }}
+                >
+                    i
+                </span>
+
+                <span>
+                    About FRENDS
+                </span>
+
+            </button>
+
+
+            {/* LOGOUT */}
+            <button
+                type="button"
+                onClick={() => {
+                    setMenuOpen(false);
+
+                    if (onLogout) {
+                        onLogout();
+                    }
+                }}
+
+                style={{
+                    width: '100%',
+                    minHeight: isMobile
+                        ? '52px'
+                        : '56px',
+
+                    padding: '7px 10px',
+
+                    border: 'none',
+                    borderRadius: '13px',
+
+                    backgroundColor: 'transparent',
+                    color: ui.textMain,
+
+                    display: 'flex',
+                    alignItems: 'center',
+
+                    gap: isMobile
+                        ? '12px'
+                        : '14px',
+
+                    fontSize: isMobile
+                        ? '16px'
+                        : '17px',
+
+                    fontWeight: 600,
+
+                    cursor: 'pointer',
+                    textAlign: 'left',
+
+                    transition:
+                        'background-color 0.18s ease'
+                }}
+
+                onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                        theme === 'dark'
+                            ? '#303134'
+                            : '#f1f3f4';
+                }}
+
+                onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor =
+                        'transparent';
+                }}
+            >
+
+                <span
+                    style={{
+                        width: isMobile ? '36px' : '38px',
+                        height: isMobile ? '36px' : '38px',
+
+                        minWidth: isMobile
+                            ? '36px'
+                            : '38px',
+
+                        minHeight: isMobile
+                            ? '36px'
+                            : '38px',
+
+                        borderRadius: '11px',
+
+                        backgroundColor: ui.inputBg,
+
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+
+                        fontSize: '19px',
+                        lineHeight: 1
+                    }}
+                >
+                    ↪
+                </span>
+
+                <span>
+                    Logout
+                </span>
+
+            </button>
+
+        </div>
+
+
+        {/* =====================================================
+            MENU FOOTER / STATUS
+            ===================================================== */}
+        <div
+            style={{
+                borderTop:
+                    `1px solid ${ui.border}`,
+
+                padding: isMobile
+                    ? '12px 24px'
+                    : '14px 32px',
+
+                display: 'flex',
+                alignItems: 'center',
+
+                flexShrink: 0,
+                boxSizing: 'border-box'
+            }}
+        >
+
+            <div
+                style={{
+                    width: '8px',
+                    height: '8px',
+
+                    borderRadius: '50%',
+
+                    backgroundColor:
+                        ui.accentGreen,
+
+                    marginRight: '9px',
+
+                    boxShadow:
+                        `0 0 8px ${ui.accentGreen}`
+                }}
+            />
+
+            <span
+                style={{
+                    fontSize: isMobile
+                        ? '12px'
+                        : '13px',
+
+                    color: ui.textMuted
+                }}
+            >
+                FRENDS map is active
+            </span>
+
+        </div>
+
+    </aside>
+)}
 
             {/* CURRENT LOCATION REMINDER TOAST BANNER */}
             {showLocationBanner && currentLocationName && (
@@ -941,23 +1825,67 @@ export default function MapSection() {
                 </div>
             )}
 
-            {!driveMode && !activeInput && (
-                <div style={{ position: 'absolute', top: isMobile ? '16px' : '24px', right: '16px', zIndex: 1000, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div onClick={() => setShowTraffic(!showTraffic)} style={{ width: '44px', height: '44px', backgroundColor: ui.panelBg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.3)', cursor: 'pointer', border: `2px solid ${showTraffic ? ui.accentGreen : ui.border}`, transition: 'all 0.2s ease' }} title={showTraffic ? "Hide Traffic" : "Show Traffic"}>
-                        <span style={{ fontSize: '20px', opacity: showTraffic ? 1 : 0.5 }}>🚦</span>
-                    </div>
-                </div>
-            )}
-
             <div style={{
-                position: 'absolute', top: isMobile ? 0 : '24px', left: isMobile ? 0 : '24px', 
+                position: 'absolute', top: isMobile ? '0px' : '12px', left: isMobile ? 0 : '24px', 
                 width: isMobile ? '100%' : '380px', backgroundColor: ui.panelBg, zIndex: 1000,
                 display: 'flex', flexDirection: 'column', boxShadow: isMobile ? 'none' : '0 4px 12px rgba(0,0,0,0.4)',
                 borderRadius: isMobile ? 0 : '16px', transform: driveMode ? (isMobile ? 'translateY(-200%)' : 'translateX(-150%)') : 'translate(0, 0)',
                 transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), max-height 0.3s ease',
                 paddingBottom: activeInput ? 0 : '4px', maxHeight: isMobile ? (activeInput ? 'calc(100vh - 24px)' : 'auto') : 'none'
             }}>
-                <div style={{ padding: isMobile ? '12px' : '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div style={{ padding: isMobile ? '10px 12px' : '12px 14px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                    <button
+                        type="button"
+                        onClick={() => setMenuOpen(prev => !prev)}
+                        aria-label={menuOpen ? "Close FRENDS menu" : "Open FRENDS menu"}
+                        aria-expanded={menuOpen}
+                        style={{
+                            width: isMobile ? '38px' : '40px',
+                            height: isMobile ? '38px' : '40px',
+                            flexShrink: 0,
+                            border: 'none',
+                            borderRadius: '50%',
+                            backgroundColor: ui.inputBg,
+                            color: ui.textMain,
+                            fontSize: isMobile ? '20px' : '21px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        {menuOpen ? '×' : '☰'}
+                    </button>
+
+                    {/* TRAFFIC TOGGLE */}
+                    <button
+                        type="button"
+                        onClick={() => setShowTraffic(prev => !prev)}
+                        aria-label={showTraffic ? "Hide traffic" : "Show traffic"}
+                        title={showTraffic ? "Hide Traffic" : "Show Traffic"}
+                        style={{
+                            width: isMobile ? '38px' : '40px',
+                            height: isMobile ? '38px' : '40px',
+                            flexShrink: 0,
+                            border: `2px solid ${showTraffic ? ui.accentGreen : ui.border}`,
+                            borderRadius: '50%',
+                            backgroundColor: ui.inputBg,
+                            color: ui.textMain,
+                            fontSize: isMobile ? '18px' : '19px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
+                            opacity: showTraffic ? 1 : 0.75,
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        🚦
+                    </button>
+
                     <button 
                         onMouseDown={(e) => {
                             e.preventDefault();

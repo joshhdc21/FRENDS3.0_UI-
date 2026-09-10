@@ -1,14 +1,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 /* =========================================================
-   ABOUT US PAGE
+   GLOBAL & ROOT RESET FIXES
 ========================================================= */
+
+* {
+  box-sizing: border-box;
+}
 
 .about-page {
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden; /* Prevents mobile horizontal scrolling */
   background:
-    radial-gradient(circle at 80% 10%, rgba(31, 105, 180, 0.18), transparent 35%),
-    linear-gradient(135deg, #061b38 0%, #082c58 50%, #0a3970 100%);
+    radial-gradient(circle at 75% 20%, rgba(35, 115, 185, 0.22), transparent 45%),
+    radial-gradient(circle at 20% 80%, rgba(20, 85, 145, 0.18), transparent 50%),
+    linear-gradient(160deg, #071d33 0%, #0a2948 45%, #0a335c 100%);
   color: #ffffff;
   font-family: 'Plus Jakarta Sans', sans-serif;
   padding-bottom: 0;
@@ -117,7 +124,7 @@
 }
 
 /* =========================================================
-   INTRO
+   INTRO & HIGHLIGHT LOGO FIX
 ========================================================= */
 
 .about-intro {
@@ -140,7 +147,8 @@
 }
 
 .about-highlight {
-  padding: 38px 30px;
+  width: 100%;
+  padding: 38px 24px;
   border-radius: 24px;
   background: linear-gradient(
     145deg,
@@ -150,11 +158,27 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   text-align: center;
   box-shadow: 0 25px 70px rgba(0, 0, 0, 0.15);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .highlight-icon {
-  font-size: 48px;
-  margin-bottom: 15px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 0;
+}
+
+/* Dynamic Image Scaling */
+.highlight-img {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  max-height: 220px;
+  object-fit: contain;
+  display: block;
 }
 
 .about-highlight h3 {
@@ -218,6 +242,7 @@
   border: 3px solid #2d8bd0;
   font-size: 13px;
   font-weight: 800;
+  flex-shrink: 0;
 }
 
 .history-content {
@@ -422,10 +447,10 @@
   background:
     radial-gradient(
       circle at center,
-      rgba(38, 126, 205, 0.35),
-      transparent 65%
+      rgba(24, 98, 163, 0.25),
+      transparent 70%
     ),
-    #05172f;
+    #061a2e;
 }
 
 .closing-content {
@@ -470,12 +495,13 @@
 }
 
 /* =========================================================
-   RESPONSIVE
+   RESPONSIVE ADJUSTMENTS
 ========================================================= */
 
 @media (max-width: 900px) {
   .about-intro {
     grid-template-columns: 1fr;
+    gap: 35px;
   }
 
   .feature-grid {
@@ -509,8 +535,8 @@
   }
 
   .about-section {
-    width: 88%;
-    padding: 60px 0;
+    width: 90%;
+    padding: 50px 0;
   }
 
   .section-title {
@@ -519,6 +545,14 @@
 
   .section-title h2 {
     font-size: 25px;
+  }
+
+  .about-highlight {
+    padding: 24px 16px;
+  }
+
+  .highlight-img {
+    max-height: 160px;
   }
 
   .feature-grid {
@@ -552,6 +586,8 @@
   }
 
   .author-card {
+    flex-direction: column;
+    align-items: flex-start;
     padding: 20px;
   }
 

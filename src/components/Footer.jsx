@@ -1,7 +1,7 @@
 import React from "react";
 import "./Footer.css";
 
-function Footer({ onAboutClick }) {
+function Footer() {
   return (
     <footer className="footer">
 
@@ -25,28 +25,6 @@ function Footer({ onAboutClick }) {
             Real-time flood and traffic information
             for smarter travel decisions in Metro Manila.
           </p>
-
-        </div>
-
-        {/* =========================================
-            QUICK LINKS
-        ========================================= */}
-
-        <div className="footer-column">
-
-          <h3>Quick Links</h3>
-
-          <button
-            type="button"
-            className="footer-about-button"
-            onClick={() => {
-              if (onAboutClick) {
-                onAboutClick();
-              }
-            }}
-          >
-            About Us
-          </button>
 
         </div>
 

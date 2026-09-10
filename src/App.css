@@ -121,17 +121,28 @@ html {
   scroll-padding-top: 110px;
 }
 
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 110px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
+  width: 100%;
   min-height: 100vh;
   background: var(--bg-gradient);
   background-size: cover;
   background-attachment: fixed;
   color: var(--ink);
-
   font-family: "Plus Jakarta Sans", "Inter", "Segoe UI", sans-serif;
-
   transition: background 0.3s ease, color 0.3s ease;
+}
+
+.app {
+  width: 100%;
+  min-height: 100vh;
 }
 
 button,
@@ -141,6 +152,30 @@ a {
 
 button {
   cursor: pointer;
+  background: transparent;
+  border: none;
+  color: inherit;
+}
+
+/* Force header menu button to match theme */
+.topbar button,
+.topbar .brand button,
+.brand-logo button {
+  background-color: var(--surface-alt) !important;
+  color: var(--ink) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+}
+
+.topbar button:hover {
+  background-color: var(--primary-light) !important;
+  border-color: var(--primary) !important;
+  color: var(--primary) !important;
 }
 
 a {
@@ -149,46 +184,40 @@ a {
 }
 
 .app {
+  width: 100%;
   min-height: 100vh;
-  overflow-x: hidden;
+  background: var(--bg-gradient);
+  background-attachment: fixed;
 }
+
 
 /* =====================================================
    HEADER
 ===================================================== */
 
-.topbar {
-  position: sticky;
-  top: 15px;
-  z-index: 100;
+/* HEADER BUTTONS */
 
-  width: calc(100% - 40px);
-  max-width: 1450px;
-
-  margin: 0 auto;
-
+.topbar button {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-
-  padding: 16px 28px;
-
-  background: var(--surface-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  
+  /* Match header surface theme */
+  background: var(--surface-alt);
+  color: var(--ink);
   border: 1px solid var(--border);
-  border-radius: 30px;
-
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.08);
-
-  gap: 15px;
+  border-radius: 12px;
+  
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 13px;
+.topbar button:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .brand-logo {
@@ -406,26 +435,16 @@ a {
    HERO
 ===================================================== */
 
-.hero-panel {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: 40px;
-  flex-wrap: wrap;
-
-  padding: clamp(20px, 5vw, 48px);
-
-  border: 1px solid var(--border);
-  border-radius: 28px;
-
-  background: linear-gradient(
-    135deg,
-    var(--surface),
-    var(--surface-alt)
-  );
-
-  box-shadow: var(--shadow);
+/* Force-hide hero text section */
+.hero-content,
+.hero-panel h2,
+.hero-description,
+.hero-panel > div:first-child {
+  display: none !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .hero-content {
@@ -6046,13 +6065,21 @@ html {
    NEWS GRID
 ========================================================= */
 
-.news-grid {
-  display: grid;
+.news-card {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  border-radius: 22px;
+  overflow: hidden; /* Prevents image spillover */
+}
 
-  grid-template-columns:
-    repeat(3, minmax(0, 1fr));
-
-  gap: 20px;
+/* Style news card images */
+.news-card img {
+  width: 100%;
+  height: 200px; /* Fixed height for consistency */
+  object-fit: cover; /* Crops image neatly without stretching */
+  border-radius: 14px;
+  margin-bottom: 16px;
 }
 
 /* =========================================================
@@ -6575,4 +6602,695 @@ html {
   .emergency-card {
     justify-content: center;
   }
+}
+
+
+/* =========================================================
+   HEADER SLIDE-OUT NAVIGATION
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   MENU PANEL
+--------------------------------------------------------- */
+
+.frends-map-menu {
+  position: fixed !important;
+
+  top: 0 !important;
+  left: 0 !important;
+
+  width: 450px !important;
+  max-width: 88vw !important;
+  height: 100vh !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  background: #202124 !important;
+
+  color: #e8eaed !important;
+
+  z-index: 10000 !important;
+
+  display: flex !important;
+  flex-direction: column !important;
+
+  overflow: hidden !important;
+
+  transform: translateX(-100%) !important;
+
+  transition:
+    transform 0.3s ease-in-out !important;
+
+  box-sizing: border-box !important;
+
+  box-shadow:
+    8px 0 30px rgba(0, 0, 0, 0.25) !important;
+}
+
+
+/* ---------------------------------------------------------
+   OPEN MENU
+--------------------------------------------------------- */
+
+.frends-map-menu.open {
+  transform: translateX(0) !important;
+}
+
+
+/* ---------------------------------------------------------
+   MENU HEADER
+--------------------------------------------------------- */
+
+.frends-map-menu-header {
+  display: flex !important;
+
+  align-items: center !important;
+  justify-content: space-between !important;
+
+  padding: 24px 30px 18px !important;
+
+  min-height: 80px !important;
+
+  box-sizing: border-box !important;
+
+  background: #202124 !important;
+}
+
+
+/* FRENDS SMALL LABEL */
+
+.frends-map-menu-eyebrow {
+  display: block !important;
+
+  margin-bottom: 4px !important;
+
+  color: #9aa0a6 !important;
+
+  font-size: 13px !important;
+
+  font-weight: 700 !important;
+
+  letter-spacing: 1px !important;
+
+  text-transform: uppercase !important;
+}
+
+
+/* NAVIGATION TITLE */
+
+.frends-map-menu-header h3 {
+  margin: 0 !important;
+
+  color: #f1f3f4 !important;
+
+  font-size: 24px !important;
+
+  font-weight: 700 !important;
+
+  line-height: 1.2 !important;
+}
+
+
+/* ---------------------------------------------------------
+   CLOSE BUTTON
+--------------------------------------------------------- */
+
+.frends-map-menu-close {
+  width: 44px !important;
+  height: 44px !important;
+
+  padding: 0 !important;
+
+  border: none !important;
+
+  border-radius: 12px !important;
+
+  background: #303134 !important;
+
+  color: #f1f3f4 !important;
+
+  display: flex !important;
+
+  align-items: center !important;
+  justify-content: center !important;
+
+  font-size: 22px !important;
+
+  cursor: pointer !important;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease !important;
+}
+
+.frends-map-menu-close:hover {
+  background: #3c4043 !important;
+
+  transform: scale(1.03) !important;
+}
+
+
+/* ---------------------------------------------------------
+   MENU CONTENT
+--------------------------------------------------------- */
+
+.frends-map-menu-content {
+  flex: 1 !important;
+
+  width: 100% !important;
+
+  padding: 4px 15px 20px !important;
+
+  box-sizing: border-box !important;
+
+  overflow-y: auto !important;
+
+  overflow-x: hidden !important;
+}
+
+
+/* Hide scrollbar */
+
+.frends-map-menu-content::-webkit-scrollbar {
+  width: 5px;
+}
+
+.frends-map-menu-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.frends-map-menu-content::-webkit-scrollbar-thumb {
+  background: #3c4043;
+
+  border-radius: 10px;
+}
+
+
+/* ---------------------------------------------------------
+   MENU SECTION
+--------------------------------------------------------- */
+
+.frends-map-menu-section {
+  width: 100% !important;
+
+  margin: 0 0 12px !important;
+
+  padding: 0 !important;
+
+  box-sizing: border-box !important;
+}
+
+
+/* ---------------------------------------------------------
+   SECTION TITLE
+--------------------------------------------------------- */
+
+.frends-map-menu-section-title {
+  margin: 0 !important;
+
+  padding: 10px 15px 8px !important;
+
+  color: #9aa0a6 !important;
+
+  font-size: 13px !important;
+
+  font-weight: 700 !important;
+
+  letter-spacing: 1.2px !important;
+
+  line-height: 1.2 !important;
+
+  text-transform: uppercase !important;
+}
+
+
+/* ---------------------------------------------------------
+   MENU ITEM
+--------------------------------------------------------- */
+
+.frends-map-menu-item {
+  width: 100% !important;
+
+  min-height: 64px !important;
+
+  margin: 2px 0 !important;
+
+  padding: 0 15px !important;
+
+  border: none !important;
+
+  border-radius: 16px !important;
+
+  outline: none !important;
+
+  background: transparent !important;
+
+  color: #e8eaed !important;
+
+  display: flex !important;
+
+  align-items: center !important;
+
+  gap: 15px !important;
+
+  text-align: left !important;
+
+  font-family: inherit !important;
+
+  font-size: 18px !important;
+
+  font-weight: 600 !important;
+
+  line-height: 1 !important;
+
+  cursor: pointer !important;
+
+  box-sizing: border-box !important;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease !important;
+}
+
+
+/* ---------------------------------------------------------
+   MENU ITEM HOVER
+--------------------------------------------------------- */
+
+.frends-map-menu-item:hover {
+  background: #292c31 !important;
+
+  color: #f1f3f4 !important;
+}
+
+
+/* ---------------------------------------------------------
+   ACTIVE MENU ITEM
+--------------------------------------------------------- */
+
+.frends-map-menu-item.active {
+  background: #343c4b !important;
+
+  color: #8ab4f8 !important;
+}
+
+
+/* ---------------------------------------------------------
+   MENU ICON
+--------------------------------------------------------- */
+
+.frends-map-menu-icon {
+  width: 34px !important;
+
+  min-width: 34px !important;
+
+  height: 34px !important;
+
+  border-radius: 10px !important;
+
+  background: #303134 !important;
+
+  color: #e8eaed !important;
+
+  display: flex !important;
+
+  align-items: center !important;
+
+  justify-content: center !important;
+
+  font-size: 17px !important;
+
+  font-weight: 700 !important;
+
+  line-height: 1 !important;
+}
+
+
+/* Active icon */
+
+.frends-map-menu-item.active
+.frends-map-menu-icon {
+  background: #3d4656 !important;
+
+  color: #8ab4f8 !important;
+}
+
+
+/* ---------------------------------------------------------
+   MENU ITEM TEXT
+--------------------------------------------------------- */
+
+.frends-map-menu-item > span:last-child {
+  color: inherit !important;
+
+  font-size: 18px !important;
+
+  font-weight: 600 !important;
+}
+
+
+/* ---------------------------------------------------------
+   OVERLAY
+--------------------------------------------------------- */
+
+.frends-map-menu-overlay {
+  position: fixed !important;
+
+  inset: 0 !important;
+
+  width: 100vw !important;
+  height: 100vh !important;
+
+  background: rgba(0, 0, 0, 0.45) !important;
+
+  z-index: 9999 !important;
+
+  opacity: 0 !important;
+
+  visibility: hidden !important;
+
+  pointer-events: none !important;
+
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease !important;
+}
+
+
+/* ---------------------------------------------------------
+   ACTIVE OVERLAY
+--------------------------------------------------------- */
+
+.frends-map-menu-overlay.open {
+  opacity: 1 !important;
+
+  visibility: visible !important;
+
+  pointer-events: auto !important;
+}
+
+
+/* ---------------------------------------------------------
+   MENU FOOTER
+--------------------------------------------------------- */
+
+.frends-map-menu-footer {
+  width: 100% !important;
+
+  min-height: 48px !important;
+
+  padding: 0 20px !important;
+
+  border-top: 1px solid #383a3f !important;
+
+  background: #202124 !important;
+
+  color: #9aa0a6 !important;
+
+  display: flex !important;
+
+  align-items: center !important;
+
+  gap: 9px !important;
+
+  box-sizing: border-box !important;
+
+  font-size: 13px !important;
+
+  flex-shrink: 0 !important;
+}
+
+
+/* ---------------------------------------------------------
+   STATUS DOT
+--------------------------------------------------------- */
+
+.frends-map-menu-status-dot {
+  width: 10px !important;
+
+  min-width: 10px !important;
+
+  height: 10px !important;
+
+  border-radius: 50% !important;
+
+  background: #7bd89c !important;
+
+  box-shadow:
+    0 0 0 3px rgba(123, 216, 156, 0.12) !important;
+}
+
+
+/* =========================================================
+   HEADER MENU BUTTON
+   ========================================================= */
+
+.header-menu-button {
+  width: 44px !important;
+
+  min-width: 44px !important;
+
+  height: 44px !important;
+
+  margin-right: 12px !important;
+
+  padding: 0 !important;
+
+  border: none !important;
+
+  border-radius: 12px !important;
+
+  background: #303134 !important;
+
+  display: flex !important;
+
+  flex-direction: column !important;
+
+  align-items: center !important;
+
+  justify-content: center !important;
+
+  gap: 4px !important;
+
+  cursor: pointer !important;
+
+  flex-shrink: 0 !important;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease !important;
+}
+
+.header-menu-button:hover {
+  background: #3c4043 !important;
+
+  transform: scale(1.03) !important;
+}
+
+
+/* ---------------------------------------------------------
+   HAMBURGER LINES
+--------------------------------------------------------- */
+
+.menu-line {
+  width: 18px !important;
+
+  height: 2px !important;
+
+  border-radius: 3px !important;
+
+  background: #e8eaed !important;
+
+  display: block !important;
+
+  transition:
+    transform 0.25s ease,
+    opacity 0.2s ease !important;
+}
+
+
+/* ---------------------------------------------------------
+   HAMBURGER → X
+--------------------------------------------------------- */
+
+.header-menu-button.active
+.menu-line:nth-child(1) {
+  transform:
+    translateY(6px)
+    rotate(45deg) !important;
+}
+
+.header-menu-button.active
+.menu-line:nth-child(2) {
+  opacity: 0 !important;
+}
+
+.header-menu-button.active
+.menu-line:nth-child(3) {
+  transform:
+    translateY(-6px)
+    rotate(-45deg) !important;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  .frends-map-menu {
+    width: 450px !important;
+
+    max-width: 88vw !important;
+  }
+
+  .frends-map-menu-header {
+    padding:
+      20px
+      20px
+      15px !important;
+  }
+
+  .frends-map-menu-content {
+    padding:
+      4px
+      15px
+      15px !important;
+  }
+
+  .frends-map-menu-item {
+    min-height: 58px !important;
+
+    font-size: 17px !important;
+  }
+
+  .frends-map-menu-item > span:last-child {
+    font-size: 17px !important;
+  }
+
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 380px) {
+
+  .frends-map-menu {
+    width: 100vw !important;
+
+    max-width: 100vw !important;
+  }
+
+  .frends-map-menu-item {
+    min-height: 56px !important;
+  }
+
+}
+
+
+.header-frends-logo {
+  width: min(150px, 18vw);
+  height: auto;
+  max-width: 100%;
+  display: block;
+  object-fit: contain;
+}
+
+.brand-logo-container {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  max-width: 150px;
+}
+
+
+
+/* Container handles layout alignment and outer constraints */
+.brand-logo-container {
+  display: flex;
+  align-items: center;
+  max-width: 180px; /* Upper limit for large desktop screens */
+  width: 100%;      /* Allows shrinking on smaller views */
+  height: auto;
+}
+
+/* Image scales fluidly relative to its container */
+.header-frends-logo {
+  width: 100%;
+  height: auto;      /* Maintains aspect ratio without stretching */
+  max-height: 40px;  /* Keeps logo contained vertically within header */
+  object-fit: contain;
+}
+
+/* Mobile & Tablet Fine-Tuning */
+@media (max-width: 768px) {
+  .brand-logo-container {
+    max-width: 130px; /* Slightly smaller on tablets/mobile */
+  }
+
+  .header-frends-logo {
+    max-height: 32px;
+  }
+}
+
+@media (max-width: 480px) {
+  .brand-logo-container {
+    max-width: 100px; /* Compact fit for small smartphones */
+  }
+
+  .header-frends-logo {
+    max-height: 28px;
+  }
+}
+
+
+/* Fixes card location title capitalization to respect source string casing */
+.node-card h4,
+.node-location-name {
+  text-transform: none;
+}
+
+/* Fixes the card footer text casing so it isn't forced uppercase */
+.node-card-footer span,
+.node-card-footer strong {
+  text-transform: none;
+}
+
+/* Fixes badge, status text, and uppercase headings that were forced all-caps */
+.offline-badge,
+.node-flood-badge,
+.node-connectivity,
+.system-status-card span,
+.system-status-card strong,
+.sensor-card-header,
+.node-summary span {
+  text-transform: none;
+}
+
+/* Disable forced uppercase text on flood level content, status badges, and offline notices */
+.current-level-content h4,
+.offline-badge,
+.node-flood-badge,
+.node-connectivity,
+.sensor-card-header,
+.system-status-card span,
+.system-status-card small {
+  text-transform: none;
+}
+
+
+/* Fixes node IDs and card text to use standard capitalization instead of all-caps */
+.node-id {
+  text-transform: none !important;
+}
+
+.node-card h4,
+.node-card span,
+.node-card small,
+.node-card p {
+  text-transform: none;
 }

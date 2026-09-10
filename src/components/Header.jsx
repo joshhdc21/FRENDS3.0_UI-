@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "../firebase/firebaseConfig";
 
-function Header({ firebaseConnected }) {
+// Dynamically resolve image asset path
+const frendsLogo = new URL("../assets/frends.png", import.meta.url).href;
+
+function Header({
+  firebaseConnected,
+  onMenuToggle,
+  menuOpen = false,
+}) {
   const [currentTime, setCurrentTime] = useState("");
-  const [loggingOut, setLoggingOut] = useState(false);
-
-  // =========================================
-  // LIVE TIME
-  // =========================================
 
   useEffect(() => {
     const updateTime = () => {
@@ -30,61 +30,49 @@ function Header({ firebaseConnected }) {
     return () => clearInterval(interval);
   }, []);
 
-  // =========================================
-  // LOGOUT
-  // =========================================
-
-  async function handleLogout() {
-    try {
-      setLoggingOut(true);
-
-      await signOut(auth);
-
-    } catch (error) {
-      console.error("Logout error:", error);
-
-      setLoggingOut(false);
-    }
-  }
-
-  // =========================================
-  // HEADER
-  // =========================================
-
   return (
     <header className="topbar">
 
-      {/* =====================================
-          BRAND
-      ===================================== */}
-
+      {/* LEFT SIDE */}
       <div className="brand">
 
-        <div className="brand-logo">
-          <span className="logo-main">
-            F3
-          </span>
-        </div>
+        {/* MENU BUTTON */}
+        <button
+          type="button"
+          className={`header-menu-button ${
+            menuOpen ? "menu-open" : ""
+          }`}
+          onClick={onMenuToggle}
+          aria-label={
+            menuOpen
+              ? "Close navigation menu"
+              : "Open navigation menu"
+          }
+          aria-expanded={menuOpen}
+          title={
+            menuOpen
+              ? "Close menu"
+              : "Open menu"
+          }
+        >
+          {menuOpen ? "✕" : "☰"}
+        </button>
 
-        <div className="brand-text">
-          <h1>FRENDS </h1>
-
-          <p>
-            Flood Road Eye and Navigation Detection System
-          </p>
+        {/* FRENDS LOGO ONLY */}
+        <div className="brand-logo-container">
+          <img
+            src={frendsLogo}
+            alt="FRENDS"
+            className="header-frends-logo"
+          />
         </div>
 
       </div>
 
-
-      {/* =====================================
-          HEADER INFORMATION
-      ===================================== */}
-
+      {/* RIGHT SIDE */}
       <div className="header-right">
 
-        {/* FIREBASE */}
-
+        {/* FIREBASE CONNECTION */}
         <div
           className={`connection-status ${
             firebaseConnected
@@ -106,9 +94,7 @@ function Header({ firebaseConnected }) {
           </span>
         </div>
 
-
         {/* CURRENT TIME */}
-
         <div className="header-time">
           <span className="time-icon">
             🕐
@@ -118,20 +104,6 @@ function Header({ firebaseConnected }) {
             {currentTime}
           </span>
         </div>
-
-
-        {/* LOGOUT */}
-
-        <button
-          type="button"
-          className="logout-icon-button"
-          onClick={handleLogout}
-          disabled={loggingOut}
-          title="Logout"
-          aria-label="Logout"
-        >
-          ⎋
-        </button>
 
       </div>
 

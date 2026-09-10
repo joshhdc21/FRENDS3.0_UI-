@@ -1,5 +1,13 @@
 import React from "react";
 import "./AboutUs.css";
+import frendsLogo from "../assets/frends.png";
+
+// Step 1: Import author images (update filenames/paths to match your assets folder)
+import joshuaImg from "../assets/joshua.png";
+import clarabelleImg from "../assets/clarabelle.png";
+import krisImg from "../assets/kris.png";
+import karlImg from "../assets/karl.png";
+import daphneImg from "../assets/daphne.png";
 
 function AboutUs({ onBack }) {
   return (
@@ -72,17 +80,12 @@ function AboutUs({ onBack }) {
           <div className="about-highlight">
 
             <div className="highlight-icon">
-              🌊
+              <img 
+                src={frendsLogo} 
+                alt="FRENDS Logo" 
+                className="highlight-img" 
+              />
             </div>
-
-            <h3>
-              FRENDS
-            </h3>
-
-            <p>
-              Real-time flood and traffic information for smarter
-              travel decisions in Metro Manila.
-            </p>
 
           </div>
 
@@ -263,7 +266,7 @@ function AboutUs({ onBack }) {
           <div className="feature-card">
 
             <div className="feature-icon">
-              🌊
+              
             </div>
 
             <h3>
@@ -282,7 +285,7 @@ function AboutUs({ onBack }) {
           <div className="feature-card">
 
             <div className="feature-icon">
-              🚦
+          
             </div>
 
             <h3>
@@ -301,7 +304,7 @@ function AboutUs({ onBack }) {
           <div className="feature-card">
 
             <div className="feature-icon">
-              🗺️
+              
             </div>
 
             <h3>
@@ -320,7 +323,7 @@ function AboutUs({ onBack }) {
           <div className="feature-card">
 
             <div className="feature-icon">
-              ⚡
+              
             </div>
 
             <h3>
@@ -408,13 +411,11 @@ function AboutUs({ onBack }) {
 
         <div className="authors-grid">
 
-          {/* =========================
-              AUTHOR 1
-          ========================== */}
+          {/* AUTHOR 1 */}
           <div className="author-card">
 
             <div className="author-photo">
-              <span>👤</span>
+              <img src={joshuaImg} alt="Joshua B. Dela Cruz" className="author-img" />
             </div>
 
             <div className="author-info">
@@ -439,13 +440,11 @@ function AboutUs({ onBack }) {
           </div>
 
 
-          {/* =========================
-              AUTHOR 2
-          ========================== */}
+          {/* AUTHOR 2 */}
           <div className="author-card">
 
             <div className="author-photo">
-              <span>👤</span>
+              <img src={clarabelleImg} alt="Clarabelle D. Bismonte" className="author-img" />
             </div>
 
             <div className="author-info">
@@ -469,19 +468,17 @@ function AboutUs({ onBack }) {
           </div>
 
 
-          {/* =========================
-              AUTHOR 3
-          ========================== */}
+          {/* AUTHOR 3 */}
           <div className="author-card">
 
             <div className="author-photo">
-              <span>👤</span>
+              <img src={krisImg} alt="Kris Edward P. Castro Jr." className="author-img" />
             </div>
 
             <div className="author-info">
 
               <h3>
-                Kris Edward P. Castro
+                Kris Edward P. Castro Jr.
               </h3>
 
               <span className="author-role">
@@ -498,13 +495,11 @@ function AboutUs({ onBack }) {
           </div>
 
 
-          {/* =========================
-              AUTHOR 4
-          ========================== */}
+          {/* AUTHOR 4 */}
           <div className="author-card">
 
             <div className="author-photo">
-              <span>👤</span>
+              <img src={karlImg} alt="Karl Arthur Von T. Gomez" className="author-img" />
             </div>
 
             <div className="author-info">
@@ -528,13 +523,11 @@ function AboutUs({ onBack }) {
           </div>
 
 
-          {/* =========================
-              AUTHOR 5
-          ========================== */}
+          {/* AUTHOR 5 */}
           <div className="author-card">
 
             <div className="author-photo">
-              <span>👤</span>
+              <img src={daphneImg} alt="Daphne Grace M. Villagrvo" className="author-img" />
             </div>
 
             <div className="author-info">

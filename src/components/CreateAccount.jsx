@@ -8,8 +8,22 @@ import {
 
 import { ref, set } from "firebase/database";
 
+// =========================================================
+// AUTHENTICATION FIREBASE
+// NEW: frends-authentication
+// =========================================================
+
 import {
   auth,
+} from "../firebase/authConfig";
+
+// =========================================================
+// MAIN FRENDS FIREBASE
+// EXISTING: frends-v3
+// USED FOR REALTIME DATABASE
+// =========================================================
+
+import {
   database,
 } from "../firebase/firebaseConfig";
 
@@ -108,6 +122,7 @@ function CreateAccount({ onBackToLogin }) {
 
       // =====================================================
       // CREATE FIREBASE AUTH ACCOUNT
+      // USING frends-authentication
       // =====================================================
 
       const userCredential =
@@ -134,6 +149,12 @@ function CreateAccount({ onBackToLogin }) {
       // =====================================================
       //
       // IMPORTANT:
+      //
+      // Authentication is handled by:
+      // frends-authentication
+      //
+      // User information is stored in:
+      // frends-v3 Realtime Database
       //
       // EVERY ACCOUNT CREATED THROUGH THIS PAGE
       // IS AUTOMATICALLY A NORMAL USER.

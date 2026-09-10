@@ -11,7 +11,7 @@ import { database } from "../firebase/firebaseConfig";
 // ==========================================
 const NODE_NAMES = {
   "node-01": "Leon Guinto St., Manila",
-  "node-02": "Remeidios St., Manila",
+  "node-02": "Remedios St., Manila",
   "node-03": "Pilar Hidalgo St., Manila",
   "node-04": "San Andres St., Manila",
   "node-05": "Maginhawa St., Manila",
@@ -27,10 +27,10 @@ const NODE_NAMES = {
 // ==========================================
 // Firebase stores flood level in centimeters.
 //
-// 0 - 10 cm       = Normal
-// >10 - 25 cm     = Caution
-// >25 - 50 cm     = Warning
-// >50 cm          = Critical
+// 0 - 10 cm      = Normal
+// >10 - 25 cm    = Caution
+// >25 - 50 cm    = Warning
+// >50 cm         = Critical
 //
 // Displayed to the user in feet.
 //
@@ -198,7 +198,7 @@ function NodeCard({ node }) {
             {node.id}
           </span>
 
-          <h4 className="node-location-name">
+          <h4 className="node-location-name" style={{ textTransform: "none" }}>
             {nodeName}
           </h4>
 
@@ -242,7 +242,7 @@ function NodeCard({ node }) {
 
         {/* =================================
             FLOOD STATUS BADGE
-        ================================= */}
+        ================================_ */}
         <span
           className={`node-flood-badge ${flood.className}`}
         >
@@ -334,10 +334,10 @@ function NodeCard({ node }) {
 // FLOOD LEVEL GUIDE DATA
 // ==========================================
 //
-// 0 - 10 cm       = 0 - 0.33 ft
-// >10 - 25 cm     = >0.33 - 0.82 ft
-// >25 - 50 cm     = >0.82 - 1.64 ft
-// >50 cm          = Above 1.64 ft
+// 0 - 10 cm      = 0 - 0.33 ft
+// >10 - 25 cm    = >0.33 - 0.82 ft
+// >25 - 50 cm    = >0.82 - 1.64 ft
+// >50 cm         = Above 1.64 ft
 // ==========================================
 const floodLevels = [
   {
