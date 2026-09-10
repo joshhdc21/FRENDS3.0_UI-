@@ -152,9 +152,20 @@ export default function MapSection({ onNavigate, onLogout }) {
                                 const data = await res.json();
                                 if (data.addresses && data.addresses.length > 0) {
                                     const addr = data.addresses[0].address;
-                                    const placeName = addr.municipality || addr.city || addr.freeformAddress;
-                                    if (placeName) {
-                                        setCurrentLocationName(placeName);
+                                    
+                                    // Extract City and Province
+                                    const city = addr.municipality || addr.city || addr.localName;
+                                    const prov = addr.countrySubdivision; 
+                                    
+                                    if (city && prov && city !== prov) {
+                                        setCurrentLocationName(`${city}, ${prov}`);
+                                        placeFound = true;
+                                    } else if (addr.freeformAddress) {
+                                        // TomTom's freeform address usually nails the format perfectly. Strip "Philippines" if it exists.
+                                        setCurrentLocationName(addr.freeformAddress.replace(", Philippines", ""));
+                                        placeFound = true;
+                                    } else if (city) {
+                                        setCurrentLocationName(city);
                                         placeFound = true;
                                     }
                                 }
@@ -168,13 +179,22 @@ export default function MapSection({ onNavigate, onLogout }) {
                     if (!placeFound) {
                         try {
                             console.log("TomTom failed. Using free OSM fallback...");
-                            const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
+                            // Using standard reverse geocoding to get full address hierarchy
+                            const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
                             if (osmRes.ok) {
                                 const osmData = await osmRes.json();
                                 if (osmData && osmData.address) {
-                                    const placeName = osmData.address.city || osmData.address.town || osmData.address.municipality || osmData.address.suburb;
-                                    if (placeName) {
-                                        setCurrentLocationName(placeName);
+                                    const addr = osmData.address;
+                                    
+                                    // Extract City and Province
+                                    const city = addr.city || addr.town || addr.municipality || addr.suburb;
+                                    const prov = addr.province || addr.state || addr.region;
+                                    
+                                    if (city && prov && city !== prov) {
+                                        setCurrentLocationName(`${city}, ${prov}`);
+                                        placeFound = true;
+                                    } else if (city || prov) {
+                                        setCurrentLocationName(city || prov);
                                         placeFound = true;
                                     }
                                 }
@@ -184,7 +204,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                         }
                     }
 
-                    // ATTEMPT 3: The Ultimate (Less Goofy) Fallback
+                    // ATTEMPT 3: The Ultimate Fallback
                     if (!placeFound) {
                         setCurrentLocationName("an unmapped area"); // Renders: "You are currently in an unmapped area"
                     }
@@ -200,7 +220,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             );
         }
     }, [TOMTOM_API_KEY]);
-
+    
     useEffect(() => {
         const loadVoices = () => {
             const availableVoices = window.speechSynthesis.getVoices();
