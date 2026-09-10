@@ -124,7 +124,6 @@ export default function MapSection({ onNavigate, onLogout }) {
         btnText: theme === 'dark' ? '#202124' : '#ffffff'
     };
 
-    // AUTO-LOCATE USER & BULLETPROOF LOCATION BANNER ON LOAD
     useEffect(() => {
         setShowLocationBanner(true);
         const timer = setTimeout(() => setShowLocationBanner(false), 5000);
@@ -137,8 +136,11 @@ export default function MapSection({ onNavigate, onLogout }) {
                     const latlng = [lat, lon];
                     setMapCenter(latlng);
                     setLiveLocation(latlng);
-                    setOrigin({ latlng, title: "Your Location" });
-                    setOriginQuery("Your Location");
+                    
+                    if (!originRef.current) {
+                        setOrigin({ latlng, title: "Your Location" });
+                        setOriginQuery("Your Location");
+                    }
 
                     if (TOMTOM_API_KEY && TOMTOM_API_KEY !== "undefined") {
                         try {
@@ -376,7 +378,7 @@ export default function MapSection({ onNavigate, onLogout }) {
 
     // ADAPTIVE PATH & OFF-ROUTE DETECTION
     useEffect(() => {
-        if (!liveLocation || routeSegments.length === 0 || isCalculating) return;
+        if (!driveMode || !liveLocation || routeSegments.length === 0 || isCalculating) return;
 
         let minDistance = Infinity;
         let closestIdx = 0;
@@ -416,8 +418,6 @@ export default function MapSection({ onNavigate, onLogout }) {
             fetchRoute(true, liveLocation); 
             return;
         }
-
-        if (!driveMode) return;
 
         let nextTurnIdx = flatPath.length - 1;
         let action = "Continue straight";
@@ -560,7 +560,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                 .bindPopup(popupHtml);
         });
 
-        // --- SPLIT ROUTE RENDERING (TRAVELED VS REMAINING) ---
         let flatPath = [];
         routeSegments.forEach(segment => {
             if (!segment || !Array.isArray(segment.coords)) return;
@@ -572,35 +571,32 @@ export default function MapSection({ onNavigate, onLogout }) {
         });
 
         if (flatPath.length > 0) {
-            let closestIdx = 0;
-            const currentLoc = liveLocation || (origin ? origin.latlng : null);
-            
-            if (currentLoc) {
-                let minDistance = Infinity;
-                flatPath.forEach((pt, idx) => {
-                    const dist = getDistanceInMeters(currentLoc[0], currentLoc[1], pt[0], pt[1]);
-                    if (dist < minDistance) {
-                        minDistance = dist;
-                        closestIdx = idx;
-                    }
-                });
-            }
+            if (driveMode) {
+                let closestIdx = 0;
+                if (liveLocation) {
+                    let minDistance = Infinity;
+                    flatPath.forEach((pt, idx) => {
+                        const dist = getDistanceInMeters(liveLocation[0], liveLocation[1], pt[0], pt[1]);
+                        if (dist < minDistance) {
+                            minDistance = dist;
+                            closestIdx = idx;
+                        }
+                    });
+                }
 
-            const traveledPath = closestIdx > 0 ? flatPath.slice(0, closestIdx + 1) : [];
-            const remainingPath = flatPath.slice(closestIdx);
+                const traveledPath = closestIdx > 0 ? flatPath.slice(0, closestIdx + 1) : [];
+                const remainingPath = flatPath.slice(closestIdx);
 
-            // Render Traveled Path (Muted grey/dimmed)
-            if (traveledPath.length > 1) {
-                L.polyline(traveledPath, { color: '#4a5568', weight: driveMode ? 10 : 7, opacity: 0.7, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
-            }
-
-            // Render Remaining Path (FRENDS Blue)
-            if (remainingPath.length > 1) {
-                L.polyline(remainingPath, { color: '#111827', weight: driveMode ? 12 : 9, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
-                L.polyline(remainingPath, { color: ui.accentBlue, weight: driveMode ? 8 : 5, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
-            } else if (flatPath.length > 1 && traveledPath.length === 0) {
-                L.polyline(flatPath, { color: '#111827', weight: driveMode ? 12 : 9, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
-                L.polyline(flatPath, { color: ui.accentBlue, weight: driveMode ? 8 : 5, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                if (traveledPath.length > 1) {
+                    L.polyline(traveledPath, { color: '#4a5568', weight: 10, opacity: 0.7, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                }
+                if (remainingPath.length > 1) {
+                    L.polyline(remainingPath, { color: '#111827', weight: 12, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                    L.polyline(remainingPath, { color: ui.accentBlue, weight: 8, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                }
+            } else {
+                L.polyline(flatPath, { color: '#111827', weight: 9, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                L.polyline(flatPath, { color: ui.accentBlue, weight: 5, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
             }
         }
 
@@ -785,10 +781,21 @@ export default function MapSection({ onNavigate, onLogout }) {
                 }
 
                 setNavStep({ distance: "Calculating m", action: "Head straight", arrow: "↱" });
-                setRouteInfo({ distance: (data.distance / 1000).toFixed(1), time: Math.round(data.time / 60) });
+                
+                // FIXED: Enforce a 1-minute minimum to stop "0 min" errors
+                setRouteInfo({ 
+                    distance: (data.distance / 1000).toFixed(1), 
+                    time: Math.max(1, Math.round(data.time / 60)) 
+                });
+            } else {
+                alert(`⚠️ Routing Error: ${data.message || 'Unable to calculate path.'}`);
+                clearMap();
             }
-        } catch (error) { console.error("API error:", error); } 
-        finally { setIsCalculating(false); }
+        } catch (error) { 
+            console.error("API error:", error); 
+            alert("🚨 Network Error: Could not connect to the FRENDS 3.0 routing server.");
+            clearMap();
+        } finally { setIsCalculating(false); }
     };
 
     const startDriveMode = () => {
@@ -881,7 +888,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                         z-index: 6800;
                     }
 
-                    /* Sidebar styled to match the supplied FRENDS navigation reference. */
                     .frends-map-menu {
                         position: absolute;
                         top: 0;
@@ -1074,663 +1080,69 @@ export default function MapSection({ onNavigate, onLogout }) {
 
             <div ref={mapRef} style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 1 }} />
 
- {/* =========================================================
-    FRENDS SLIDE-OUT NAVIGATION MENU
-    ========================================================= */}
-
-{!driveMode && (
-   <aside
-  aria-label="FRENDS Navigation"
-  style={{
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    bottom: 0,
-    width: 'calc(100% - 48px)', // Leaves a narrow slice on mobile (e.g. iPhone XR)
-    maxWidth: '450px',           // Keeps a clean sidebar width on iPad and Desktop
-    backgroundColor: ui.panelBg,
-    color: ui.textMain,
-    zIndex: 7000,
-    display: 'flex',
-    flexDirection: 'column',
-    boxSizing: 'border-box',
-
-            /* LEFT SLIDE */
-            transform: menuOpen
-                ? 'translateX(0)'
-                : 'translateX(-105%)',
-
-            transition:
-                'transform 0.3s cubic-bezier(.22,1,.36,1)',
-
-            boxShadow: '10px 0 34px rgba(0,0,0,0.42)',
-            overflow: 'hidden',
-            paddingTop: 'env(safe-area-inset-top)'
-        }}
-    >
-
-        {/* =====================================================
-            MENU HEADER
-            ===================================================== */}
-        <div
-            style={{
-                padding: isMobile
-                    ? '24px 24px 18px'
-                    : '25px 32px 18px',
-
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-
-                borderBottom:
-                    `1px solid ${ui.border}`,
-
-                flexShrink: 0,
-                boxSizing: 'border-box'
-            }}
-        >
-
-            {/* BRAND */}
-            <div>
-                <div
-                    style={{
-                        fontSize: isMobile ? '14px' : '15px',
-                        fontWeight: 700,
-                        letterSpacing: '1.4px',
-                         color: theme === 'dark' ? '#9AA0A6' : '#5F6368',
-                        textTransform: 'uppercase',
-                        marginBottom: '3px'
-                    }}
-                >
-                    FRENDS
-                </div>
-
-                <div
-                    style={{
-                        fontSize: isMobile ? '27px' : '30px',
-                        fontWeight: 700,
-                        lineHeight: 1.1,
-                        color: ui.textMain
-                    }}
-                >
-                    Navigation
-                </div>
-            </div>
-
-            {/* CLOSE BUTTON */}
-            <button
-                type="button"
-                onClick={() => setMenuOpen(false)}
-                aria-label="Close navigation"
-                style={{
-                    width: isMobile ? '48px' : '52px',
-                    height: isMobile ? '48px' : '52px',
-
-                    minWidth: isMobile ? '48px' : '52px',
-                    minHeight: isMobile ? '48px' : '52px',
-
-                    border: `1px solid ${ui.border}`,
-                    borderRadius: '14px',
-
-                    backgroundColor: ui.inputBg,
+            {!driveMode && (
+               <aside
+                  aria-label="FRENDS Navigation"
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    bottom: 0,
+                    width: 'calc(100% - 48px)',
+                    maxWidth: '450px',
+                    backgroundColor: ui.panelBg,
                     color: ui.textMain,
-
+                    zIndex: 7000,
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-
-                    fontSize: '25px',
-                    fontWeight: 400,
-
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
+                    flexDirection: 'column',
+                    boxSizing: 'border-box',
+                    transform: menuOpen ? 'translateX(0)' : 'translateX(-105%)',
+                    transition: 'transform 0.3s cubic-bezier(.22,1,.36,1)',
+                    boxShadow: '10px 0 34px rgba(0,0,0,0.42)',
+                    overflow: 'hidden',
+                    paddingTop: 'env(safe-area-inset-top)'
                 }}
-
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                        theme === 'dark'
-                            ? '#3c4043'
-                            : '#e8eaed';
-                }}
-
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                        ui.inputBg;
-                }}
-            >
-                ×
-            </button>
-
-        </div>
-
-
-        {/* =====================================================
-            MENU ITEMS
-            ===================================================== */}
-        <div
-            style={{
-                flex: 1,
-                overflowY: 'auto',
-
-                padding: isMobile
-                    ? '4px 20px 18px'
-                    : '4px 24px 22px',
-
-                boxSizing: 'border-box'
-            }}
-        >
-
-            {/* =================================================
-                MAIN
-                ================================================= */}
-            <div
-                style={{
-                    padding: isMobile
-                        ? '17px 8px 9px'
-                        : '18px 10px 9px',
-
-                    fontSize: isMobile
-                        ? '12px'
-                        : '13px',
-
-                    fontWeight: 700,
-                    letterSpacing: '1.1px',
-                    color: ui.textMuted,
-                    textTransform: 'uppercase'
-                }}
-            >
-                MAIN
-            </div>
-
-
-            {/* MAP */}
-            <button
-                type="button"
-                onClick={() => {
-                    setMenuOpen(false);
-                }}
-                style={{
-                    width: '100%',
-                    minHeight: isMobile ? '52px' : '56px',
-
-                    padding: '7px 10px',
-
-                    border: 'none',
-                    borderRadius: '13px',
-
-                    backgroundColor: 'transparent',
-                    color: ui.textMain,
-
-                    display: 'flex',
-                    alignItems: 'center',
-
-                    gap: isMobile ? '12px' : '14px',
-
-                    fontSize: isMobile
-                        ? '16px'
-                        : '17px',
-
-                    fontWeight: 600,
-
-                    cursor: 'pointer',
-                    textAlign: 'left',
-
-                    transition:
-                        'background-color 0.18s ease'
-                }}
-
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                        theme === 'dark'
-                            ? '#303134'
-                            : '#f1f3f4';
-                }}
-
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                        'transparent';
-                }}
-            >
-
-                <span
-                    style={{
-                        width: isMobile ? '36px' : '38px',
-                        height: isMobile ? '36px' : '38px',
-
-                        minWidth: isMobile ? '36px' : '38px',
-                        minHeight: isMobile ? '36px' : '38px',
-
-                        borderRadius: '11px',
-
-                        backgroundColor: ui.inputBg,
-
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-
-                        fontSize: isMobile
-                            ? '18px'
-                            : '19px',
-
-                        lineHeight: 1
-                    }}
                 >
-                    ◉
-                </span>
-
-                <span>
-                    Map
-                </span>
-
-            </button>
-
-
-            {/* =================================================
-                MONITORING
-                ================================================= */}
-            <div
-                style={{
-                    padding: isMobile
-                        ? '19px 8px 9px'
-                        : '20px 10px 9px',
-
-                    fontSize: isMobile
-                        ? '12px'
-                        : '13px',
-
-                    fontWeight: 700,
-                    letterSpacing: '1.1px',
-                    color: ui.textMuted,
-                    textTransform: 'uppercase'
-                }}
-            >
-                MONITORING
-            </div>
-
-
-            {/* FLOOD / TRAFFIC / NEWS */}
-            {[
-                {
-                    label: 'Flood',
-                    icon: '≋',
-                    action: 'nodes'
-                },
-                {
-                    label: 'Traffic',
-                    icon: '🚦',
-                    action: 'traffic'
-                },
-                {
-                    label: 'News',
-                    icon: '▣',
-                    action: 'dashboard'
-                }
-            ].map((item) => (
-
-                <button
-                    key={item.label}
-                    type="button"
-
-                    onClick={() => {
-                        setMenuOpen(false);
-
-                        if (onNavigate) {
-                            onNavigate(item.action);
-                        }
-                    }}
-
-                    style={{
-                        width: '100%',
-                        minHeight: isMobile
-                            ? '52px'
-                            : '56px',
-
-                        padding: '7px 10px',
-
-                        border: 'none',
-                        borderRadius: '13px',
-
-                        backgroundColor: 'transparent',
-                        color: ui.textMain,
-
-                        display: 'flex',
-                        alignItems: 'center',
-
-                        gap: isMobile
-                            ? '12px'
-                            : '14px',
-
-                        fontSize: isMobile
-                            ? '16px'
-                            : '17px',
-
-                        fontWeight: 600,
-
-                        cursor: 'pointer',
-                        textAlign: 'left',
-
-                        transition:
-                            'background-color 0.18s ease'
-                    }}
-
-                    onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                            theme === 'dark'
-                                ? '#303134'
-                                : '#f1f3f4';
-                    }}
-
-                    onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor =
-                            'transparent';
-                    }}
-                >
-
-                    <span
-                        style={{
-                            width: isMobile ? '36px' : '38px',
-                            height: isMobile ? '36px' : '38px',
-
-                            minWidth: isMobile
-                                ? '36px'
-                                : '38px',
-
-                            minHeight: isMobile
-                                ? '36px'
-                                : '38px',
-
-                            borderRadius: '11px',
-
-                            backgroundColor: ui.inputBg,
-
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-
-                            fontSize:
-                                item.label === 'Traffic'
-                                    ? '18px'
-                                    : '19px',
-
-                            lineHeight: 1
-                        }}
-                    >
-                        {item.icon}
-                    </span>
-
-                    <span>
-                        {item.label}
-                    </span>
-
-                </button>
-
-            ))}
-
-
-            {/* =================================================
-                INFORMATION
-                ================================================= */}
-            <div
-                style={{
-                    padding: isMobile
-                        ? '19px 8px 9px'
-                        : '20px 10px 9px',
-
-                    fontSize: isMobile
-                        ? '12px'
-                        : '13px',
-
-                    fontWeight: 700,
-                    letterSpacing: '1.1px',
-                    color: ui.textMuted,
-                    textTransform: 'uppercase'
-                }}
-            >
-                INFORMATION
-            </div>
-
-
-            {/* ABOUT FRENDS */}
-            <button
-                type="button"
-                onClick={() => {
-                    setMenuOpen(false);
-
-                    if (onNavigate) {
-                        onNavigate('about');
-                    }
-                }}
-
-                style={{
-                    width: '100%',
-                    minHeight: isMobile
-                        ? '52px'
-                        : '56px',
-
-                    padding: '7px 10px',
-
-                    border: 'none',
-                    borderRadius: '13px',
-
-                    backgroundColor: 'transparent',
-                    color: ui.textMain,
-
-                    display: 'flex',
-                    alignItems: 'center',
-
-                    gap: isMobile
-                        ? '12px'
-                        : '14px',
-
-                    fontSize: isMobile
-                        ? '16px'
-                        : '17px',
-
-                    fontWeight: 600,
-
-                    cursor: 'pointer',
-                    textAlign: 'left',
-
-                    transition:
-                        'background-color 0.18s ease'
-                }}
-
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                        theme === 'dark'
-                            ? '#303134'
-                            : '#f1f3f4';
-                }}
-
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                        'transparent';
-                }}
-            >
-
-                <span
-                    style={{
-                        width: isMobile ? '36px' : '38px',
-                        height: isMobile ? '36px' : '38px',
-
-                        minWidth: isMobile
-                            ? '36px'
-                            : '38px',
-
-                        minHeight: isMobile
-                            ? '36px'
-                            : '38px',
-
-                        borderRadius: '11px',
-
-                        backgroundColor: ui.inputBg,
-
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-
-                        fontSize: '19px',
-                        lineHeight: 1
-                    }}
-                >
-                    i
-                </span>
-
-                <span>
-                    About FRENDS
-                </span>
-
-            </button>
-
-
-            {/* LOGOUT */}
-            <button
-                type="button"
-                onClick={() => {
-                    setMenuOpen(false);
-
-                    if (onLogout) {
-                        onLogout();
-                    }
-                }}
-
-                style={{
-                    width: '100%',
-                    minHeight: isMobile
-                        ? '52px'
-                        : '56px',
-
-                    padding: '7px 10px',
-
-                    border: 'none',
-                    borderRadius: '13px',
-
-                    backgroundColor: 'transparent',
-                    color: ui.textMain,
-
-                    display: 'flex',
-                    alignItems: 'center',
-
-                    gap: isMobile
-                        ? '12px'
-                        : '14px',
-
-                    fontSize: isMobile
-                        ? '16px'
-                        : '17px',
-
-                    fontWeight: 600,
-
-                    cursor: 'pointer',
-                    textAlign: 'left',
-
-                    transition:
-                        'background-color 0.18s ease'
-                }}
-
-                onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                        theme === 'dark'
-                            ? '#303134'
-                            : '#f1f3f4';
-                }}
-
-                onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor =
-                        'transparent';
-                }}
-            >
-
-                <span
-                    style={{
-                        width: isMobile ? '36px' : '38px',
-                        height: isMobile ? '36px' : '38px',
-
-                        minWidth: isMobile
-                            ? '36px'
-                            : '38px',
-
-                        minHeight: isMobile
-                            ? '36px'
-                            : '38px',
-
-                        borderRadius: '11px',
-
-                        backgroundColor: ui.inputBg,
-
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-
-                        fontSize: '19px',
-                        lineHeight: 1
-                    }}
-                >
-                    ↪
-                </span>
-
-                <span>
-                    Logout
-                </span>
-
-            </button>
-
-        </div>
-
-
-        {/* =====================================================
-            MENU FOOTER / STATUS
-            ===================================================== */}
-        <div
-            style={{
-                borderTop:
-                    `1px solid ${ui.border}`,
-
-                padding: isMobile
-                    ? '12px 24px'
-                    : '14px 32px',
-
-                display: 'flex',
-                alignItems: 'center',
-
-                flexShrink: 0,
-                boxSizing: 'border-box'
-            }}
-        >
-
-            <div
-                style={{
-                    width: '8px',
-                    height: '8px',
-
-                    borderRadius: '50%',
-
-                    backgroundColor:
-                        ui.accentGreen,
-
-                    marginRight: '9px',
-
-                    boxShadow:
-                        `0 0 8px ${ui.accentGreen}`
-                }}
-            />
-
-            <span
-                style={{
-                    fontSize: isMobile
-                        ? '12px'
-                        : '13px',
-
-                    color: ui.textMuted
-                }}
-            >
-                FRENDS map is active
-            </span>
-
-        </div>
-
-    </aside>
-)}
+                    <div style={{ padding: isMobile ? '24px 24px 18px' : '25px 32px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${ui.border}`, flexShrink: 0, boxSizing: 'border-box' }}>
+                        <div>
+                            <div style={{ fontSize: isMobile ? '14px' : '15px', fontWeight: 700, letterSpacing: '1.4px', color: theme === 'dark' ? '#9AA0A6' : '#5F6368', textTransform: 'uppercase', marginBottom: '3px' }}>FRENDS</div>
+                            <div style={{ fontSize: isMobile ? '27px' : '30px', fontWeight: 700, lineHeight: 1.1, color: ui.textMain }}>Navigation</div>
+                        </div>
+                        <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close navigation" style={{ width: isMobile ? '48px' : '52px', height: isMobile ? '48px' : '52px', minWidth: isMobile ? '48px' : '52px', minHeight: isMobile ? '48px' : '52px', border: `1px solid ${ui.border}`, borderRadius: '14px', backgroundColor: ui.inputBg, color: ui.textMain, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '25px', fontWeight: 400, cursor: 'pointer', transition: 'all 0.2s ease' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3c4043' : '#e8eaed'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ui.inputBg; }}>×</button>
+                    </div>
+
+                    <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '4px 20px 18px' : '4px 24px 22px', boxSizing: 'border-box' }}>
+                        <div style={{ padding: isMobile ? '17px 8px 9px' : '18px 10px 9px', fontSize: isMobile ? '12px' : '13px', fontWeight: 700, letterSpacing: '1.1px', color: ui.textMuted, textTransform: 'uppercase' }}>MAIN</div>
+                        <button type="button" onClick={() => { setMenuOpen(false); }} style={{ width: '100%', minHeight: isMobile ? '52px' : '56px', padding: '7px 10px', border: 'none', borderRadius: '13px', backgroundColor: 'transparent', color: ui.textMain, display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '14px', fontSize: isMobile ? '16px' : '17px', fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'background-color 0.18s ease' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme === 'dark' ? '#303134' : '#f1f3f4'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
+                            <span style={{ width: isMobile ? '36px' : '38px', height: isMobile ? '36px' : '38px', minWidth: isMobile ? '36px' : '38px', minHeight: isMobile ? '36px' : '38px', borderRadius: '11px', backgroundColor: ui.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? '18px' : '19px', lineHeight: 1 }}>◉</span>
+                            <span>Map</span>
+                        </button>
+
+                        <div style={{ padding: isMobile ? '19px 8px 9px' : '20px 10px 9px', fontSize: isMobile ? '12px' : '13px', fontWeight: 700, letterSpacing: '1.1px', color: ui.textMuted, textTransform: 'uppercase' }}>MONITORING</div>
+                        {[ { label: 'Flood', icon: '≋', action: 'nodes' }, { label: 'Traffic', icon: '🚦', action: 'traffic' }, { label: 'News', icon: '▣', action: 'dashboard' } ].map((item) => (
+                            <button key={item.label} type="button" onClick={() => { setMenuOpen(false); if (onNavigate) { onNavigate(item.action); } }} style={{ width: '100%', minHeight: isMobile ? '52px' : '56px', padding: '7px 10px', border: 'none', borderRadius: '13px', backgroundColor: 'transparent', color: ui.textMain, display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '14px', fontSize: isMobile ? '16px' : '17px', fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'background-color 0.18s ease' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme === 'dark' ? '#303134' : '#f1f3f4'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
+                                <span style={{ width: isMobile ? '36px' : '38px', height: isMobile ? '36px' : '38px', minWidth: isMobile ? '36px' : '38px', minHeight: isMobile ? '36px' : '38px', borderRadius: '11px', backgroundColor: ui.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: item.label === 'Traffic' ? '18px' : '19px', lineHeight: 1 }}>{item.icon}</span>
+                                <span>{item.label}</span>
+                            </button>
+                        ))}
+
+                        <div style={{ padding: isMobile ? '19px 8px 9px' : '20px 10px 9px', fontSize: isMobile ? '12px' : '13px', fontWeight: 700, letterSpacing: '1.1px', color: ui.textMuted, textTransform: 'uppercase' }}>INFORMATION</div>
+                        <button type="button" onClick={() => { setMenuOpen(false); if (onNavigate) { onNavigate('about'); } }} style={{ width: '100%', minHeight: isMobile ? '52px' : '56px', padding: '7px 10px', border: 'none', borderRadius: '13px', backgroundColor: 'transparent', color: ui.textMain, display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '14px', fontSize: isMobile ? '16px' : '17px', fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'background-color 0.18s ease' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme === 'dark' ? '#303134' : '#f1f3f4'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
+                            <span style={{ width: isMobile ? '36px' : '38px', height: isMobile ? '36px' : '38px', minWidth: isMobile ? '36px' : '38px', minHeight: isMobile ? '36px' : '38px', borderRadius: '11px', backgroundColor: ui.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px', lineHeight: 1 }}>i</span>
+                            <span>About FRENDS</span>
+                        </button>
+                        <button type="button" onClick={() => { setMenuOpen(false); if (onLogout) { onLogout(); } }} style={{ width: '100%', minHeight: isMobile ? '52px' : '56px', padding: '7px 10px', border: 'none', borderRadius: '13px', backgroundColor: 'transparent', color: ui.textMain, display: 'flex', alignItems: 'center', gap: isMobile ? '12px' : '14px', fontSize: isMobile ? '16px' : '17px', fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'background-color 0.18s ease' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme === 'dark' ? '#303134' : '#f1f3f4'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}>
+                            <span style={{ width: isMobile ? '36px' : '38px', height: isMobile ? '36px' : '38px', minWidth: isMobile ? '36px' : '38px', minHeight: isMobile ? '36px' : '38px', borderRadius: '11px', backgroundColor: ui.inputBg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '19px', lineHeight: 1 }}>↪</span>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+
+                    <div style={{ borderTop: `1px solid ${ui.border}`, padding: isMobile ? '12px 24px' : '14px 32px', display: 'flex', alignItems: 'center', flexShrink: 0, boxSizing: 'border-box' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: ui.accentGreen, marginRight: '9px', boxShadow: `0 0 8px ${ui.accentGreen}` }} />
+                        <span style={{ fontSize: isMobile ? '12px' : '13px', color: ui.textMuted }}>FRENDS map is active</span>
+                    </div>
+                </aside>
+            )}
 
             {/* CURRENT LOCATION REMINDER TOAST BANNER */}
             {showLocationBanner && currentLocationName && (
@@ -1783,45 +1195,15 @@ export default function MapSection({ onNavigate, onLogout }) {
                             <span style={{ fontSize: '20px' }}>🐢</span>
                             <span style={{ fontSize: '15px', fontWeight: '600' }}>Heavy traffic ahead</span>
                         </div>
-                        <button 
-                            onClick={() => setShowTrafficPrompt(false)} 
-                            style={{ background: 'none', border: 'none', color: ui.textMuted, fontSize: '18px', cursor: 'pointer' }}
-                        >
-                            ✕
-                        </button>
+                        <button onClick={() => setShowTrafficPrompt(false)} style={{ background: 'none', border: 'none', color: ui.textMuted, fontSize: '18px', cursor: 'pointer' }}>✕</button>
                     </div>
-
-                    <span style={{ fontSize: '13px', color: ui.textMuted }}>
-                        Traffic is moving slow. Is there a hazard causing this?
-                    </span>
-
+                    <span style={{ fontSize: '13px', color: ui.textMuted }}>Traffic is moving slow. Is there a hazard causing this?</span>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                        <button 
-                            onClick={() => { submitReport('Accident'); setShowTrafficPrompt(false); }} 
-                            style={{ backgroundColor: ui.inputBg, border: 'none', borderRadius: '10px', padding: '10px 4px', color: ui.textMain, fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
-                        >
-                            💥 Accident
-                        </button>
-                        <button 
-                            onClick={() => { submitReport('Construction'); setShowTrafficPrompt(false); }} 
-                            style={{ backgroundColor: ui.inputBg, border: 'none', borderRadius: '10px', padding: '10px 4px', color: ui.textMain, fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
-                        >
-                            🚧 Roadwork
-                        </button>
-                        <button 
-                            onClick={() => { submitReport('Hazard'); setShowTrafficPrompt(false); }} 
-                            style={{ backgroundColor: ui.inputBg, border: 'none', borderRadius: '10px', padding: '10px 4px', color: ui.textMain, fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}
-                        >
-                            ⚠️ Hazard
-                        </button>
+                        <button onClick={() => { submitReport('Accident'); setShowTrafficPrompt(false); }} style={{ backgroundColor: ui.inputBg, border: 'none', borderRadius: '10px', padding: '10px 4px', color: ui.textMain, fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>💥 Accident</button>
+                        <button onClick={() => { submitReport('Construction'); setShowTrafficPrompt(false); }} style={{ backgroundColor: ui.inputBg, border: 'none', borderRadius: '10px', padding: '10px 4px', color: ui.textMain, fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>🚧 Roadwork</button>
+                        <button onClick={() => { submitReport('Hazard'); setShowTrafficPrompt(false); }} style={{ backgroundColor: ui.inputBg, border: 'none', borderRadius: '10px', padding: '10px 4px', color: ui.textMain, fontSize: '13px', fontWeight: '500', cursor: 'pointer' }}>⚠️ Hazard</button>
                     </div>
-
-                    <button 
-                        onClick={() => setShowTrafficPrompt(false)} 
-                        style={{ backgroundColor: 'transparent', border: 'none', color: ui.textMuted, fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center', marginTop: '2px' }}
-                    >
-                        No, just traffic
-                    </button>
+                    <button onClick={() => setShowTrafficPrompt(false)} style={{ backgroundColor: 'transparent', border: 'none', color: ui.textMuted, fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center', marginTop: '2px' }}>No, just traffic</button>
                 </div>
             )}
 
@@ -1839,22 +1221,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                         onClick={() => setMenuOpen(prev => !prev)}
                         aria-label={menuOpen ? "Close FRENDS menu" : "Open FRENDS menu"}
                         aria-expanded={menuOpen}
-                        style={{
-                            width: isMobile ? '38px' : '40px',
-                            height: isMobile ? '38px' : '40px',
-                            flexShrink: 0,
-                            border: 'none',
-                            borderRadius: '50%',
-                            backgroundColor: ui.inputBg,
-                            color: ui.textMain,
-                            fontSize: isMobile ? '20px' : '21px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                            transition: 'all 0.2s ease'
-                        }}
+                        style={{ width: isMobile ? '38px' : '40px', height: isMobile ? '38px' : '40px', flexShrink: 0, border: 'none', borderRadius: '50%', backgroundColor: ui.inputBg, color: ui.textMain, fontSize: isMobile ? '20px' : '21px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', transition: 'all 0.2s ease' }}
                     >
                         {menuOpen ? '×' : '☰'}
                     </button>
@@ -1865,23 +1232,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                         onClick={() => setShowTraffic(prev => !prev)}
                         aria-label={showTraffic ? "Hide traffic" : "Show traffic"}
                         title={showTraffic ? "Hide Traffic" : "Show Traffic"}
-                        style={{
-                            width: isMobile ? '38px' : '40px',
-                            height: isMobile ? '38px' : '40px',
-                            flexShrink: 0,
-                            border: `2px solid ${showTraffic ? ui.accentGreen : ui.border}`,
-                            borderRadius: '50%',
-                            backgroundColor: ui.inputBg,
-                            color: ui.textMain,
-                            fontSize: isMobile ? '18px' : '19px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.25)',
-                            opacity: showTraffic ? 1 : 0.75,
-                            transition: 'all 0.2s ease'
-                        }}
+                        style={{ width: isMobile ? '38px' : '40px', height: isMobile ? '38px' : '40px', flexShrink: 0, border: `2px solid ${showTraffic ? ui.accentGreen : ui.border}`, borderRadius: '50%', backgroundColor: ui.inputBg, color: ui.textMain, fontSize: isMobile ? '18px' : '19px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', opacity: showTraffic ? 1 : 0.75, transition: 'all 0.2s ease' }}
                     >
                         🚦
                     </button>
@@ -1982,7 +1333,9 @@ export default function MapSection({ onNavigate, onLogout }) {
                             <span style={{ fontSize: '32px', fontWeight: 'bold', color: ui.accentBlue }}>{routeInfo.time} min</span>
                             <span style={{ fontSize: '18px', color: ui.textMuted }}>({routeInfo.distance} km)</span>
                         </div>
-                        <span style={{ color: ui.textMuted, fontSize: '14px', marginTop: '2px' }}>Fastest route with normal traffic</span>
+                        <span style={{ color: ui.textMuted, fontSize: '14px', marginTop: '2px' }}>
+                            Arrive around <b style={{color: ui.textMain}}>{new Date(Date.now() + routeInfo.time * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</b> • Adjusted for live conditions
+                        </span>
                     </div>
                     <div style={{ display: 'flex', gap: '12px' }}>
                         <button style={{ flex: 1, backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', borderRadius: '24px', padding: '14px', fontSize: '15px', fontWeight: 'bold' }}>Steps</button>
