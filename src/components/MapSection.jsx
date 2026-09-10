@@ -1133,7 +1133,7 @@ export default function MapSection({ onNavigate, onLogout }) {
 
             {!driveMode && (
                <aside
-                  aria-label="FRENDS Navigation"
+                  aria-label="Flood Road Eye Navigation and Detection System"
                   style={{
                     position: 'absolute',
                     top: 0,
@@ -1156,8 +1156,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 >
                     <div style={{ padding: isMobile ? '24px 24px 18px' : '25px 32px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${ui.border}`, flexShrink: 0, boxSizing: 'border-box' }}>
                         <div>
-                            <div style={{ fontSize: isMobile ? '14px' : '15px', fontWeight: 700, letterSpacing: '1.4px', color: theme === 'dark' ? '#9AA0A6' : '#5F6368', textTransform: 'uppercase', marginBottom: '3px' }}>FRENDS</div>
-                            <div style={{ fontSize: isMobile ? '27px' : '30px', fontWeight: 700, lineHeight: 1.1, color: ui.textMain }}>Navigation</div>
+                            <div style={{ fontSize: isMobile ? '18px' : '20px', fontWeight: 350, letterSpacing: '0px', color: ui.textMain, textTransform: 'none', lineHeight: 1.2, marginBottom: '3px', maxWidth: isMobile ? '250px' : '320px' }}>FRENDS</div>
                         </div>
                         <button type="button" onClick={() => setMenuOpen(false)} aria-label="Close navigation" style={{ width: isMobile ? '48px' : '52px', height: isMobile ? '48px' : '52px', minWidth: isMobile ? '48px' : '52px', minHeight: isMobile ? '48px' : '52px', border: `1px solid ${ui.border}`, borderRadius: '14px', backgroundColor: ui.inputBg, color: ui.textMain, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '25px', fontWeight: 400, cursor: 'pointer', transition: 'all 0.2s ease' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = theme === 'dark' ? '#3c4043' : '#e8eaed'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = ui.inputBg; }}>×</button>
                     </div>

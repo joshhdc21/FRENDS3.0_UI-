@@ -7294,3 +7294,17 @@ html {
 .node-card p {
   text-transform: none;
 }
+
+
+/* =========================================================
+   NAVIGATION MENU TITLE
+========================================================= */
+
+.frends-map-menu-header h3 {
+  font-size: 18px !important;
+  font-weight: 400 !important;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: none;
+  margin: 0;
+}

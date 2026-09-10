@@ -46,7 +46,9 @@ import "./App.css";
 // =========================================================
 // ADMIN ACCOUNT
 // =========================================================
+//
 // IMPORTANT:
+//
 // Create this exact account in:
 // Firebase Console
 // → frends-authentication
@@ -63,6 +65,7 @@ import "./App.css";
 const ADMIN_EMAIL = "frendsadmin@gmail.com";
 
 function App() {
+
   // =========================================================
   // PAGE
   // =========================================================
@@ -137,6 +140,7 @@ function App() {
 
   const handleLogout = async () => {
     try {
+
       await signOut(auth);
 
       setUser(null);
@@ -144,8 +148,12 @@ function App() {
       setPage("map");
       setMenuOpen(false);
 
-      console.log("User logged out successfully.");
+      console.log(
+        "User logged out successfully."
+      );
+
     } catch (logoutError) {
+
       console.error(
         "Logout error:",
         logoutError
@@ -154,6 +162,7 @@ function App() {
       alert(
         "Failed to logout. Please try again."
       );
+
     }
   };
 
@@ -179,6 +188,7 @@ function App() {
   // =========================================================
 
   useEffect(() => {
+
     console.log(
       "Starting Firebase Authentication listener..."
     );
@@ -186,6 +196,7 @@ function App() {
     const unsubscribeAuth = onAuthStateChanged(
       auth,
       (currentUser) => {
+
         console.log(
           "Firebase Auth User:",
           currentUser
@@ -196,6 +207,7 @@ function App() {
         // =====================================================
 
         if (!currentUser) {
+
           setUser(null);
           setUserRole(null);
           setAuthLoading(false);
@@ -249,6 +261,7 @@ function App() {
           ADMIN_EMAIL.trim().toLowerCase();
 
         if (loggedInEmail === adminEmail) {
+
           console.log(
             "================================="
           );
@@ -277,14 +290,6 @@ function App() {
         // =====================================================
         // NORMAL USER
         // =====================================================
-        //
-        // Only regular accounts reach this section.
-        //
-        // Their role is checked in:
-        //
-        // users/{uid}/role
-        //
-        // =====================================================
 
         console.log(
           "Regular account detected."
@@ -299,6 +304,7 @@ function App() {
         const unsubscribeUser = onValue(
           userRef,
           (snapshot) => {
+
             const userData =
               snapshot.exists()
                 ? snapshot.val()
@@ -314,22 +320,28 @@ function App() {
             // =================================================
 
             if (userData?.role === "admin") {
+
               console.log(
                 "Admin role detected from Realtime Database."
               );
 
               setUserRole("admin");
+
             } else {
+
               // =================================================
               // NORMAL USER
               // =================================================
 
               setUserRole("user");
+
             }
 
             setAuthLoading(false);
+
           },
           (firebaseError) => {
+
             console.error(
               "Error reading user data:",
               firebaseError
@@ -341,18 +353,14 @@ function App() {
             setUserRole("user");
 
             setAuthLoading(false);
+
           }
         );
 
         // Store the cleanup function
-        // on the current effect scope.
-        //
-        // NOTE:
-        // This listener is also cleaned up when the
-        // authentication effect is recreated/unmounted.
-
         window.__frendsUserListenerCleanup =
           unsubscribeUser;
+
       }
     );
 
@@ -361,17 +369,22 @@ function App() {
     // =======================================================
 
     return () => {
+
       unsubscribeAuth();
 
       if (
         window.__frendsUserListenerCleanup
       ) {
+
         window.__frendsUserListenerCleanup();
 
         window.__frendsUserListenerCleanup =
           null;
+
       }
+
     };
+
   }, []);
 
   // =========================================================
@@ -379,8 +392,10 @@ function App() {
   // =========================================================
 
   useEffect(() => {
+
     // No user = do not listen to nodes
     if (!user) {
+
       setNodes({});
       setFirebaseConnected(false);
       setLoading(false);
@@ -402,6 +417,7 @@ function App() {
       onValue(
         nodesRef,
         (snapshot) => {
+
           const nodeData =
             snapshot.exists()
               ? snapshot.val()
@@ -417,8 +433,10 @@ function App() {
           setFirebaseConnected(true);
           setLoading(false);
           setError(null);
+
         },
         (firebaseError) => {
+
           console.error(
             "Firebase Database Error:",
             firebaseError
@@ -430,12 +448,14 @@ function App() {
 
           setFirebaseConnected(false);
           setLoading(false);
+
         }
       );
 
     return () => {
       unsubscribeDatabase();
     };
+
   }, [user]);
 
   // =========================================================
@@ -443,15 +463,21 @@ function App() {
   // =========================================================
 
   if (authLoading) {
+
     return (
+
       <div className="app-loading">
+
         <div className="loading-spinner"></div>
 
         <p>
           Loading FRENDS...
         </p>
+
       </div>
+
     );
+
   }
 
   // =========================================================
@@ -459,25 +485,21 @@ function App() {
   // =========================================================
 
   if (!user) {
+
     return <Login />;
+
   }
 
   // =========================================================
   // ADMIN ACCOUNT
   // =========================================================
-  //
-  // If:
-  //
-  // currentUser.email === "frendsadmin@gmail.com"
-  //
-  // the user automatically reaches this section.
-  //
-  // =========================================================
 
   if (userRole === "admin") {
+
     return (
       <AdminDashboard />
     );
+
   }
 
   // =========================================================
@@ -485,7 +507,9 @@ function App() {
   // =========================================================
 
   if (userRole === "user") {
+
     return (
+
       <div className="app frends-app">
 
         {/* =================================================
@@ -511,6 +535,7 @@ function App() {
         ================================================= */}
 
         {page !== "map" && (
+
           <div
             className={`frends-map-menu-overlay ${
               menuOpen
@@ -519,6 +544,7 @@ function App() {
             }`}
             onClick={closeMenu}
           ></div>
+
         )}
 
         {/* =================================================
@@ -526,29 +552,57 @@ function App() {
         ================================================= */}
 
         {page !== "map" && (
+
           <aside
             className={`frends-map-menu ${
               menuOpen
                 ? "open"
                 : ""
             }`}
+            aria-label="Flood Road Eye Navigation and Detection System"
           >
 
             {/* =============================================
                 MENU HEADER
             ============================================= */}
 
-            <div className="frends-map-menu-header">
+            <div
+              className="frends-map-menu-header"
+              style={{
+                borderBottom:
+                  "1px solid rgba(255, 255, 255, 0.10)",
+                paddingBottom: "16px",
+                marginBottom: "18px",
+              }}
+            >
 
               <div>
-                <span className="frends-map-menu-eyebrow">
-                  FRENDS
-                </span>
 
-                <h3>
-                  Navigation
+                {/* =========================================
+                    FULL SYSTEM TITLE
+                    Font Size: 16px
+                    Font Weight: 400
+                ========================================= */}
+
+                <h3
+                  style={{
+                    fontSize: "18px",
+                    fontWeight: 400,
+                    lineHeight: 1.2,
+                    color: "inherit",
+                    margin: 0,
+                    letterSpacing: "0px",
+                    textTransform: "none",
+                  }}
+                >
+                  FRENDS
                 </h3>
+
               </div>
+
+              {/* =========================================
+                  CLOSE BUTTON
+              ========================================= */}
 
               <button
                 type="button"
@@ -588,6 +642,7 @@ function App() {
                     handlePageChange("map")
                   }
                 >
+
                   <span className="frends-map-menu-icon">
                     ◉
                   </span>
@@ -595,6 +650,7 @@ function App() {
                   <span>
                     Map
                   </span>
+
                 </button>
 
               </div>
@@ -622,6 +678,7 @@ function App() {
                     handlePageChange("flood")
                   }
                 >
+
                   <span className="frends-map-menu-icon">
                     ≋
                   </span>
@@ -629,6 +686,7 @@ function App() {
                   <span>
                     Flood
                   </span>
+
                 </button>
 
                 {/* TRAFFIC */}
@@ -644,6 +702,7 @@ function App() {
                     handlePageChange("traffic")
                   }
                 >
+
                   <span className="frends-map-menu-icon">
                     🚦
                   </span>
@@ -651,6 +710,7 @@ function App() {
                   <span>
                     Traffic
                   </span>
+
                 </button>
 
                 {/* NEWS */}
@@ -668,6 +728,7 @@ function App() {
                     )
                   }
                 >
+
                   <span className="frends-map-menu-icon">
                     ◫
                   </span>
@@ -675,6 +736,7 @@ function App() {
                   <span>
                     News
                   </span>
+
                 </button>
 
               </div>
@@ -704,6 +766,7 @@ function App() {
                     )
                   }
                 >
+
                   <span className="frends-map-menu-icon">
                     ℹ
                   </span>
@@ -711,6 +774,7 @@ function App() {
                   <span>
                     About FRENDS
                   </span>
+
                 </button>
 
                 {/* LOGOUT */}
@@ -722,6 +786,7 @@ function App() {
                     handleLogout
                   }
                 >
+
                   <span className="frends-map-menu-icon">
                     ↪
                   </span>
@@ -729,6 +794,7 @@ function App() {
                   <span>
                     Logout
                   </span>
+
                 </button>
 
               </div>
@@ -750,6 +816,7 @@ function App() {
             </div>
 
           </aside>
+
         )}
 
         {/* =================================================
@@ -757,6 +824,7 @@ function App() {
         ================================================= */}
 
         {page === "map" && (
+
           <div className="frends-map-app">
 
             <MapSection
@@ -770,6 +838,7 @@ function App() {
             />
 
           </div>
+
         )}
 
         {/* =================================================
@@ -777,6 +846,7 @@ function App() {
         ================================================= */}
 
         {page === "about" && (
+
           <div className="app-page">
 
             <AboutUs
@@ -788,6 +858,7 @@ function App() {
             />
 
           </div>
+
         )}
 
         {/* =================================================
@@ -796,7 +867,9 @@ function App() {
 
         {page !== "map" &&
           page !== "about" && (
+
             <>
+
               <main className="main-content">
 
                 {/* =========================================
@@ -804,7 +877,9 @@ function App() {
                 ========================================= */}
 
                 {page === "dashboard" && (
+
                   <MonitoringSection />
+
                 )}
 
                 {/* =========================================
@@ -812,7 +887,9 @@ function App() {
                 ========================================= */}
 
                 {page === "traffic" && (
+
                   <TrafficHeroSection />
+
                 )}
 
                 {/* =========================================
@@ -820,17 +897,8 @@ function App() {
                 ========================================= */}
 
                 {page === "flood" && (
+
                   <div className="page-section">
-
-                    <h3>
-                      Flood Monitoring
-                    </h3>
-
-                    <p>
-                      Select a monitoring
-                      node to view current
-                      flood information.
-                    </p>
 
                     <NodesSection
                       nodes={
@@ -847,6 +915,7 @@ function App() {
                     />
 
                   </div>
+
                 )}
 
                 {/* =========================================
@@ -854,6 +923,7 @@ function App() {
                 ========================================= */}
 
                 {page === "nodes" && (
+
                   <NodesSection
                     nodes={
                       Object.values(nodes)
@@ -867,6 +937,7 @@ function App() {
                       error
                     }
                   />
+
                 )}
 
               </main>
@@ -882,11 +953,15 @@ function App() {
                   )
                 }
               />
+
             </>
+
           )}
 
       </div>
+
     );
+
   }
 
   // =========================================================
@@ -894,6 +969,7 @@ function App() {
   // =========================================================
 
   return (
+
     <div className="app-loading">
 
       <div className="loading-spinner"></div>
@@ -903,7 +979,9 @@ function App() {
       </p>
 
     </div>
+
   );
+
 }
 
 export default App;
