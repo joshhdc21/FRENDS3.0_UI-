@@ -4,6 +4,9 @@ import 'leaflet/dist/leaflet.css';
 import "../MapSection.css";
 import { ref, onValue, update, push, set } from "firebase/database"; 
 import { database } from "../firebase/firebaseConfig";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../firebase/authConfig";
+import frendsLogo from "../assets/frends.png";
 
 // Custom Leaflet Icons Fix
 const greenIcon = new L.Icon({
@@ -45,6 +48,9 @@ export default function MapSection({ onNavigate, onLogout }) {
     // FRENDS LEFT SLIDE-OUT MENU
     const [menuOpen, setMenuOpen] = useState(false);
 
+    // Logged-in user name for the top header
+    const [username, setUsername] = useState("User");
+
     const [mapCenter, setMapCenter] = useState([14.5648, 120.9932]);
     const [origin, setOrigin] = useState(null); 
     const [destination, setDestination] = useState(null); 
@@ -82,6 +88,56 @@ export default function MapSection({ onNavigate, onLogout }) {
     
     useEffect(() => { originRef.current = origin; }, [origin]);
     useEffect(() => { destRef.current = destination; }, [destination]);
+
+    // Load the username of the currently logged-in FRENDS account
+    useEffect(() => {
+        let unsubscribeUser = () => {};
+
+        const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+            unsubscribeUser();
+            unsubscribeUser = () => {};
+
+            if (!user) {
+                setUsername("User");
+                return;
+            }
+
+            const userRef = ref(database, `users/${user.uid}`);
+
+            unsubscribeUser = onValue(
+                userRef,
+                (snapshot) => {
+                    const data = snapshot.val();
+
+                    if (data?.username) {
+                        setUsername(data.username);
+                    } else if (user.displayName) {
+                        setUsername(user.displayName);
+                    } else if (user.email) {
+                        setUsername(user.email.split("@")[0]);
+                    } else {
+                        setUsername("User");
+                    }
+                },
+                (error) => {
+                    console.error("Failed to load username:", error);
+
+                    if (user.displayName) {
+                        setUsername(user.displayName);
+                    } else if (user.email) {
+                        setUsername(user.email.split("@")[0]);
+                    } else {
+                        setUsername("User");
+                    }
+                }
+            );
+        });
+
+        return () => {
+            unsubscribeUser();
+            unsubscribeAuth();
+        };
+    }, []);
 
     const [originQuery, setOriginQuery] = useState("");
     const [originSuggestions, setOriginSuggestions] = useState([]);
@@ -1265,6 +1321,75 @@ export default function MapSection({ onNavigate, onLogout }) {
                 transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), max-height 0.3s ease',
                 paddingBottom: activeInput ? 0 : '4px', maxHeight: isMobile ? (activeInput ? 'calc(100vh - 24px)' : 'auto') : 'none'
             }}>
+
+                {/* FRENDS TOP HEADER - MATCHES THE MOBILE DESIGN */}
+                <div
+                    style={{
+                        height: isMobile ? '50px' : '58px',
+                        padding: isMobile ? '0 14px' : '0 18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        borderBottom: `1px solid ${ui.border}`,
+                        boxSizing: 'border-box',
+                        flexShrink: 0,
+                        backgroundColor: ui.panelBg
+                    }}
+                >
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            minWidth: 0
+                        }}
+                    >
+                        <img
+                            src={frendsLogo}
+                            alt="FRENDS"
+                            style={{
+                                width: isMobile ? '70px' : '82px',
+                                height: 'auto',
+                                maxHeight: '28px',
+                                objectFit: 'contain',
+                                display: 'block'
+                            }}
+                        />
+                    </div>
+
+                    <div
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'flex-end',
+                            gap: '3px',
+                            minWidth: 0,
+                            marginLeft: '12px'
+                        }}
+                    >
+                        <span
+                            style={{
+                                color: ui.textMain,
+                                fontSize: isMobile ? '12px' : '14px',
+                                fontWeight: '500',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                maxWidth: isMobile ? '145px' : '220px'
+                            }}
+                        >
+                            Hi, {username}!
+                        </span>
+                        <span
+                            style={{
+                                fontSize: isMobile ? '13px' : '15px',
+                                lineHeight: 1
+                            }}
+                        >
+                            👋
+                        </span>
+                    </div>
+                </div>
+
                 <div style={{ padding: isMobile ? '10px 12px' : '12px 14px', display: 'flex', alignItems: 'center', gap: '7px' }}>
                     <button
                         type="button"
