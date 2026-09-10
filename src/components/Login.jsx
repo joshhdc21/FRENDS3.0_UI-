@@ -402,7 +402,7 @@ function Login() {
         {/* DESCRIPTION */}
 
         <p>
-          Flood Road Eye and Navigation
+          Flood Road Eye Navigation and
           Detection System
         </p>
 
