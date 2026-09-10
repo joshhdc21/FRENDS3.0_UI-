@@ -142,6 +142,9 @@ export default function MapSection({ onNavigate, onLogout }) {
                         setOriginQuery("Your Location");
                     }
 
+                    let placeFound = false;
+
+                    // ATTEMPT 1: Try TomTom API
                     if (TOMTOM_API_KEY && TOMTOM_API_KEY !== "undefined") {
                         try {
                             const res = await fetch(`https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json?key=${TOMTOM_API_KEY.trim()}&view=Unified`);
@@ -152,20 +155,41 @@ export default function MapSection({ onNavigate, onLogout }) {
                                     const placeName = addr.municipality || addr.city || addr.freeformAddress;
                                     if (placeName) {
                                         setCurrentLocationName(placeName);
-                                    } else {
-                                        setCurrentLocationName("your current location");
+                                        placeFound = true;
                                     }
                                 }
                             }
                         } catch (e) {
-                            console.error("Reverse geocode fetch failed:", e);
-                            setCurrentLocationName("your current location");
+                            console.warn("TomTom fetch failed:", e);
                         }
-                    } else {
-                        setCurrentLocationName("your current location");
                     }
 
-                    // Hide the banner 5 seconds AFTER the actual location is found
+                    // ATTEMPT 2: Free OpenStreetMap Fallback (Saves the day when TomTom gives a 403!)
+                    if (!placeFound) {
+                        try {
+                            console.log("TomTom failed. Using free OSM fallback...");
+                            const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10`);
+                            if (osmRes.ok) {
+                                const osmData = await osmRes.json();
+                                if (osmData && osmData.address) {
+                                    const placeName = osmData.address.city || osmData.address.town || osmData.address.municipality || osmData.address.suburb;
+                                    if (placeName) {
+                                        setCurrentLocationName(placeName);
+                                        placeFound = true;
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.error("OSM Fallback failed:", e);
+                        }
+                    }
+
+                    // ATTEMPT 3: The Ultimate (Less Goofy) Fallback
+                    if (!placeFound) {
+                        setCurrentLocationName("an unmapped area"); // Renders: "You are currently in an unmapped area"
+                    }
+
+                    // Hide the banner 5 seconds AFTER the logic finishes
                     setTimeout(() => setShowLocationBanner(false), 5000);
                 },
                 (err) => {
@@ -176,7 +200,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             );
         }
     }, [TOMTOM_API_KEY]);
-    
+
     useEffect(() => {
         const loadVoices = () => {
             const availableVoices = window.speechSynthesis.getVoices();
