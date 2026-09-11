@@ -182,7 +182,37 @@ export default function MapSection({ onNavigate, onLogout }) {
         btnText: theme === 'dark' ? '#202124' : '#ffffff'
     };
 
-  useEffect(() => {
+   useEffect(() => {
+        const fetchDynamicFallback = async () => {
+            try {
+                // Dynamically resolve location via network IP if GPS hardware is restricted/blocked
+                const ipRes = await fetch('https://ipapi.co/json/');
+                if (ipRes.ok) {
+                    const ipData = await ipRes.json();
+                    if (ipData.latitude && ipData.longitude) {
+                        const latlng = [ipData.latitude, ipData.longitude];
+                        setMapCenter(latlng);
+                        setLiveLocation(latlng);
+                        
+                        if (!originRef.current) {
+                            const dynamicTitle = `${ipData.city || 'Current Location'}, ${ipData.region || ''}`;
+                            setOrigin({ latlng, title: dynamicTitle });
+                            setOriginQuery(dynamicTitle);
+                        }
+                        setCurrentLocationName(`${ipData.city || 'Current Location'}, ${ipData.region || ''}`);
+                        setShowLocationBanner(true);
+                        setTimeout(() => setShowLocationBanner(false), 5000);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("Dynamic IP fallback lookup failed:", e);
+            }
+            
+            // Ultimate generic dynamic fallback (no hardcoded cities/coordinates)
+            setCurrentLocationName("Locating position...");
+        };
+
         if ('geolocation' in navigator) {
             setShowLocationBanner(true);
 
@@ -259,15 +289,13 @@ export default function MapSection({ onNavigate, onLogout }) {
                     setTimeout(() => setShowLocationBanner(false), 5000);
                 },
                 (err) => {
-                    console.error("GPS hardware location error or permission denied:", err);
-                    setCurrentLocationName("Enable GPS to detect location");
-                    setShowLocationBanner(true);
+                    console.warn("GPS restricted in container. Switching to dynamic IP resolution.", err);
+                    fetchDynamicFallback();
                 },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 5000 }
             );
         } else {
-            console.warn("Geolocation API not supported by environment.");
-            setCurrentLocationName("Location unavailable");
+            fetchDynamicFallback();
         }
     }, [TOMTOM_API_KEY]);
     
@@ -747,26 +775,32 @@ export default function MapSection({ onNavigate, onLogout }) {
 
         Object.keys(nodes).forEach(nodeId => {
             const nodeContainer = nodes[nodeId];
-            if (nodeContainer && typeof nodeContainer === 'object') {
-                let floodDepth = 0;
-                const pushKeys = Object.keys(nodeContainer).filter(key => key.startsWith('-')).sort();
-                if (pushKeys.length > 0) {
-                    const latestData = nodeContainer[pushKeys[pushKeys.length - 1]];
-                    floodDepth = latestData?.waterLevel !== undefined ? latestData.waterLevel : (latestData?.depth || 0);
-                } else if (nodeContainer.waterLevel !== undefined || nodeContainer.depth !== undefined) {
-                    floodDepth = nodeContainer.waterLevel !== undefined ? nodeContainer.waterLevel : (nodeContainer.depth || 0);
-                }
-                if (floodDepth >= myLimit && nodeBlockStates.current[nodeId] !== 'blocked') forceReroute = true;
-                nodeBlockStates.current[nodeId] = floodDepth >= myLimit ? 'blocked' : 'clear';
+            if (nodeContainer && typeof nodeContainer !== 'object') return;
+            let floodDepth = 0;
+            const pushKeys = Object.keys(nodeContainer).filter(key => key.startsWith('-')).sort();
+            if (pushKeys.length > 0) {
+                const latestData = nodeContainer[pushKeys[pushKeys.length - 1]];
+                floodDepth = latestData?.waterLevel !== undefined ? latestData.waterLevel : (latestData?.depth || 0);
+            } else if (nodeContainer.waterLevel !== undefined || nodeContainer.depth !== undefined) {
+                floodDepth = nodeContainer.waterLevel !== undefined ? nodeContainer.waterLevel : (nodeContainer.depth || 0);
             }
+            if (floodDepth >= myLimit && nodeBlockStates.current[nodeId] !== 'blocked') forceReroute = true;
+            nodeBlockStates.current[nodeId] = floodDepth >= myLimit ? 'blocked' : 'clear';
         });
 
         if (isNavigatingRef.current && forceReroute) {
-            alert("⚠️ Flood detected ahead! Recalculating route...");
+            // 🌟 TRIGGER THE VOICE WARNING AUTOMATICALLY
+            const warningText = selectedVoice === "bisaya_free" 
+                ? "Baha sa unahan! Nag-calculate ug bag-ong ruta." 
+                : "Flood detected ahead! Rerouting.";
+            
+            speakInstruction(warningText);
+
+            // Trigger the dynamic reroute from your current live GPS position
             fetchRoute(true, driveMode ? liveLocation : null);
         }
     };
-
+    
     const submitReport = (type) => {
         const loc = liveLocation || mapCenter; 
         if (!loc) return;
