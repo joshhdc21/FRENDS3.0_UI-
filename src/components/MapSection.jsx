@@ -85,6 +85,7 @@ export default function MapSection({ onNavigate, onLogout }) {
     const lastRerouteTime = useRef(0);
     const lastSpokenDistRef = useRef(Infinity);
     const warnedHazardsRef = useRef(new Set()); 
+    const liveLocationRef = useRef(null); 
     
     useEffect(() => { originRef.current = origin; }, [origin]);
     useEffect(() => { destRef.current = destination; }, [destination]);
@@ -155,6 +156,7 @@ export default function MapSection({ onNavigate, onLogout }) {
     const [isCalculating, setIsCalculating] = useState(false);
 
     useEffect(() => { isNavigatingRef.current = isNavigating; }, [isNavigating]);
+    useEffect(() => { liveLocationRef.current = liveLocation; }, [liveLocation]);
 
     const [firebaseNodes, setFirebaseNodes] = useState({});
     const nodeBlockStates = useRef({});
@@ -677,7 +679,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             flatPath.push(...positions);
         });
 
-        if (flatPath.length > 0) {
+        if (routeSegments.length > 0) {
             if (driveMode) {
                 let closestIdx = 0;
                 if (liveLocation) {
@@ -850,7 +852,8 @@ export default function MapSection({ onNavigate, onLogout }) {
         setNavStep({ distance: '--', action: 'Calculating...', arrow: '↱' });
     };
 
-    const fetchRoute = async (isAutoReroute = false, overrideOrigin = null) => {
+    // 🌟 ADDED: isSilent flag to safely poll traffic without interrupting the UI
+    const fetchRoute = async (isAutoReroute = false, overrideOrigin = null, isSilent = false) => {
         const currentOrigin = originRef.current;
         const currentDest = destRef.current;
         const startLat = overrideOrigin ? overrideOrigin[0] : (currentOrigin ? currentOrigin.latlng[0] : null);
@@ -861,7 +864,10 @@ export default function MapSection({ onNavigate, onLogout }) {
             return;
         }
 
-        setIsNavigating(true); setIsCalculating(true);
+        if (!isSilent) {
+            setIsNavigating(true); 
+            setIsCalculating(true);
+        }
 
         try {
             const response = await fetch('https://frends-3-backend.onrender.com/api/route', {
@@ -887,23 +893,45 @@ export default function MapSection({ onNavigate, onLogout }) {
                     setRouteSegments([{ coords: [startPin, ...data.path, endPin], color: ui.accentBlue }]); 
                 }
 
-                setNavStep({ distance: "Calculating m", action: "Head straight", arrow: "↱" });
+                if (!isSilent) {
+                    setNavStep({ distance: "Calculating m", action: "Head straight", arrow: "↱" });
+                }
                 
-                // FIXED: Enforce a 1-minute minimum to stop "0 min" errors
                 setRouteInfo({ 
                     distance: (data.distance / 1000).toFixed(1), 
                     time: Math.max(1, Math.round(data.time / 60)) 
                 });
             } else {
-                alert(`⚠️ Routing Error: ${data.message || 'Unable to calculate path.'}`);
-                clearMap();
+                if (!isSilent) alert(`⚠️ Routing Error: ${data.message || 'Unable to calculate path.'}`);
+                if (!isSilent) clearMap();
             }
         } catch (error) { 
             console.error("API error:", error); 
-            alert("🚨 Network Error: Could not connect to the FRENDS 3.0 routing server.");
-            clearMap();
-        } finally { setIsCalculating(false); }
+            if (!isSilent) alert("🚨 Network Error: Could not connect to the FRENDS 3.0 routing server.");
+            if (!isSilent) clearMap();
+        } finally { 
+            if (!isSilent) setIsCalculating(false); 
+        }
     };
+
+    // 🌟 WAZE-STYLE SILENT TRAFFIC REFRESHER
+    useEffect(() => {
+        let trafficInterval;
+        if (driveMode) {
+            trafficInterval = setInterval(() => {
+                const currentLiveLoc = liveLocationRef.current;
+                const currentDest = destRef.current;
+                
+                if (currentLiveLoc && currentDest) {
+                    console.log("🔄 Silently refreshing traffic patches ahead from live location...");
+                    fetchRoute(true, currentLiveLoc, true); 
+                }
+            }, 3 * 60 * 1000); // Polls TomTom every 3 minutes
+        }
+        return () => {
+            if (trafficInterval) clearInterval(trafficInterval);
+        };
+    }, [driveMode]);
 
     const startDriveMode = () => {
         setMenuOpen(false);
@@ -1322,7 +1350,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 paddingBottom: activeInput ? 0 : '4px', maxHeight: isMobile ? (activeInput ? 'calc(100vh - 24px)' : 'auto') : 'none'
             }}>
 
-                {/* FRENDS TOP HEADER - MATCHES THE MOBILE DESIGN */}
+                {/* FRENDS TOP HEADER */}
                 <div
                     style={{
                         height: isMobile ? '50px' : '58px',
@@ -1485,7 +1513,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                                 </select>
                             </div>
 
-                            <button onClick={() => fetchRoute(false)} disabled={isCalculating || !origin || !destination} style={{ width: '100%', height: isMobile ? '42px' : '46px', backgroundColor: (!origin || !destination) ? ui.inputBg : ui.accentBlue, color: (!origin || !destination) ? ui.textMuted : ui.btnText, border: 'none', borderRadius: '14px', fontSize: isMobile ? '14px' : '15px', fontWeight: '700', cursor: (!origin || !destination) ? 'default' : 'pointer', boxShadow: origin && destination ? '0 4px 12px rgba(0,0,0,0.18)' : 'none', transition: 'all 0.2s ease' }}>
+                            <button onClick={() => fetchRoute(false, null, false)} disabled={isCalculating || !origin || !destination} style={{ width: '100%', height: isMobile ? '42px' : '46px', backgroundColor: (!origin || !destination) ? ui.inputBg : ui.accentBlue, color: (!origin || !destination) ? ui.textMuted : ui.btnText, border: 'none', borderRadius: '14px', fontSize: isMobile ? '14px' : '15px', fontWeight: '700', cursor: (!origin || !destination) ? 'default' : 'pointer', boxShadow: origin && destination ? '0 4px 12px rgba(0,0,0,0.18)' : 'none', transition: 'all 0.2s ease' }}>
                                 {isCalculating ? 'Calculating route...' : 'Directions'}
                             </button>
                         </div>
