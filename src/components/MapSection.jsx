@@ -775,32 +775,34 @@ export default function MapSection({ onNavigate, onLogout }) {
 
         Object.keys(nodes).forEach(nodeId => {
             const nodeContainer = nodes[nodeId];
-            if (nodeContainer && typeof nodeContainer !== 'object') return;
-            let floodDepth = 0;
-            const pushKeys = Object.keys(nodeContainer).filter(key => key.startsWith('-')).sort();
-            if (pushKeys.length > 0) {
-                const latestData = nodeContainer[pushKeys[pushKeys.length - 1]];
-                floodDepth = latestData?.waterLevel !== undefined ? latestData.waterLevel : (latestData?.depth || 0);
-            } else if (nodeContainer.waterLevel !== undefined || nodeContainer.depth !== undefined) {
-                floodDepth = nodeContainer.waterLevel !== undefined ? nodeContainer.waterLevel : (nodeContainer.depth || 0);
+            if (nodeContainer && typeof nodeContainer === 'object') {
+                let floodDepth = 0;
+                const pushKeys = Object.keys(nodeContainer).filter(key => key.startsWith('-')).sort();
+                if (pushKeys.length > 0) {
+                    const latestData = nodeContainer[pushKeys[pushKeys.length - 1]];
+                    floodDepth = latestData?.waterLevel !== undefined ? latestData.waterLevel : (latestData?.depth || 0);
+                } else if (nodeContainer.waterLevel !== undefined || nodeContainer.depth !== undefined) {
+                    floodDepth = nodeContainer.waterLevel !== undefined ? nodeContainer.waterLevel : (nodeContainer.depth || 0);
+                }
+                if (floodDepth >= myLimit && nodeBlockStates.current[nodeId] !== 'blocked') forceReroute = true;
+                nodeBlockStates.current[nodeId] = floodDepth >= myLimit ? 'blocked' : 'clear';
             }
-            if (floodDepth >= myLimit && nodeBlockStates.current[nodeId] !== 'blocked') forceReroute = true;
-            nodeBlockStates.current[nodeId] = floodDepth >= myLimit ? 'blocked' : 'clear';
         });
 
         if (isNavigatingRef.current && forceReroute) {
-            // 🌟 TRIGGER THE VOICE WARNING AUTOMATICALLY
+            // 🌟 1. Determine the language based on the dropdown
             const warningText = selectedVoice === "bisaya_free" 
                 ? "Baha sa unahan! Nag-calculate ug bag-ong ruta." 
                 : "Flood detected ahead! Rerouting.";
             
+            // 🌟 2. Send it to your custom speaker function (which automatically applies the UK Male/Female accent you picked in the UI!)
             speakInstruction(warningText);
 
-            // Trigger the dynamic reroute from your current live GPS position
+            // 🌟 3. Trigger the dynamic reroute from your current live GPS position
             fetchRoute(true, driveMode ? liveLocation : null);
         }
     };
-    
+
     const submitReport = (type) => {
         const loc = liveLocation || mapCenter; 
         if (!loc) return;
