@@ -184,7 +184,6 @@ export default function MapSection({ onNavigate, onLogout }) {
 
     useEffect(() => {
         if ('geolocation' in navigator) {
-            // Show "Locating..." immediately while waiting for GPS
             setShowLocationBanner(true);
 
             navigator.geolocation.getCurrentPosition(
@@ -202,7 +201,6 @@ export default function MapSection({ onNavigate, onLogout }) {
 
                     let placeFound = false;
 
-                    // ATTEMPT 1: Try TomTom API
                     if (TOMTOM_API_KEY && TOMTOM_API_KEY !== "undefined") {
                         try {
                             const res = await fetch(`https://api.tomtom.com/search/2/reverseGeocode/${lat},${lon}.json?key=${TOMTOM_API_KEY.trim()}&view=Unified`);
@@ -210,8 +208,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                                 const data = await res.json();
                                 if (data.addresses && data.addresses.length > 0) {
                                     const addr = data.addresses[0].address;
-                                    
-                                    // Extract City and Province
                                     const city = addr.municipality || addr.city || addr.localName;
                                     const prov = addr.countrySubdivision; 
                                     
@@ -219,7 +215,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                                         setCurrentLocationName(`${city}, ${prov}`);
                                         placeFound = true;
                                     } else if (addr.freeformAddress) {
-                                        // TomTom's freeform address usually nails the format perfectly. Strip "Philippines" if it exists.
                                         setCurrentLocationName(addr.freeformAddress.replace(", Philippines", ""));
                                         placeFound = true;
                                     } else if (city) {
@@ -233,18 +228,13 @@ export default function MapSection({ onNavigate, onLogout }) {
                         }
                     }
 
-                    // ATTEMPT 2: Free OpenStreetMap Fallback (Saves the day when TomTom gives a 403!)
                     if (!placeFound) {
                         try {
-                            console.log("TomTom failed. Using free OSM fallback...");
-                            // Using standard reverse geocoding to get full address hierarchy
                             const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
                             if (osmRes.ok) {
                                 const osmData = await osmRes.json();
                                 if (osmData && osmData.address) {
                                     const addr = osmData.address;
-                                    
-                                    // Extract City and Province
                                     const city = addr.city || addr.town || addr.municipality || addr.suburb;
                                     const prov = addr.province || addr.state || addr.region;
                                     
@@ -262,17 +252,15 @@ export default function MapSection({ onNavigate, onLogout }) {
                         }
                     }
 
-                    // ATTEMPT 3: The Ultimate Fallback
                     if (!placeFound) {
-                        setCurrentLocationName("an unmapped area"); // Renders: "You are currently in an unmapped area"
+                        setCurrentLocationName("an unmapped area"); 
                     }
 
-                    // Hide the banner 5 seconds AFTER the logic finishes
                     setTimeout(() => setShowLocationBanner(false), 5000);
                 },
                 (err) => {
                     console.error("Initial GPS Error:", err);
-                    setShowLocationBanner(false); // Hide the banner if the user denies GPS permissions
+                    setShowLocationBanner(false); 
                 },
                 { enableHighAccuracy: true }
             );
@@ -694,18 +682,37 @@ export default function MapSection({ onNavigate, onLogout }) {
                 }
 
                 const traveledPath = closestIdx > 0 ? flatPath.slice(0, closestIdx + 1) : [];
-                const remainingPath = flatPath.slice(closestIdx);
+
+                L.polyline(flatPath, { color: '#111827', weight: 12, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                
+                routeSegments.forEach(segment => {
+                    if (!segment || !Array.isArray(segment.coords)) return;
+                    const positions = segment.coords.map(c => [
+                        c.latitude !== undefined ? c.latitude : c[0],
+                        c.longitude !== undefined ? c.longitude : c[1]
+                    ]);
+                    if (positions.length > 1) {
+                        L.polyline(positions, { color: segment.color || ui.accentBlue, weight: 8, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                    }
+                });
 
                 if (traveledPath.length > 1) {
-                    L.polyline(traveledPath, { color: '#4a5568', weight: 10, opacity: 0.7, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                    L.polyline(traveledPath, { color: '#4a5568', weight: 14, opacity: 0.9, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
                 }
-                if (remainingPath.length > 1) {
-                    L.polyline(remainingPath, { color: '#111827', weight: 12, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
-                    L.polyline(remainingPath, { color: ui.accentBlue, weight: 8, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
-                }
+
             } else {
                 L.polyline(flatPath, { color: '#111827', weight: 9, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
-                L.polyline(flatPath, { color: ui.accentBlue, weight: 5, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                
+                routeSegments.forEach(segment => {
+                    if (!segment || !Array.isArray(segment.coords)) return;
+                    const positions = segment.coords.map(c => [
+                        c.latitude !== undefined ? c.latitude : c[0],
+                        c.longitude !== undefined ? c.longitude : c[1]
+                    ]);
+                    if (positions.length > 1) {
+                        L.polyline(positions, { color: segment.color || ui.accentBlue, weight: 5, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                    }
+                });
             }
         }
 
@@ -852,7 +859,6 @@ export default function MapSection({ onNavigate, onLogout }) {
         setNavStep({ distance: '--', action: 'Calculating...', arrow: '↱' });
     };
 
-    // 🌟 ADDED: isSilent flag to safely poll traffic without interrupting the UI
     const fetchRoute = async (isAutoReroute = false, overrideOrigin = null, isSilent = false) => {
         const currentOrigin = originRef.current;
         const currentDest = destRef.current;
@@ -914,7 +920,6 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
     };
 
-    // 🌟 WAZE-STYLE SILENT TRAFFIC REFRESHER
     useEffect(() => {
         let trafficInterval;
         if (driveMode) {
@@ -926,7 +931,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                     console.log("🔄 Silently refreshing traffic patches ahead from live location...");
                     fetchRoute(true, currentLiveLoc, true); 
                 }
-            }, 3 * 60 * 1000); // Polls TomTom every 3 minutes
+            }, 3 * 60 * 1000);
         }
         return () => {
             if (trafficInterval) clearInterval(trafficInterval);
@@ -949,7 +954,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 let bisayaAction = "deretso lang";
                 if (navStep.action.toLowerCase().includes("right")) bisayaAction = "liko sa tuo";
                 else if (navStep.action.toLowerCase().includes("left")) bisayaAction = "liko sa wala";
-                else if (navStep.action.toLowerCase().includes("arrive")) bisayaAction = "naa na ka sa imong padulngan";
+                else if (navStep.action.toLowerCase().includes("arrive")) bisayaAction = "naman na ka sa imong padulngan";
                 
                 const distanceText = navStep.distance.replace('m', 'metros');
                 speechText = `Mga ${distanceText} sa unahan, ${bisayaAction}. Amping sa byahe kay basin naay baha sa imong agianan.`;
@@ -1341,183 +1346,158 @@ export default function MapSection({ onNavigate, onLogout }) {
                 </div>
             )}
 
+            {/* 🌟 GOOGLE MAPS-STYLE SLIM FLOATING SEARCH BAR & CONTROLS */}
             <div style={{
-                position: 'absolute', top: isMobile ? '0px' : '12px', left: isMobile ? 0 : '24px', 
-                width: isMobile ? '100%' : '380px', backgroundColor: ui.panelBg, zIndex: 1000,
-                display: 'flex', flexDirection: 'column', boxShadow: isMobile ? 'none' : '0 4px 12px rgba(0,0,0,0.4)',
-                borderRadius: isMobile ? 0 : '16px', transform: driveMode ? (isMobile ? 'translateY(-200%)' : 'translateX(-150%)') : 'translate(0, 0)',
-                transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), max-height 0.3s ease',
-                paddingBottom: activeInput ? 0 : '4px', maxHeight: isMobile ? (activeInput ? 'calc(100vh - 24px)' : 'auto') : 'none'
+                position: 'absolute', 
+                top: '12px', 
+                left: isMobile ? '12px' : '24px', 
+                right: isMobile ? '12px' : 'auto',
+                width: isMobile ? 'auto' : '380px', 
+                backgroundColor: ui.panelBg, 
+                zIndex: 1000,
+                display: 'flex', 
+                flexDirection: 'column', 
+                boxShadow: '0 4px 20px rgba(0,0,0,0.35)', 
+                borderRadius: '32px', // Fully pill-shaped Google Maps style corners when collapsed
+                transform: driveMode ? (isMobile ? 'translateY(-200%)' : 'translateX(-150%)') : 'translate(0, 0)',
+                transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.2s ease',
+                overflow: 'hidden'
             }}>
-
-                {/* FRENDS TOP HEADER */}
-                <div
-                    style={{
-                        height: isMobile ? '50px' : '58px',
-                        padding: isMobile ? '0 14px' : '0 18px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        borderBottom: `1px solid ${ui.border}`,
-                        boxSizing: 'border-box',
-                        flexShrink: 0,
-                        backgroundColor: ui.panelBg
-                    }}
-                >
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            minWidth: 0
-                        }}
-                    >
-                        <img
-                            src={frendsLogo}
-                            alt="FRENDS"
-                            style={{
-                                width: isMobile ? '70px' : '82px',
-                                height: 'auto',
-                                maxHeight: '28px',
-                                objectFit: 'contain',
-                                display: 'block'
-                            }}
-                        />
-                    </div>
-
-                    <div
-                        style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'flex-end',
-                            gap: '3px',
-                            minWidth: 0,
-                            marginLeft: '12px'
-                        }}
-                    >
-                        <span
-                            style={{
-                                color: ui.textMain,
-                                fontSize: isMobile ? '12px' : '14px',
-                                fontWeight: '500',
-                                whiteSpace: 'nowrap',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                maxWidth: isMobile ? '145px' : '220px'
-                            }}
-                        >
-                            Hi, {username}!
-                        </span>
-                        <span
-                            style={{
-                                fontSize: isMobile ? '13px' : '15px',
-                                lineHeight: 1
-                            }}
-                        >
-                            👋
-                        </span>
-                    </div>
-                </div>
-
-                <div style={{ padding: isMobile ? '10px 12px' : '12px 14px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                {/* Slim Search Row / Google Maps Bar */}
+                <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '48px' }}>
+                    {/* Menu Toggle (Hamburger) */}
                     <button
                         type="button"
                         onClick={() => setMenuOpen(prev => !prev)}
-                        aria-label={menuOpen ? "Close FRENDS menu" : "Open FRENDS menu"}
-                        aria-expanded={menuOpen}
-                        style={{ width: isMobile ? '38px' : '40px', height: isMobile ? '38px' : '40px', flexShrink: 0, border: 'none', borderRadius: '50%', backgroundColor: ui.inputBg, color: ui.textMain, fontSize: isMobile ? '20px' : '21px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', transition: 'all 0.2s ease' }}
+                        style={{ width: '36px', height: '36px', flexShrink: 0, border: 'none', borderRadius: '50%', backgroundColor: ui.inputBg, color: ui.textMain, fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
                         {menuOpen ? '×' : '☰'}
                     </button>
 
-                    {/* TRAFFIC TOGGLE */}
+                    {/* Traffic Toggle Button */}
                     <button
                         type="button"
                         onClick={() => setShowTraffic(prev => !prev)}
-                        aria-label={showTraffic ? "Hide traffic" : "Show traffic"}
                         title={showTraffic ? "Hide Traffic" : "Show Traffic"}
-                        style={{ width: isMobile ? '38px' : '40px', height: isMobile ? '38px' : '40px', flexShrink: 0, border: `2px solid ${showTraffic ? ui.accentGreen : ui.border}`, borderRadius: '50%', backgroundColor: ui.inputBg, color: ui.textMain, fontSize: isMobile ? '18px' : '19px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 8px rgba(0,0,0,0.25)', opacity: showTraffic ? 1 : 0.75, transition: 'all 0.2s ease' }}
+                        style={{ width: '36px', height: '36px', flexShrink: 0, border: `2px solid ${showTraffic ? ui.accentGreen : ui.border}`, borderRadius: '50%', backgroundColor: ui.inputBg, color: ui.textMain, fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: showTraffic ? 1 : 0.75 }}
                     >
                         🚦
                     </button>
 
-                    <button 
-                        onMouseDown={(e) => {
-                            e.preventDefault();
-                            setActiveInput(null);
-                            if (routeInfo) {
-                                setRouteSegments([]);
-                                setRouteInfo(null);
-                            } else {
-                                clearMap();
-                            }
-                        }} 
-                        style={{ width: '38px', height: '38px', flexShrink: 0, background: 'transparent', border: 'none', color: ui.textMain, fontSize: isMobile ? '22px' : '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}
-                    >
-                        ←
-                    </button>
+                    {/* Single Main Destination / Search Bar (Google Maps Style) */}
+                    {!origin && !destination ? (
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'center', position: 'relative' }}>
+                            <input 
+                                type="text" 
+                                value={destQuery} 
+                                onChange={(e) => handleSearchInput(e.target.value, false)} 
+                                onFocus={() => setActiveInput('destination')} 
+                                onBlur={() => setTimeout(() => { if (activeInput === 'destination') setActiveInput(null); }, 250)} 
+                                placeholder="Search here..." 
+                                style={{ width: '100%', height: '40px', boxSizing: 'border-box', backgroundColor: 'transparent', color: ui.textMain, border: 'none', padding: '0 8px', fontSize: '15px', fontWeight: '500', outline: 'none' }} 
+                            />
+                        </div>
+                    ) : (
+                        /* Expanded Dual Origin/Destination Inputs once navigation is active */
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px 0' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '12px' }}>🟢</span>
+                                <input 
+                                    type="text" 
+                                    value={originQuery} 
+                                    onChange={(e) => handleSearchInput(e.target.value, true)} 
+                                    onFocus={() => setActiveInput('origin')} 
+                                    onBlur={() => setTimeout(() => { if (activeInput === 'origin') setActiveInput(null); }, 250)} 
+                                    placeholder="Choose starting point" 
+                                    style={{ width: '100%', height: '32px', backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', padding: '0 10px', borderRadius: '8px', fontSize: '13px', outline: 'none' }} 
+                                />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span style={{ fontSize: '12px' }}>🔴</span>
+                                <input 
+                                    type="text" 
+                                    value={destQuery} 
+                                    onChange={(e) => handleSearchInput(e.target.value, false)} 
+                                    onFocus={() => setActiveInput('destination')} 
+                                    onBlur={() => setTimeout(() => { if (activeInput === 'destination') setActiveInput(null); }, 250)} 
+                                    placeholder="Choose destination" 
+                                    style={{ width: '100%', height: '32px', backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', padding: '0 10px', borderRadius: '8px', fontSize: '13px', outline: 'none' }} 
+                                />
+                            </div>
+                        </div>
+                    )}
 
-                    <div style={{ width: isMobile ? '20px' : '24px', flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '2px' }}>
-                        <div style={{ width: '9px', height: '9px', borderRadius: '50%', border: `2px solid ${ui.textMuted}`, backgroundColor: 'transparent' }} />
-                        <div style={{ height: isMobile ? '22px' : '27px', width: '2px', borderLeft: `2px dotted ${ui.textMuted}`, opacity: 0.65 }} />
-                        <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: ui.accentRed, boxShadow: `0 0 0 3px ${ui.accentRed}22` }} />
-                    </div>
-
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '7px', minWidth: 0 }}>
-                        <input type="text" value={originQuery} onChange={(e) => handleSearchInput(e.target.value, true)} onFocus={() => setActiveInput('origin')} onBlur={() => setTimeout(() => { if (activeInput === 'origin') setActiveInput(null); }, 250)} placeholder="Your location" style={{ width: '100%', height: isMobile ? '40px' : '42px', boxSizing: 'border-box', backgroundColor: ui.inputBg, color: ui.textMain, border: activeInput === 'origin' ? `1px solid ${ui.accentBlue}` : '1px solid transparent', padding: '0 13px', borderRadius: '10px', fontSize: isMobile ? '14px' : '15px', fontWeight: '500', outline: 'none', transition: 'border 0.2s ease' }} />
-                        <input type="text" value={destQuery} onChange={(e) => handleSearchInput(e.target.value, false)} onFocus={() => setActiveInput('destination')} onBlur={() => setTimeout(() => { if (activeInput === 'destination') setActiveInput(null); }, 250)} placeholder="Where to?" style={{ width: '100%', height: isMobile ? '40px' : '42px', boxSizing: 'border-box', backgroundColor: ui.inputBg, color: ui.textMain, border: activeInput === 'destination' ? `1px solid ${ui.accentBlue}` : '1px solid transparent', padding: '0 13px', borderRadius: '10px', fontSize: isMobile ? '14px' : '15px', fontWeight: '500', outline: 'none', transition: 'border 0.2s ease' }} />
-                    </div>
-
-                    <button onClick={swapLocations} style={{ width: '34px', height: '34px', flexShrink: 0, backgroundColor: ui.inputBg, border: 'none', color: ui.textMain, fontSize: '18px', cursor: 'pointer', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'transform 0.2s ease' }}>
-                        ⇅
-                    </button>
+                    {/* Back / Clear Button */}
+                    {(origin || destination) && (
+                        <button 
+                            onMouseDown={(e) => {
+                                e.preventDefault();
+                                setActiveInput(null);
+                                if (routeInfo) { setRouteSegments([]); setRouteInfo(null); } 
+                                else { clearMap(); }
+                            }} 
+                            style={{ width: '32px', height: '32px', flexShrink: 0, background: 'transparent', border: 'none', color: ui.textMain, fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}
+                        >
+                            ✕
+                        </button>
+                    )}
                 </div>
 
+                {/* Suggestions Dropdown */}
                 {activeInput && (
-                    <div style={{ backgroundColor: ui.bg, overflowY: 'auto', maxHeight: isMobile ? 'calc(100vh - 150px)' : '420px', borderTop: `1px solid ${ui.border}` }}>
+                    <div style={{ backgroundColor: ui.bg, overflowY: 'auto', maxHeight: isMobile ? 'calc(100vh - 140px)' : '350px', borderTop: `1px solid ${ui.border}` }}>
                         {(activeInput === 'origin' ? originSuggestions : destSuggestions).length > 0 ? (
                             (activeInput === 'origin' ? originSuggestions : destSuggestions).map((item, idx) => (
-                                <div key={idx} onMouseDown={() => selectLocationItem(item, activeInput === 'origin')} style={{ display: 'flex', alignItems: 'center', padding: isMobile ? '12px 14px' : '14px 20px', borderBottom: `1px solid ${ui.border}`, cursor: 'pointer', minHeight: isMobile ? '54px' : '58px' }}>
-                                    <div style={{ width: '36px', height: '36px', flexShrink: 0, backgroundColor: ui.inputBg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '12px' }}>
-                                        <span style={{ fontSize: '16px' }}>📍</span>
+                                <div key={idx} onMouseDown={() => {
+                                    const latlng = [item.lat, item.lon];
+                                    if (activeInput === 'origin') {
+                                        setOrigin({ latlng, title: item.primary }); setOriginQuery(item.primary); setOriginSuggestions([]);
+                                    } else {
+                                        setDestination({ latlng, title: item.primary }); setDestQuery(item.primary); setDestSuggestions([]);
+                                    }
+                                    setMapCenter(latlng); setActiveInput(null);
+                                }} style={{ display: 'flex', alignItems: 'center', padding: '12px 16px', borderBottom: `1px solid ${ui.border}`, cursor: 'pointer' }}>
+                                    <div style={{ width: '32px', height: '32px', flexShrink: 0, backgroundColor: ui.inputBg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '12px' }}>
+                                        <span style={{ fontSize: '15px' }}>📍</span>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                                        <span style={{ fontSize: '14px', fontWeight: '600', color: ui.textMain, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.primary}</span>
-                                        <span style={{ fontSize: '12px', color: ui.textMuted, marginTop: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.secondary}</span>
+                                        <span style={{ fontSize: '13px', fontWeight: '600', color: ui.textMain, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.primary}</span>
+                                        <span style={{ fontSize: '11px', color: ui.textMuted, marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.secondary}</span>
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <div style={{ padding: '24px 16px', textAlign: 'center', color: ui.textMuted, fontSize: '13px' }}>Search for a place or destination</div>
+                            <div style={{ padding: '20px 14px', textAlign: 'center', color: ui.textMuted, fontSize: '12px' }}>Search for a place or destination</div>
                         )}
                     </div>
                 )}
 
-                {!activeInput && !routeInfo && (
-                    <>
-                        <div style={{ padding: isMobile ? '4px 12px 10px' : '8px 16px 14px', display: 'flex', gap: '7px', overflowX: 'auto', scrollbarWidth: 'none', borderTop: `1px solid ${ui.border}` }}>
-                            {[ { type: 'LOW', icon: '🚗', label: 'Sedan / Hatch' }, { type: 'MID', icon: '🚙', label: 'SUV / Pick-up' }, { type: 'HIGH', icon: '🚌', label: 'Truck / Bus' } ].map(vehicle => (
-                                <button key={vehicle.type} onClick={() => setVehicleLayer(vehicle.type)} style={{ flexShrink: 0, backgroundColor: vehicleLayer === vehicle.type ? `${ui.accentBlue}20` : 'transparent', color: vehicleLayer === vehicle.type ? ui.accentBlue : ui.textMain, border: `1px solid ${vehicleLayer === vehicle.type ? ui.accentBlue : ui.border}`, borderRadius: '18px', padding: isMobile ? '7px 11px' : '8px 14px', fontSize: isMobile ? '12px' : '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', cursor: 'pointer', transition: 'all 0.2s ease' }}>
-                                    <span style={{ fontSize: isMobile ? '13px' : '15px' }}>{vehicle.icon}</span>{vehicle.label}
+                {/* 🌟 CONDITIONAL OPTIONS FOR CAR, VOICE, AND DIRECTIONS (Reveals ONLY when BOTH Origin & Destination are selected) */}
+                {origin && destination && !routeInfo && !activeInput && (
+                    <div style={{ padding: '10px 14px 14px', display: 'flex', flexDirection: 'column', gap: '10px', borderTop: `1px solid ${ui.border}` }}>
+                        {/* Vehicle Selection Chips */}
+                        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+                            {[ { type: 'LOW', icon: '🚗', label: 'Sedan' }, { type: 'MID', icon: '🚙', label: 'SUV' }, { type: 'HIGH', icon: '🚌', label: 'Truck' } ].map(vehicle => (
+                                <button key={vehicle.type} onClick={() => setVehicleLayer(vehicle.type)} style={{ flexShrink: 0, backgroundColor: vehicleLayer === vehicle.type ? `${ui.accentBlue}20` : ui.inputBg, color: vehicleLayer === vehicle.type ? ui.accentBlue : ui.textMain, border: `1px solid ${vehicleLayer === vehicle.type ? ui.accentBlue : 'transparent'}`, borderRadius: '16px', padding: '6px 12px', fontSize: '11px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
+                                    <span style={{ fontSize: '13px' }}>{vehicle.icon}</span>{vehicle.label}
                                 </button>
                             ))}
                         </div>
 
-                        <div style={{ padding: isMobile ? '8px 12px 12px' : '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: '9px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-                                <span style={{ fontSize: isMobile ? '12px' : '14px', color: ui.textMuted, fontWeight: '500' }}>Navigation voice</span>
-                                <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} style={{ backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', padding: isMobile ? '7px 10px' : '8px 12px', borderRadius: '14px', fontSize: isMobile ? '11px' : '13px', outline: 'none', maxWidth: isMobile ? '145px' : '160px', textOverflow: 'ellipsis', cursor: 'pointer' }}>
-                                    <option value="bisaya_free">🇵🇭 Bisaya (Copilot)</option>
-                                    {voices.map(voice => (
-                                        <option key={voice.name} value={voice.name}>{voice.name.replace(/Microsoft |Google /g, '')}</option>
-                                    ))}
-                                </select>
-                            </div>
+                        {/* Voice Selector & Directions Button Row */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} style={{ backgroundColor: ui.inputBg, color: ui.textMuted, border: 'none', padding: '10px 10px', borderRadius: '12px', fontSize: '11px', outline: 'none', width: '38%', cursor: 'pointer' }}>
+                                <option value="bisaya_free">🇵🇭 Bisaya</option>
+                                {voices.map(voice => (
+                                    <option key={voice.name} value={voice.name}>{voice.name.replace(/Microsoft |Google /g, '')}</option>
+                                ))}
+                            </select>
 
-                            <button onClick={() => fetchRoute(false, null, false)} disabled={isCalculating || !origin || !destination} style={{ width: '100%', height: isMobile ? '42px' : '46px', backgroundColor: (!origin || !destination) ? ui.inputBg : ui.accentBlue, color: (!origin || !destination) ? ui.textMuted : ui.btnText, border: 'none', borderRadius: '14px', fontSize: isMobile ? '14px' : '15px', fontWeight: '700', cursor: (!origin || !destination) ? 'default' : 'pointer', boxShadow: origin && destination ? '0 4px 12px rgba(0,0,0,0.18)' : 'none', transition: 'all 0.2s ease' }}>
-                                {isCalculating ? 'Calculating route...' : 'Directions'}
+                            <button onClick={() => fetchRoute(false, null, false)} disabled={isCalculating} style={{ flex: 1, height: '40px', backgroundColor: ui.accentBlue, color: ui.btnText, border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.18)' }}>
+                                {isCalculating ? 'Calculating...' : 'Directions'}
                             </button>
                         </div>
-                    </>
+                    </div>
                 )}
             </div>
 
@@ -1526,23 +1506,23 @@ export default function MapSection({ onNavigate, onLogout }) {
                 <div style={{
                     position: 'absolute', bottom: isMobile ? 0 : '24px', left: isMobile ? 0 : '24px', right: isMobile ? 0 : 'auto', 
                     width: isMobile ? '100%' : '380px', backgroundColor: ui.panelBg, zIndex: 3000, boxSizing: 'border-box', 
-                    borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding: '20px 20px',
-                    paddingBottom: isMobile ? 'calc(max(20px, env(safe-area-inset-bottom)) + 20px)' : '20px',
-                    boxShadow: '0 -4px 16px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: '16px'
+                    borderRadius: isMobile ? '24px 24px 0 0' : '24px', padding: '16px 20px',
+                    paddingBottom: isMobile ? 'calc(max(16px, env(safe-area-inset-bottom)) + 16px)' : '16px',
+                    boxShadow: '0 -4px 16px rgba(0,0,0,0.3)', display: 'flex', flexDirection: 'column', gap: '12px'
                 }}>
-                    {isMobile && <div style={{ width: '40px', height: '4px', backgroundColor: ui.border, borderRadius: '2px', alignSelf: 'center', marginBottom: '-8px' }} />}
+                    {isMobile && <div style={{ width: '36px', height: '4px', backgroundColor: ui.border, borderRadius: '2px', alignSelf: 'center', marginBottom: '-6px' }} />}
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                            <span style={{ fontSize: '32px', fontWeight: 'bold', color: ui.accentBlue }}>{routeInfo.time} min</span>
-                            <span style={{ fontSize: '18px', color: ui.textMuted }}>({routeInfo.distance} km)</span>
+                            <span style={{ fontSize: '28px', fontWeight: 'bold', color: ui.accentBlue }}>{routeInfo.time} min</span>
+                            <span style={{ fontSize: '16px', color: ui.textMuted }}>({routeInfo.distance} km)</span>
                         </div>
-                        <span style={{ color: ui.textMuted, fontSize: '14px', marginTop: '2px' }}>
+                        <span style={{ color: ui.textMuted, fontSize: '13px', marginTop: '2px' }}>
                             Arrive around <b style={{color: ui.textMain}}>{new Date(Date.now() + routeInfo.time * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</b> • Adjusted for live conditions
                         </span>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px' }}>
-                        <button style={{ flex: 1, backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', borderRadius: '24px', padding: '14px', fontSize: '15px', fontWeight: 'bold' }}>Steps</button>
-                        <button onClick={startDriveMode} style={{ flex: 2, backgroundColor: ui.accentBlue, color: ui.btnText, border: 'none', borderRadius: '24px', padding: '14px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}>Start</button>
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        <button style={{ flex: 1, backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', borderRadius: '20px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>Steps</button>
+                        <button onClick={startDriveMode} style={{ flex: 2, backgroundColor: ui.accentBlue, color: ui.btnText, border: 'none', borderRadius: '20px', padding: '12px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>Start</button>
                     </div>
                 </div>
             )}
@@ -1571,31 +1551,31 @@ export default function MapSection({ onNavigate, onLogout }) {
             {driveMode && (
                 <>
                     <div style={{ position: 'absolute', top: '16px', left: isMobile ? '16px' : '50%', right: isMobile ? '16px' : 'auto', transform: isMobile ? 'none' : 'translateX(-50%)', width: isMobile ? 'auto' : '400px', boxSizing: 'border-box', zIndex: 3000, pointerEvents: 'none' }}>
-                        <div style={{ backgroundColor: ui.accentBlue, borderRadius: '16px', padding: '16px 20px', display: 'flex', alignItems: 'center', gap: '16px', color: theme === 'dark' ? '#131314' : 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', pointerEvents: 'auto' }}>
-                            <span style={{ fontSize: '42px', fontWeight: 'bold', lineHeight: 1 }}>{navStep.arrow}</span>
+                        <div style={{ backgroundColor: ui.accentBlue, borderRadius: '16px', padding: '14px 18px', display: 'flex', alignItems: 'center', gap: '14px', color: theme === 'dark' ? '#131314' : 'white', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', pointerEvents: 'auto' }}>
+                            <span style={{ fontSize: '36px', fontWeight: 'bold', lineHeight: 1 }}>{navStep.arrow}</span>
                             <div style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span style={{ fontSize: '18px', fontWeight: '500', opacity: 0.9 }}>{navStep.distance}</span>
-                                <span style={{ fontSize: '24px', fontWeight: '600' }}>{navStep.action}</span>
+                                <span style={{ fontSize: '16px', fontWeight: '500', opacity: 0.9 }}>{navStep.distance}</span>
+                                <span style={{ fontSize: '22px', fontWeight: '600' }}>{navStep.action}</span>
                             </div>
                         </div>
                     </div>
 
                     <div style={{ position: 'absolute', bottom: '24px', left: '16px', right: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 3000, pointerEvents: 'none' }}>
-                        <div style={{ backgroundColor: ui.panelBg, borderRadius: '50%', width: '64px', height: '64px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', color: ui.textMain, border: `3px solid ${ui.border}`, pointerEvents: 'auto' }}>
-                            <span style={{ fontSize: '20px', fontWeight: 'bold', lineHeight: '1' }}>{speed}</span>
-                            <span style={{ fontSize: '11px', fontWeight: '600', color: ui.textMuted }}>km/h</span>
+                        <div style={{ backgroundColor: ui.panelBg, borderRadius: '50%', width: '60px', height: '60px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', color: ui.textMain, border: `3px solid ${ui.border}`, pointerEvents: 'auto' }}>
+                            <span style={{ fontSize: '18px', fontWeight: 'bold', lineHeight: '1' }}>{speed}</span>
+                            <span style={{ fontSize: '10px', fontWeight: '600', color: ui.textMuted }}>km/h</span>
                         </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'flex-end', pointerEvents: 'auto' }}>
-                            <div onClick={() => setShowReportModal(true)} style={{ backgroundColor: '#f59e0b', borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', cursor: 'pointer' }}>
-                                <span style={{ fontSize: '26px' }}>⚠️</span>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'flex-end', pointerEvents: 'auto' }}>
+                            <div onClick={() => setShowReportModal(true)} style={{ backgroundColor: '#f59e0b', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', cursor: 'pointer' }}>
+                                <span style={{ fontSize: '24px' }}>⚠️</span>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-end' }}>
-                                <div onClick={recenterMap} style={{ backgroundColor: ui.panelBg, borderRadius: '50%', width: '56px', height: '56px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', color: ui.textMain, fontSize: '24px', cursor: 'pointer' }}>
+                            <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-end' }}>
+                                <div onClick={recenterMap} style={{ backgroundColor: ui.panelBg, borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', color: ui.textMain, fontSize: '22px', cursor: 'pointer' }}>
                                     🧭
                                 </div>
-                                <button onClick={stopDriveMode} style={{ backgroundColor: ui.accentRed, color: '#fff', border: 'none', borderRadius: '24px', padding: '14px 32px', fontSize: '16px', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', cursor: 'pointer' }}>
+                                <button onClick={stopDriveMode} style={{ backgroundColor: ui.accentRed, color: '#fff', border: 'none', borderRadius: '22px', padding: '12px 28px', fontSize: '15px', fontWeight: 'bold', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', cursor: 'pointer' }}>
                                     ✕ Exit
                                 </button>
                             </div>
