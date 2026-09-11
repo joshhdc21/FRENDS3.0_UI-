@@ -182,37 +182,7 @@ export default function MapSection({ onNavigate, onLogout }) {
         btnText: theme === 'dark' ? '#202124' : '#ffffff'
     };
 
-   useEffect(() => {
-        const fetchDynamicFallback = async () => {
-            try {
-                // Dynamically resolve location via network IP if GPS hardware is restricted/blocked
-                const ipRes = await fetch('https://ipapi.co/json/');
-                if (ipRes.ok) {
-                    const ipData = await ipRes.json();
-                    if (ipData.latitude && ipData.longitude) {
-                        const latlng = [ipData.latitude, ipData.longitude];
-                        setMapCenter(latlng);
-                        setLiveLocation(latlng);
-                        
-                        if (!originRef.current) {
-                            const dynamicTitle = `${ipData.city || 'Current Location'}, ${ipData.region || ''}`;
-                            setOrigin({ latlng, title: dynamicTitle });
-                            setOriginQuery(dynamicTitle);
-                        }
-                        setCurrentLocationName(`${ipData.city || 'Current Location'}, ${ipData.region || ''}`);
-                        setShowLocationBanner(true);
-                        setTimeout(() => setShowLocationBanner(false), 5000);
-                        return;
-                    }
-                }
-            } catch (e) {
-                console.warn("Dynamic IP fallback lookup failed:", e);
-            }
-            
-            // Ultimate generic dynamic fallback (no hardcoded cities/coordinates)
-            setCurrentLocationName("Locating position...");
-        };
-
+  useEffect(() => {
         if ('geolocation' in navigator) {
             setShowLocationBanner(true);
 
@@ -289,13 +259,15 @@ export default function MapSection({ onNavigate, onLogout }) {
                     setTimeout(() => setShowLocationBanner(false), 5000);
                 },
                 (err) => {
-                    console.warn("GPS restricted in container. Switching to dynamic IP resolution.", err);
-                    fetchDynamicFallback();
+                    console.error("GPS hardware location error or permission denied:", err);
+                    setCurrentLocationName("Enable GPS to detect location");
+                    setShowLocationBanner(true);
                 },
-                { enableHighAccuracy: true, timeout: 5000 }
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
         } else {
-            fetchDynamicFallback();
+            console.warn("Geolocation API not supported by environment.");
+            setCurrentLocationName("Location unavailable");
         }
     }, [TOMTOM_API_KEY]);
     
