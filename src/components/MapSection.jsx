@@ -183,6 +183,20 @@ export default function MapSection({ onNavigate, onLogout }) {
     };
 
     useEffect(() => {
+        const triggerFallbackLocation = () => {
+            const fallbackLatlng = [14.5648, 120.9932];
+            setMapCenter(fallbackLatlng);
+            setLiveLocation(fallbackLatlng);
+            
+            if (!originRef.current) {
+                setOrigin({ latlng: fallbackLatlng, title: "Your Location" });
+                setOriginQuery("Your Location");
+            }
+            setCurrentLocationName("Metro Manila");
+            setShowLocationBanner(true);
+            setTimeout(() => setShowLocationBanner(false), 5000);
+        };
+
         if ('geolocation' in navigator) {
             setShowLocationBanner(true);
 
@@ -259,11 +273,13 @@ export default function MapSection({ onNavigate, onLogout }) {
                     setTimeout(() => setShowLocationBanner(false), 5000);
                 },
                 (err) => {
-                    console.error("Initial GPS Error:", err);
-                    setShowLocationBanner(false); 
+                    console.warn("Geolocation restricted in mobile simulator container. Using default fallback.", err);
+                    triggerFallbackLocation();
                 },
-                { enableHighAccuracy: true }
+                { enableHighAccuracy: true, timeout: 4000 }
             );
+        } else {
+            triggerFallbackLocation();
         }
     }, [TOMTOM_API_KEY]);
     
