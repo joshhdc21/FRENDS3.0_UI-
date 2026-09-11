@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import "../MapSection.css";
-import { ref, onValue, update, push, set } from "firebase/database"; 
+import { ref, onValue, push, set } from "firebase/database"; 
 import { database } from "../firebase/firebaseConfig";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../firebase/authConfig";
@@ -47,8 +47,6 @@ export default function MapSection({ onNavigate, onLogout }) {
 
     // FRENDS LEFT SLIDE-OUT MENU
     const [menuOpen, setMenuOpen] = useState(false);
-
-    // Logged-in user name for the top header
     const [username, setUsername] = useState("User");
 
     const [mapCenter, setMapCenter] = useState([14.5648, 120.9932]);
@@ -69,18 +67,15 @@ export default function MapSection({ onNavigate, onLogout }) {
     const [voices, setVoices] = useState([]);
     const [selectedVoice, setSelectedVoice] = useState("bisaya_free"); 
 
-   // Current Location Banner State
     const [currentLocationName, setCurrentLocationName] = useState("Locating...");
     const [showLocationBanner, setShowLocationBanner] = useState(false);
 
-    // Smart Traffic Prompt States
     const [showTrafficPrompt, setShowTrafficPrompt] = useState(false);
     const stoppageTimerRef = useRef(null);
     const hasPromptedRecentlyRef = useRef(false);
 
     const originRef = useRef(origin);
     const destRef = useRef(destination);
-    const isNavigatingRef = useRef(false);
     const searchTimeoutRef = useRef(null);
     const lastRerouteTime = useRef(0);
     const lastSpokenDistRef = useRef(Infinity);
@@ -90,10 +85,8 @@ export default function MapSection({ onNavigate, onLogout }) {
     useEffect(() => { originRef.current = origin; }, [origin]);
     useEffect(() => { destRef.current = destination; }, [destination]);
 
-    // Load the username of the currently logged-in FRENDS account
     useEffect(() => {
         let unsubscribeUser = () => {};
-
         const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
             unsubscribeUser();
             unsubscribeUser = () => {};
@@ -104,40 +97,24 @@ export default function MapSection({ onNavigate, onLogout }) {
             }
 
             const userRef = ref(database, `users/${user.uid}`);
-
             unsubscribeUser = onValue(
                 userRef,
                 (snapshot) => {
                     const data = snapshot.val();
-
-                    if (data?.username) {
-                        setUsername(data.username);
-                    } else if (user.displayName) {
-                        setUsername(user.displayName);
-                    } else if (user.email) {
-                        setUsername(user.email.split("@")[0]);
-                    } else {
-                        setUsername("User");
-                    }
+                    if (data?.username) setUsername(data.username);
+                    else if (user.displayName) setUsername(user.displayName);
+                    else if (user.email) setUsername(user.email.split("@")[0]);
+                    else setUsername("User");
                 },
                 (error) => {
                     console.error("Failed to load username:", error);
-
-                    if (user.displayName) {
-                        setUsername(user.displayName);
-                    } else if (user.email) {
-                        setUsername(user.email.split("@")[0]);
-                    } else {
-                        setUsername("User");
-                    }
+                    if (user.displayName) setUsername(user.displayName);
+                    else if (user.email) setUsername(user.email.split("@")[0]);
+                    else setUsername("User");
                 }
             );
         });
-
-        return () => {
-            unsubscribeUser();
-            unsubscribeAuth();
-        };
+        return () => { unsubscribeUser(); unsubscribeAuth(); };
     }, []);
 
     const [originQuery, setOriginQuery] = useState("");
@@ -155,7 +132,6 @@ export default function MapSection({ onNavigate, onLogout }) {
     const [speed, setSpeed] = useState("--"); 
     const [isCalculating, setIsCalculating] = useState(false);
 
-    useEffect(() => { isNavigatingRef.current = isNavigating; }, [isNavigating]);
     useEffect(() => { liveLocationRef.current = liveLocation; }, [liveLocation]);
 
     const [firebaseNodes, setFirebaseNodes] = useState({});
@@ -182,10 +158,9 @@ export default function MapSection({ onNavigate, onLogout }) {
         btnText: theme === 'dark' ? '#202124' : '#ffffff'
     };
 
-   useEffect(() => {
+    useEffect(() => {
         const fetchDynamicFallback = async () => {
             try {
-                // Dynamically resolve location via network IP if GPS hardware is restricted/blocked
                 const ipRes = await fetch('https://ipapi.co/json/');
                 if (ipRes.ok) {
                     const ipData = await ipRes.json();
@@ -208,14 +183,11 @@ export default function MapSection({ onNavigate, onLogout }) {
             } catch (e) {
                 console.warn("Dynamic IP fallback lookup failed:", e);
             }
-            
-            // Ultimate generic dynamic fallback (no hardcoded cities/coordinates)
             setCurrentLocationName("Locating position...");
         };
 
         if ('geolocation' in navigator) {
             setShowLocationBanner(true);
-
             navigator.geolocation.getCurrentPosition(
                 async (pos) => {
                     const lat = pos.coords.latitude;
@@ -253,9 +225,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                                     }
                                 }
                             }
-                        } catch (e) {
-                            console.warn("TomTom fetch failed:", e);
-                        }
+                        } catch (e) { console.warn("TomTom fetch failed:", e); }
                     }
 
                     if (!placeFound) {
@@ -277,14 +247,10 @@ export default function MapSection({ onNavigate, onLogout }) {
                                     }
                                 }
                             }
-                        } catch (e) {
-                            console.error("OSM Fallback failed:", e);
-                        }
+                        } catch (e) { console.error("OSM Fallback failed:", e); }
                     }
 
-                    if (!placeFound) {
-                        setCurrentLocationName("Current Location"); 
-                    }
+                    if (!placeFound) setCurrentLocationName("Current Location"); 
 
                     setTimeout(() => setShowLocationBanner(false), 5000);
                 },
@@ -315,13 +281,14 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
     }, [selectedVoice]);
 
+    // 🌟 PURE REACT SPEAK INSTRUCTION - No refs needed anymore!
     const speakInstruction = (text) => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel(); 
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.rate = 0.95;
             utterance.pitch = 1.0;
-            
+
             if (selectedVoice === "bisaya_free") {
                 const localVoice = voices.find(v => v.lang.includes('fil') || v.lang.includes('tl') || v.lang.includes('PH') || v.lang.includes('id'));
                 if (localVoice) utterance.voice = localVoice;
@@ -358,7 +325,7 @@ export default function MapSection({ onNavigate, onLogout }) {
 
             map.on('click', (e) => {
                 if (e.originalEvent.shiftKey) {
-                    if (isNavigatingRef.current) {
+                    if (isNavigating) {
                         const latlng = [e.latlng.lat, e.latlng.lng];
                         setLiveLocation(latlng);
                         if (originRef.current) setOrigin(prev => ({ ...prev, latlng }));
@@ -378,7 +345,7 @@ export default function MapSection({ onNavigate, onLogout }) {
 
             mapInstanceRef.current = map;
         }
-    }, []);
+    }, [isNavigating]);
 
     useEffect(() => {
         if (!mapInstanceRef.current) return;
@@ -416,7 +383,6 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
     }, [showTraffic, TOMTOM_API_KEY]);
 
-    // 🌟 RESTORED REAL-TIME GPS TRACKING & MAP CENTERING
     useEffect(() => {
         let watchId;
         if ('geolocation' in navigator) {
@@ -478,7 +444,6 @@ export default function MapSection({ onNavigate, onLogout }) {
         });
     }, [liveLocation, driveMode, userReports, selectedVoice]);
 
-    // UNUSUAL TRAFFIC & HAZARD PROMPT MONITOR
     useEffect(() => {
         if (!driveMode || !isNavigating || speed === "--") {
             if (stoppageTimerRef.current) clearTimeout(stoppageTimerRef.current);
@@ -508,7 +473,6 @@ export default function MapSection({ onNavigate, onLogout }) {
         };
     }, [speed, driveMode, isNavigating]);
 
-    // ADAPTIVE PATH & OFF-ROUTE DETECTION
     useEffect(() => {
         if (!driveMode || !liveLocation || routeSegments.length === 0 || isCalculating) return;
 
@@ -756,25 +720,33 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
     }, [origin, destination, liveLocation, heading, firebaseNodes, userReports, routeSegments, driveMode, isCalculating]);
 
+    // 🌟 PURE REACT LISTENER - Replaces the closure trap!
     useEffect(() => {
         const nodesRef = ref(database, 'nodes');
         const unsubscribeNodes = onValue(nodesRef, (snapshot) => {
-            if (snapshot.val()) { setFirebaseNodes(snapshot.val()); checkFloodTriggers(snapshot.val()); }
+            if (snapshot.val()) { 
+                setFirebaseNodes(snapshot.val()); 
+            }
         });
 
         const reportsRef = ref(database, 'reports');
         const unsubscribeReports = onValue(reportsRef, (snapshot) => setUserReports(snapshot.val() || {}));
 
         return () => { unsubscribeNodes(); unsubscribeReports(); };
-    }, [vehicleLayer]);
+    }, []);
 
-    const checkFloodTriggers = (nodes) => {
+    // 🌟 REACTIVE FLOOD TRIGGER - Always reads freshest selectedVoice
+    // 🌟 REACTIVE FLOOD TRIGGER - Always reads freshest selectedVoice
+    useEffect(() => {
+        // Removed !driveMode so the app actively scans for floods and reroutes EVEN in the route preview!
+        if (!isNavigating) return; 
+
         const limits = { "LOW": 15, "MID": 30, "HIGH": 50 };
         const myLimit = limits[vehicleLayer] || 15;
         let forceReroute = false;
 
-        Object.keys(nodes).forEach(nodeId => {
-            const nodeContainer = nodes[nodeId];
+        Object.keys(firebaseNodes).forEach(nodeId => {
+            const nodeContainer = firebaseNodes[nodeId];
             if (nodeContainer && typeof nodeContainer === 'object') {
                 let floodDepth = 0;
                 const pushKeys = Object.keys(nodeContainer).filter(key => key.startsWith('-')).sort();
@@ -784,24 +756,24 @@ export default function MapSection({ onNavigate, onLogout }) {
                 } else if (nodeContainer.waterLevel !== undefined || nodeContainer.depth !== undefined) {
                     floodDepth = nodeContainer.waterLevel !== undefined ? nodeContainer.waterLevel : (nodeContainer.depth || 0);
                 }
-                if (floodDepth >= myLimit && nodeBlockStates.current[nodeId] !== 'blocked') forceReroute = true;
+                if (floodDepth >= myLimit && nodeBlockStates.current[nodeId] !== 'blocked') {
+                    forceReroute = true;
+                }
                 nodeBlockStates.current[nodeId] = floodDepth >= myLimit ? 'blocked' : 'clear';
             }
         });
 
-        if (isNavigatingRef.current && forceReroute) {
-            // 🌟 1. Determine the language based on the dropdown
+        if (forceReroute) {
             const warningText = selectedVoice === "bisaya_free" 
                 ? "Baha sa unahan! Nag-calculate ug bag-ong ruta." 
                 : "Flood detected ahead! Rerouting.";
             
-            // 🌟 2. Send it to your custom speaker function (which automatically applies the UK Male/Female accent you picked in the UI!)
             speakInstruction(warningText);
-
-            // 🌟 3. Trigger the dynamic reroute from your current live GPS position
-            fetchRoute(true, driveMode ? liveLocation : null);
+            
+            // Passes liveLocation ONLY if driving, otherwise passes null to use the dropped pins
+            fetchRoute(true, driveMode ? liveLocation : null); 
         }
-    };
+    }, [firebaseNodes, vehicleLayer, isNavigating, driveMode, selectedVoice, liveLocation]);
 
     const submitReport = (type) => {
         const loc = liveLocation || mapCenter; 
@@ -1406,7 +1378,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
                 overflow: 'hidden'
             }}>
-                {/* Slim Search Row */}
+            {/* Slim Search Row */}
                 <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '48px' }}>
                     <button
                         type="button"
@@ -1438,32 +1410,43 @@ export default function MapSection({ onNavigate, onLogout }) {
                             />
                         </div>
                     ) : (
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px 0' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '12px' }}>🟢</span>
-                                <input 
-                                    type="text" 
-                                    value={originQuery} 
-                                    onChange={(e) => handleSearchInput(e.target.value, true)} 
-                                    onFocus={() => setActiveInput('origin')} 
-                                    onBlur={() => setTimeout(() => { if (activeInput === 'origin') setActiveInput(null); }, 250)} 
-                                    placeholder="Choose starting point" 
-                                    style={{ width: '100%', height: '32px', backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', padding: '0 10px', borderRadius: '8px', fontSize: '13px', outline: 'none' }} 
-                                />
+                        <>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px 0' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '12px' }}>🟢</span>
+                                    <input 
+                                        type="text" 
+                                        value={originQuery} 
+                                        onChange={(e) => handleSearchInput(e.target.value, true)} 
+                                        onFocus={() => setActiveInput('origin')} 
+                                        onBlur={() => setTimeout(() => { if (activeInput === 'origin') setActiveInput(null); }, 250)} 
+                                        placeholder="Choose starting point" 
+                                        style={{ width: '100%', height: '32px', backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', padding: '0 10px', borderRadius: '8px', fontSize: '13px', outline: 'none' }} 
+                                    />
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ fontSize: '12px' }}>🔴</span>
+                                    <input 
+                                        type="text" 
+                                        value={destQuery} 
+                                        onChange={(e) => handleSearchInput(e.target.value, false)} 
+                                        onFocus={() => setActiveInput('destination')} 
+                                        onBlur={() => setTimeout(() => { if (activeInput === 'destination') setActiveInput(null); }, 250)} 
+                                        placeholder="Choose destination" 
+                                        style={{ width: '100%', height: '32px', backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', padding: '0 10px', borderRadius: '8px', fontSize: '13px', outline: 'none' }} 
+                                    />
+                                </div>
                             </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <span style={{ fontSize: '12px' }}>🔴</span>
-                                <input 
-                                    type="text" 
-                                    value={destQuery} 
-                                    onChange={(e) => handleSearchInput(e.target.value, false)} 
-                                    onFocus={() => setActiveInput('destination')} 
-                                    onBlur={() => setTimeout(() => { if (activeInput === 'destination') setActiveInput(null); }, 250)} 
-                                    placeholder="Choose destination" 
-                                    style={{ width: '100%', height: '32px', backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', padding: '0 10px', borderRadius: '8px', fontSize: '13px', outline: 'none' }} 
-                                />
-                            </div>
-                        </div>
+                            
+                            {/* 🌟 SWAP BUTTON PLACED HERE */}
+                            <button 
+                                onClick={swapLocations} 
+                                title="Swap Origin and Destination"
+                                style={{ width: '32px', height: '32px', flexShrink: 0, backgroundColor: 'transparent', border: 'none', color: ui.textMain, fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}
+                            >
+                                ⇅
+                            </button>
+                        </>
                     )}
 
                     {(origin || destination) && (
@@ -1521,11 +1504,15 @@ export default function MapSection({ onNavigate, onLogout }) {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} style={{ backgroundColor: ui.inputBg, color: ui.textMuted, border: 'none', padding: '10px 10px', borderRadius: '12px', fontSize: '11px', outline: 'none', width: '38%', cursor: 'pointer' }}>
+                            <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} style={{ backgroundColor: ui.inputBg, color: ui.textMain, border: `1px solid ${ui.border}`, padding: '10px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '500', outline: 'none', width: '110px', flexShrink: 0, cursor: 'pointer', textOverflow: 'ellipsis' }}>
                                 <option value="bisaya_free">🇵🇭 Bisaya</option>
-                                {voices.map(voice => (
-                                    <option key={voice.name} value={voice.name}>{voice.name.replace(/Microsoft |Google /g, '')}</option>
-                                ))}
+                                {voices.length > 0 ? (
+                                    voices.map(voice => (
+                                        <option key={voice.name} value={voice.name}>{voice.name.replace(/Microsoft |Google |English /g, '')}</option>
+                                    ))
+                                ) : (
+                                    <option value="default">Default Voice</option>
+                                )}
                             </select>
 
                             <button onClick={() => fetchRoute(false, null, false)} disabled={isCalculating} style={{ flex: 1, height: '40px', backgroundColor: ui.accentBlue, color: ui.btnText, border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.18)' }}>
@@ -1603,7 +1590,7 @@ export default function MapSection({ onNavigate, onLogout }) {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'flex-end', pointerEvents: 'auto' }}>
                             <div onClick={() => setShowReportModal(true)} style={{ backgroundColor: '#f59e0b', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', cursor: 'pointer' }}>
-                                <span style={{ fontSize: '26px' }}>⚠️</span>
+                                <span style={{ fontSize: '24px' }}>⚠️</span>
                             </div>
 
                             <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-end' }}>
