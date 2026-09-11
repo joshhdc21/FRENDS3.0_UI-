@@ -182,19 +182,35 @@ export default function MapSection({ onNavigate, onLogout }) {
         btnText: theme === 'dark' ? '#202124' : '#ffffff'
     };
 
-    useEffect(() => {
-        const triggerFallbackLocation = () => {
-            const fallbackLatlng = [14.5648, 120.9932];
-            setMapCenter(fallbackLatlng);
-            setLiveLocation(fallbackLatlng);
-            
-            if (!originRef.current) {
-                setOrigin({ latlng: fallbackLatlng, title: "Your Location" });
-                setOriginQuery("Your Location");
+   useEffect(() => {
+        const fetchDynamicFallback = async () => {
+            try {
+                // Dynamically resolve location via network IP if GPS hardware is restricted/blocked
+                const ipRes = await fetch('https://ipapi.co/json/');
+                if (ipRes.ok) {
+                    const ipData = await ipRes.json();
+                    if (ipData.latitude && ipData.longitude) {
+                        const latlng = [ipData.latitude, ipData.longitude];
+                        setMapCenter(latlng);
+                        setLiveLocation(latlng);
+                        
+                        if (!originRef.current) {
+                            const dynamicTitle = `${ipData.city || 'Current Location'}, ${ipData.region || ''}`;
+                            setOrigin({ latlng, title: dynamicTitle });
+                            setOriginQuery(dynamicTitle);
+                        }
+                        setCurrentLocationName(`${ipData.city || 'Current Location'}, ${ipData.region || ''}`);
+                        setShowLocationBanner(true);
+                        setTimeout(() => setShowLocationBanner(false), 5000);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("Dynamic IP fallback lookup failed:", e);
             }
-            setCurrentLocationName("Metro Manila");
-            setShowLocationBanner(true);
-            setTimeout(() => setShowLocationBanner(false), 5000);
+            
+            // Ultimate generic dynamic fallback (no hardcoded cities/coordinates)
+            setCurrentLocationName("Locating position...");
         };
 
         if ('geolocation' in navigator) {
@@ -267,19 +283,19 @@ export default function MapSection({ onNavigate, onLogout }) {
                     }
 
                     if (!placeFound) {
-                        setCurrentLocationName("Metro Manila"); 
+                        setCurrentLocationName("Current Location"); 
                     }
 
                     setTimeout(() => setShowLocationBanner(false), 5000);
                 },
                 (err) => {
-                    console.warn("Geolocation restricted in mobile simulator container. Using default fallback.", err);
-                    triggerFallbackLocation();
+                    console.warn("GPS restricted in container. Switching to dynamic IP resolution.", err);
+                    fetchDynamicFallback();
                 },
-                { enableHighAccuracy: true, timeout: 4000 }
+                { enableHighAccuracy: true, timeout: 5000 }
             );
         } else {
-            triggerFallbackLocation();
+            fetchDynamicFallback();
         }
     }, [TOMTOM_API_KEY]);
     
