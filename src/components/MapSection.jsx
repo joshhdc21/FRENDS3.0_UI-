@@ -208,7 +208,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                                 const data = await res.json();
                                 if (data.addresses && data.addresses.length > 0) {
                                     const addr = data.addresses[0].address;
-                                    const city = addr.municipality || addr.city || addr.localName;
+                                    const city = addr.municipality || addr.city || addr.localName || addr.countrySecondarySubdivision;
                                     const prov = addr.countrySubdivision; 
                                     
                                     if (city && prov && city !== prov) {
@@ -235,7 +235,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                                 const osmData = await osmRes.json();
                                 if (osmData && osmData.address) {
                                     const addr = osmData.address;
-                                    const city = addr.city || addr.town || addr.municipality || addr.suburb;
+                                    const city = addr.city || addr.town || addr.municipality || addr.suburb || addr.city_district;
                                     const prov = addr.province || addr.state || addr.region;
                                     
                                     if (city && prov && city !== prov) {
@@ -253,7 +253,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                     }
 
                     if (!placeFound) {
-                        setCurrentLocationName("an unmapped area"); 
+                        setCurrentLocationName("Metro Manila"); 
                     }
 
                     setTimeout(() => setShowLocationBanner(false), 5000);
@@ -384,36 +384,39 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
     }, [showTraffic, TOMTOM_API_KEY]);
 
+    // 🌟 RESTORED REAL-TIME GPS TRACKING & MAP CENTERING
     useEffect(() => {
         let watchId;
-        if (driveMode) {
-            if ('geolocation' in navigator) {
-                watchId = navigator.geolocation.watchPosition(
-                    (position) => {
-                        const newLatlng = [position.coords.latitude, position.coords.longitude];
-                        setLiveLocation(newLatlng);
-                        if (position.coords.speed !== null) setSpeed(Math.round(position.coords.speed * 3.6));
-                        else setSpeed(0);
-                        if (position.coords.heading !== null && !isNaN(position.coords.heading)) setHeading(position.coords.heading);
-                        if (mapInstanceRef.current) mapInstanceRef.current.panTo(newLatlng, { animate: true, duration: 1.0 });
-                    },
-                    (error) => console.error("GPS Tracking Error:", error),
-                    { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
-                );
-            } else alert("⚠️ Geolocation is not supported by your browser.");
+        if ('geolocation' in navigator) {
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const newLatlng = [position.coords.latitude, position.coords.longitude];
+                    setLiveLocation(newLatlng);
+                    
+                    if (position.coords.speed !== null) setSpeed(Math.round(position.coords.speed * 3.6));
+                    else setSpeed(0);
+                    
+                    if (position.coords.heading !== null && !isNaN(position.coords.heading)) setHeading(position.coords.heading);
+
+                    if (driveMode && mapInstanceRef.current) {
+                        mapInstanceRef.current.panTo(newLatlng, { animate: true, duration: 1.0 });
+                    }
+                },
+                (error) => console.error("Real-time GPS Tracking Error:", error),
+                { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
+            );
         } else {
-            if (watchId) navigator.geolocation.clearWatch(watchId);
-            setSpeed("--");
+            alert("⚠️ Geolocation is not supported by your browser.");
         }
         return () => { if (watchId) navigator.geolocation.clearWatch(watchId); };
     }, [driveMode]);
 
     useEffect(() => {
-        if (mapInstanceRef.current && !driveMode) {
+        if (mapInstanceRef.current && !driveMode && !origin && !destination) {
             mapInstanceRef.current.setView(mapCenter, 16);
             setTimeout(() => mapInstanceRef.current.invalidateSize(), 100);
         }
-    }, [mapCenter, driveMode]);
+    }, [mapCenter, driveMode, origin, destination]);
 
     useEffect(() => {
         if (!driveMode || !liveLocation || !userReports) return;
@@ -954,7 +957,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 let bisayaAction = "deretso lang";
                 if (navStep.action.toLowerCase().includes("right")) bisayaAction = "liko sa tuo";
                 else if (navStep.action.toLowerCase().includes("left")) bisayaAction = "liko sa wala";
-                else if (navStep.action.toLowerCase().includes("arrive")) bisayaAction = "naman na ka sa imong padulngan";
+                else if (navStep.action.toLowerCase().includes("arrive")) bisayaAction = "naa na ka sa imong padulngan";
                 
                 const distanceText = navStep.distance.replace('m', 'metros');
                 speechText = `Mga ${distanceText} sa unahan, ${bisayaAction}. Amping sa byahe kay basin naay baha sa imong agianan.`;
@@ -1346,7 +1349,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 </div>
             )}
 
-            {/* 🌟 GOOGLE MAPS-STYLE SLIM FLOATING SEARCH BAR & CONTROLS */}
+            {/* 🌟 GOOGLE MAPS STYLE SLIM FLOATING SEARCH BAR & CONDITIONAL OPTIONS */}
             <div style={{
                 position: 'absolute', 
                 top: '12px', 
@@ -1358,14 +1361,13 @@ export default function MapSection({ onNavigate, onLogout }) {
                 display: 'flex', 
                 flexDirection: 'column', 
                 boxShadow: '0 4px 20px rgba(0,0,0,0.35)', 
-                borderRadius: '32px', // Fully pill-shaped Google Maps style corners when collapsed
+                borderRadius: '32px', 
                 transform: driveMode ? (isMobile ? 'translateY(-200%)' : 'translateX(-150%)') : 'translate(0, 0)',
-                transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-radius 0.2s ease',
+                transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
                 overflow: 'hidden'
             }}>
-                {/* Slim Search Row / Google Maps Bar */}
+                {/* Slim Search Row */}
                 <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '48px' }}>
-                    {/* Menu Toggle (Hamburger) */}
                     <button
                         type="button"
                         onClick={() => setMenuOpen(prev => !prev)}
@@ -1374,7 +1376,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                         {menuOpen ? '×' : '☰'}
                     </button>
 
-                    {/* Traffic Toggle Button */}
                     <button
                         type="button"
                         onClick={() => setShowTraffic(prev => !prev)}
@@ -1384,8 +1385,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                         🚦
                     </button>
 
-                    {/* Single Main Destination / Search Bar (Google Maps Style) */}
-                    {!origin && !destination ? (
+                    {!origin || !destination ? (
                         <div style={{ flex: 1, display: 'flex', alignItems: 'center', position: 'relative' }}>
                             <input 
                                 type="text" 
@@ -1398,7 +1398,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                             />
                         </div>
                     ) : (
-                        /* Expanded Dual Origin/Destination Inputs once navigation is active */
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', padding: '4px 0' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span style={{ fontSize: '12px' }}>🟢</span>
@@ -1427,7 +1426,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                         </div>
                     )}
 
-                    {/* Back / Clear Button */}
                     {(origin || destination) && (
                         <button 
                             onMouseDown={(e) => {
@@ -1443,7 +1441,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                     )}
                 </div>
 
-                {/* Suggestions Dropdown */}
                 {activeInput && (
                     <div style={{ backgroundColor: ui.bg, overflowY: 'auto', maxHeight: isMobile ? 'calc(100vh - 140px)' : '350px', borderTop: `1px solid ${ui.border}` }}>
                         {(activeInput === 'origin' ? originSuggestions : destSuggestions).length > 0 ? (
@@ -1472,10 +1469,9 @@ export default function MapSection({ onNavigate, onLogout }) {
                     </div>
                 )}
 
-                {/* 🌟 CONDITIONAL OPTIONS FOR CAR, VOICE, AND DIRECTIONS (Reveals ONLY when BOTH Origin & Destination are selected) */}
+                {/* VEHICLE, VOICE, AND DIRECTIONS (Reveals ONLY when BOTH Origin & Destination are selected) */}
                 {origin && destination && !routeInfo && !activeInput && (
                     <div style={{ padding: '10px 14px 14px', display: 'flex', flexDirection: 'column', gap: '10px', borderTop: `1px solid ${ui.border}` }}>
-                        {/* Vehicle Selection Chips */}
                         <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
                             {[ { type: 'LOW', icon: '🚗', label: 'Sedan' }, { type: 'MID', icon: '🚙', label: 'SUV' }, { type: 'HIGH', icon: '🚌', label: 'Truck' } ].map(vehicle => (
                                 <button key={vehicle.type} onClick={() => setVehicleLayer(vehicle.type)} style={{ flexShrink: 0, backgroundColor: vehicleLayer === vehicle.type ? `${ui.accentBlue}20` : ui.inputBg, color: vehicleLayer === vehicle.type ? ui.accentBlue : ui.textMain, border: `1px solid ${vehicleLayer === vehicle.type ? ui.accentBlue : 'transparent'}`, borderRadius: '16px', padding: '6px 12px', fontSize: '11px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer' }}>
@@ -1484,7 +1480,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                             ))}
                         </div>
 
-                        {/* Voice Selector & Directions Button Row */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} style={{ backgroundColor: ui.inputBg, color: ui.textMuted, border: 'none', padding: '10px 10px', borderRadius: '12px', fontSize: '11px', outline: 'none', width: '38%', cursor: 'pointer' }}>
                                 <option value="bisaya_free">🇵🇭 Bisaya</option>
@@ -1520,7 +1515,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                             Arrive around <b style={{color: ui.textMain}}>{new Date(Date.now() + routeInfo.time * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</b> • Adjusted for live conditions
                         </span>
                     </div>
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ style: 'flex', display: 'flex', gap: '10px' }}>
                         <button style={{ flex: 1, backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', borderRadius: '20px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>Steps</button>
                         <button onClick={startDriveMode} style={{ flex: 2, backgroundColor: ui.accentBlue, color: ui.btnText, border: 'none', borderRadius: '20px', padding: '12px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>Start</button>
                     </div>
@@ -1568,7 +1563,7 @@ export default function MapSection({ onNavigate, onLogout }) {
 
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', alignItems: 'flex-end', pointerEvents: 'auto' }}>
                             <div onClick={() => setShowReportModal(true)} style={{ backgroundColor: '#f59e0b', borderRadius: '50%', width: '52px', height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 12px rgba(0,0,0,0.4)', cursor: 'pointer' }}>
-                                <span style={{ fontSize: '24px' }}>⚠️</span>
+                                <span style={{ fontSize: '26px' }}>⚠️</span>
                             </div>
 
                             <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-end' }}>
