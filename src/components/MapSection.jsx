@@ -1565,7 +1565,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                         </span>
                     </div>
                     <div style={{ style: 'flex', display: 'flex', gap: '10px' }}>
-                        <button style={{ flex: 1, backgroundColor: ui.inputBg, color: ui.textMain, border: 'none', borderRadius: '20px', padding: '12px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>Steps</button>
                         <button onClick={startDriveMode} style={{ flex: 2, backgroundColor: ui.accentBlue, color: ui.btnText, border: 'none', borderRadius: '20px', padding: '12px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>Start</button>
                     </div>
                 </div>
