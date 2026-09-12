@@ -817,7 +817,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             const lat = mapCenter[0] ? mapCenter[0].toFixed(5) : "14.56480";
             const lon = mapCenter[1] ? mapCenter[1].toFixed(5) : "120.99320";
 
-            const url = `https://api.tomtom.com/search/2/search/${encodeURIComponent(cleanQuery)}.json?key=${apiKey}&lat=${lat}&lon=${lon}&radius=30000&countrySet=PH&limit=10&typeahead=true&view=Unified`;
+            const url = `https://api.tomtom.com/search/2/search/${encodeURIComponent(cleanQuery)}.json?key=${apiKey}&lat=${lat}&lon=${lon}&radius=10000000&countrySet=PH&limit=10&typeahead=true&view=Unified`;
             
             try {
                 const res = await fetch(url);
