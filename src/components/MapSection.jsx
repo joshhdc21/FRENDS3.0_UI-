@@ -267,27 +267,26 @@ export default function MapSection({ onNavigate, onLogout }) {
     
     useEffect(() => {
         const loadVoices = () => {
-    const synth = window.speechSynthesis;
+            const synth = window.speechSynthesis;
 
-    if (!synth || typeof synth.getVoices !== "function") {
-        console.warn("Speech synthesis is not supported on this device.");
-        setVoices([]);
-        return;
-    }
+            if (!synth || typeof synth.getVoices !== "function") {
+                console.warn("Speech synthesis is not supported on this device.");
+                setVoices([]);
+                return;
+            }
 
-    const availableVoices = synth.getVoices();
+            const availableVoices = synth.getVoices();
+            setVoices(availableVoices);
 
-    setVoices(availableVoices);
+            if (availableVoices.length > 0 && !selectedVoice) {
+                const defaultVoice =
+                    availableVoices.find(
+                        v => v.lang.includes("en") && v.name.includes("Google")
+                    ) || availableVoices[0];
 
-    if (availableVoices.length > 0 && !selectedVoice) {
-        const defaultVoice =
-            availableVoices.find(
-                v => v.lang.includes("en") && v.name.includes("Google")
-            ) || availableVoices[0];
-
-        setSelectedVoice(defaultVoice.name);
-    }
-}; 
+                setSelectedVoice(defaultVoice.name);
+            }
+        }; 
 
         loadVoices();
 
@@ -303,7 +302,6 @@ export default function MapSection({ onNavigate, onLogout }) {
         };
     }, [selectedVoice]);
 
-    // 🌟 PURE REACT SPEAK INSTRUCTION - No refs needed anymore!
     const speakInstruction = (text) => {
         if ('speechSynthesis' in window) {
             window.speechSynthesis.cancel(); 
@@ -345,15 +343,8 @@ export default function MapSection({ onNavigate, onLogout }) {
             const layerGroup = L.layerGroup().addTo(map);
             layerGroupRef.current = layerGroup;
 
-            map.on('click', (e) => {
-                if (e.originalEvent.shiftKey) {
-                    if (isNavigating) {
-                        const latlng = [e.latlng.lat, e.latlng.lng];
-                        setLiveLocation(latlng);
-                        if (originRef.current) setOrigin(prev => ({ ...prev, latlng }));
-                    } else alert("⚠️ Click 'Directions' first!");
-                    return;
-                }
+            map.on('contextmenu', (e) => { 
+                if (e.originalEvent.shiftKey || isNavigating) return; 
 
                 const latlng = [e.latlng.lat, e.latlng.lng];
                 if (!originRef.current) {
@@ -645,9 +636,20 @@ export default function MapSection({ onNavigate, onLogout }) {
             else if (floodDepth >= 15) color = "#fce8b2";
 
             const floodDepthFt = (floodDepth / 30.48).toFixed(2);
-            L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9 })
-                .addTo(mapGroup)
-                .bindPopup(`<div style="font-family: Inter, sans-serif;"><b>Node: ${nodeId}</b><br />Flood: <b style="color: ${color};">${floodDepthFt}ft</b></div>`);
+            
+            if (floodDepth >= 50) {
+                const pulseIcon = L.divIcon({
+                    html: `<div class="flood-node-critical" style="width: 16px; height: 16px; background-color: #f28b82; border: 2px solid white;"></div>`,
+                    className: '', iconSize: [16, 16], iconAnchor: [8, 8]
+                });
+                L.marker([lat, lng], { icon: pulseIcon, pane: 'routePane' })
+                    .addTo(mapGroup)
+                    .bindPopup(`<div style="font-family: Inter, sans-serif;"><b>Node: ${nodeId}</b><br />Flood: <b style="color: #f28b82;">${floodDepthFt}ft</b></div>`);
+            } else {
+                L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9, pane: 'routePane' })
+                    .addTo(mapGroup)
+                    .bindPopup(`<div style="font-family: Inter, sans-serif;"><b>Node: ${nodeId}</b><br />Flood: <b style="color: ${color};">${floodDepthFt}ft</b></div>`);
+            }
         });
 
         Object.keys(userReports).forEach(key => {
@@ -704,7 +706,7 @@ export default function MapSection({ onNavigate, onLogout }) {
 
                 const traveledPath = closestIdx > 0 ? flatPath.slice(0, closestIdx + 1) : [];
 
-                L.polyline(flatPath, { color: '#111827', weight: 12, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                L.polyline(flatPath, { color: '#111827', weight: 12, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane', className: 'animated-route' }).addTo(mapGroup);
                 
                 routeSegments.forEach(segment => {
                     if (!segment || !Array.isArray(segment.coords)) return;
@@ -713,7 +715,12 @@ export default function MapSection({ onNavigate, onLogout }) {
                         c.longitude !== undefined ? c.longitude : c[1]
                     ]);
                     if (positions.length > 1) {
-                        L.polyline(positions, { color: segment.color || ui.accentBlue, weight: 8, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                        L.polyline(positions, { 
+                            color: segment.color || ui.accentBlue, 
+                            weight: 8, opacity: 1.0, lineCap: 'round', lineJoin: 'round', 
+                            pane: 'routePane',
+                            className: 'animated-route' 
+                        }).addTo(mapGroup);
                     }
                 });
 
@@ -722,7 +729,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 }
 
             } else {
-                L.polyline(flatPath, { color: '#111827', weight: 9, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                L.polyline(flatPath, { color: '#111827', weight: 9, opacity: 0.8, lineCap: 'round', lineJoin: 'round', pane: 'routePane', className: 'animated-route' }).addTo(mapGroup);
                 
                 routeSegments.forEach(segment => {
                     if (!segment || !Array.isArray(segment.coords)) return;
@@ -731,7 +738,12 @@ export default function MapSection({ onNavigate, onLogout }) {
                         c.longitude !== undefined ? c.longitude : c[1]
                     ]);
                     if (positions.length > 1) {
-                        L.polyline(positions, { color: segment.color || ui.accentBlue, weight: 5, opacity: 1.0, lineCap: 'round', lineJoin: 'round', pane: 'routePane' }).addTo(mapGroup);
+                        L.polyline(positions, { 
+                            color: segment.color || ui.accentBlue, 
+                            weight: 5, opacity: 1.0, lineCap: 'round', lineJoin: 'round', 
+                            pane: 'routePane',
+                            className: 'animated-route' 
+                        }).addTo(mapGroup);
                     }
                 });
             }
@@ -742,7 +754,6 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
     }, [origin, destination, liveLocation, heading, firebaseNodes, userReports, routeSegments, driveMode, isCalculating]);
 
-    // 🌟 PURE REACT LISTENER - Replaces the closure trap!
     useEffect(() => {
         const nodesRef = ref(database, 'nodes');
         const unsubscribeNodes = onValue(nodesRef, (snapshot) => {
@@ -757,10 +768,7 @@ export default function MapSection({ onNavigate, onLogout }) {
         return () => { unsubscribeNodes(); unsubscribeReports(); };
     }, []);
 
-    // 🌟 REACTIVE FLOOD TRIGGER - Always reads freshest selectedVoice
-    // 🌟 REACTIVE FLOOD TRIGGER - Always reads freshest selectedVoice
     useEffect(() => {
-        // Removed !driveMode so the app actively scans for floods and reroutes EVEN in the route preview!
         if (!isNavigating) return; 
 
         const limits = { "LOW": 15, "MID": 30, "HIGH": 50 };
@@ -791,8 +799,6 @@ export default function MapSection({ onNavigate, onLogout }) {
                 : "Flood detected ahead! Rerouting.";
             
             speakInstruction(warningText);
-            
-            // Passes liveLocation ONLY if driving, otherwise passes null to use the dropped pins
             fetchRoute(true, driveMode ? liveLocation : null); 
         }
     }, [firebaseNodes, vehicleLayer, isNavigating, driveMode, selectedVoice, liveLocation]);
@@ -1252,6 +1258,24 @@ export default function MapSection({ onNavigate, onLogout }) {
                         .frends-map-menu-footer { padding: 14px 22px calc(14px + env(safe-area-inset-bottom)); }
                         .frends-map-menu-status { font-size: 13px; }
                     }
+                    
+                    @keyframes pulse-danger {
+                        0% { box-shadow: 0 0 0 0 rgba(242, 139, 130, 0.7); }
+                        70% { box-shadow: 0 0 0 15px rgba(242, 139, 130, 0); }
+                        100% { box-shadow: 0 0 0 0 rgba(242, 139, 130, 0); }
+                    }
+                    .flood-node-critical {
+                        border-radius: 50%;
+                        animation: pulse-danger 1.5s infinite;
+                    }
+                    .animated-route {
+                        stroke-dasharray: 2000;
+                        stroke-dashoffset: 2000;
+                        animation: drawRoute 1.5s ease-out forwards;
+                    }
+                    @keyframes drawRoute {
+                        to { stroke-dashoffset: 0; }
+                    }
                 `}
             </style>
 
@@ -1417,6 +1441,15 @@ export default function MapSection({ onNavigate, onLogout }) {
                         style={{ width: '36px', height: '36px', flexShrink: 0, border: `2px solid ${showTraffic ? ui.accentGreen : ui.border}`, borderRadius: '50%', backgroundColor: ui.inputBg, color: ui.textMain, fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: showTraffic ? 1 : 0.75 }}
                     >
                         🚦
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')}
+                        title="Toggle Map Theme"
+                        style={{ width: '36px', height: '36px', flexShrink: 0, border: 'none', borderRadius: '50%', backgroundColor: ui.inputBg, color: ui.textMain, fontSize: '16px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                        {theme === 'dark' ? '🌙' : '☀️'}
                     </button>
 
                     {!origin || !destination ? (
@@ -1628,4 +1661,4 @@ export default function MapSection({ onNavigate, onLogout }) {
             )}
         </div>
     );
-} 
+}
