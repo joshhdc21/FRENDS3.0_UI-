@@ -267,18 +267,40 @@ export default function MapSection({ onNavigate, onLogout }) {
     
     useEffect(() => {
         const loadVoices = () => {
-            const availableVoices = window.speechSynthesis.getVoices();
-            setVoices(availableVoices);
-            if (availableVoices.length > 0 && !selectedVoice) {
-                const defaultVoice = availableVoices.find(v => v.lang.includes('en') && v.name.includes('Google')) || availableVoices[0];
-                setSelectedVoice(defaultVoice.name);
-            }
-        };
+    const synth = window.speechSynthesis;
+
+    if (!synth || typeof synth.getVoices !== "function") {
+        console.warn("Speech synthesis is not supported on this device.");
+        setVoices([]);
+        return;
+    }
+
+    const availableVoices = synth.getVoices();
+
+    setVoices(availableVoices);
+
+    if (availableVoices.length > 0 && !selectedVoice) {
+        const defaultVoice =
+            availableVoices.find(
+                v => v.lang.includes("en") && v.name.includes("Google")
+            ) || availableVoices[0];
+
+        setSelectedVoice(defaultVoice.name);
+    }
+}; 
 
         loadVoices();
-        if (window.speechSynthesis.onvoiceschanged !== undefined) {
-            window.speechSynthesis.onvoiceschanged = loadVoices;
+
+        const synth = window.speechSynthesis;
+        if (synth && 'onvoiceschanged' in synth) {
+            synth.onvoiceschanged = loadVoices;
         }
+
+        return () => {
+            if (synth && 'onvoiceschanged' in synth) {
+                synth.onvoiceschanged = null;
+            }
+        };
     }, [selectedVoice]);
 
     // 🌟 PURE REACT SPEAK INSTRUCTION - No refs needed anymore!
@@ -1607,4 +1629,4 @@ export default function MapSection({ onNavigate, onLogout }) {
             )}
         </div>
     );
-}
+} 
