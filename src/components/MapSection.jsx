@@ -65,7 +65,7 @@ export default function MapSection({ onNavigate, onLogout }) {
     const [userReports, setUserReports] = useState({});
     
     const [voices, setVoices] = useState([]);
-    const [selectedVoice, setSelectedVoice] = useState("bisaya_free"); 
+    const [selectedVoice, setSelectedVoice] = useState(""); 
 
     const [currentLocationName, setCurrentLocationName] = useState("Locating...");
     const [showLocationBanner, setShowLocationBanner] = useState(false);
@@ -309,10 +309,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             utterance.rate = 0.95;
             utterance.pitch = 1.0;
 
-            if (selectedVoice === "bisaya_free") {
-                const localVoice = voices.find(v => v.lang.includes('fil') || v.lang.includes('tl') || v.lang.includes('PH') || v.lang.includes('id'));
-                if (localVoice) utterance.voice = localVoice;
-            } else if (selectedVoice) {
+            if (selectedVoice) {
                 const voice = voices.find(v => v.name === selectedVoice);
                 if (voice) utterance.voice = voice;
             }
@@ -442,17 +439,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             if (dist < 500) {
                 warnedHazardsRef.current.add(key);
                 let hazardName = report.type.toLowerCase();
-                if (selectedVoice === "bisaya_free") {
-                    if (hazardName === "accident") hazardName = "aksidente";
-                    if (hazardName === "construction") hazardName = "gimbuhaton sa kalsada";
-                    if (hazardName === "police") hazardName = "pulis";
-                }
-
-                const speechText = selectedVoice === "bisaya_free" 
-                    ? `Pag amping, naay nareport nga ${hazardName} sa unahan.` 
-                    : `Caution, ${hazardName} reported ahead.`;
-                
-                speakInstruction(speechText);
+                speakInstruction(`Caution, ${hazardName} reported ahead.`);
             }
         });
     }, [liveLocation, driveMode, userReports, selectedVoice]);
@@ -522,7 +509,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             setRouteInfo(null);
 
             setNavStep({ distance: "Rerouting...", action: "Finding new path", arrow: "↻" });
-            speakInstruction(selectedVoice === "bisaya_free" ? "Nasaag ka. Nag calculate ug bag-ong ruta..." : "Recalculating route...");
+            speakInstruction("Recalculating route...");
             setOrigin({ latlng: liveLocation, title: "Current Location" });
             fetchRoute(true, liveLocation); 
             return;
@@ -563,14 +550,10 @@ export default function MapSection({ onNavigate, onLogout }) {
 
         if (distToTurn <= 200 && lastSpokenDistRef.current > 200) {
             lastSpokenDistRef.current = 200;
-            const text = selectedVoice === "bisaya_free" 
-                ? `Sa duha ka gatos ka metro, ${action.includes('right') ? 'liko sa tuo' : 'liko sa wala'}` 
-                : `In 200 meters, ${action}`;
-            speakInstruction(text);
+            speakInstruction(`In 200 meters, ${action}`);
         } else if (distToTurn <= 50 && lastSpokenDistRef.current > 50) {
             lastSpokenDistRef.current = 50;
-            const text = selectedVoice === "bisaya_free" ? (action.includes('right') ? 'liko sa tuo karon' : 'liko sa wala karon') : `${action} now`;
-            speakInstruction(text);
+            speakInstruction(`${action} now`);
         } else if (distToTurn > 250) {
             lastSpokenDistRef.current = Infinity; 
         }
@@ -768,40 +751,65 @@ export default function MapSection({ onNavigate, onLogout }) {
         return () => { unsubscribeNodes(); unsubscribeReports(); };
     }, []);
 
+    // 🌟 REACTIVE FLOOD TRIGGER WITH SPATIAL COLLISION
     useEffect(() => {
-        if (!isNavigating) return; 
+        // Only evaluate reactive reroutes if we are actively navigating AND have a path drawn
+        if (!isNavigating || routeSegments.length === 0) return; 
 
         const limits = { "LOW": 15, "MID": 30, "HIGH": 50 };
         const myLimit = limits[vehicleLayer] || 15;
-        let forceReroute = false;
+        let routeAffected = false;
+
+        // Flatten the current active route to check for hazard collisions
+        let flatPath = [];
+        routeSegments.forEach(segment => {
+            if (segment.coords) flatPath.push(...segment.coords);
+        });
 
         Object.keys(firebaseNodes).forEach(nodeId => {
             const nodeContainer = firebaseNodes[nodeId];
             if (nodeContainer && typeof nodeContainer === 'object') {
                 let floodDepth = 0;
+                let lat = nodeContainer.lat;
+                let lng = nodeContainer.lng;
+                
                 const pushKeys = Object.keys(nodeContainer).filter(key => key.startsWith('-')).sort();
                 if (pushKeys.length > 0) {
                     const latestData = nodeContainer[pushKeys[pushKeys.length - 1]];
                     floodDepth = latestData?.waterLevel !== undefined ? latestData.waterLevel : (latestData?.depth || 0);
+                    lat = latestData?.lat !== undefined ? latestData.lat : lat;
+                    lng = latestData?.lng !== undefined ? latestData.lng : lng;
                 } else if (nodeContainer.waterLevel !== undefined || nodeContainer.depth !== undefined) {
                     floodDepth = nodeContainer.waterLevel !== undefined ? nodeContainer.waterLevel : (nodeContainer.depth || 0);
                 }
-                if (floodDepth >= myLimit && nodeBlockStates.current[nodeId] !== 'blocked') {
-                    forceReroute = true;
+                
+                const isFlooded = floodDepth >= myLimit;
+                const wasBlocked = nodeBlockStates.current[nodeId] === 'blocked';
+
+                // ONLY trigger reroute if a node transitions to flooded AND physically intersects the active route
+                if (isFlooded && !wasBlocked) {
+                    if (lat && lng && flatPath.length > 0) {
+                        for (let pt of flatPath) {
+                            const ptLat = pt.latitude !== undefined ? pt.latitude : pt[0];
+                            const ptLng = pt.longitude !== undefined ? pt.longitude : pt[1];
+                            
+                            // If the hazard is within 40 meters of the active path line
+                            if (getDistanceInMeters(lat, lng, ptLat, ptLng) <= 40) { 
+                                routeAffected = true;
+                                break;
+                            }
+                        }
+                    }
                 }
-                nodeBlockStates.current[nodeId] = floodDepth >= myLimit ? 'blocked' : 'clear';
+                nodeBlockStates.current[nodeId] = isFlooded ? 'blocked' : 'clear';
             }
         });
 
-        if (forceReroute) {
-            const warningText = selectedVoice === "bisaya_free" 
-                ? "Baha sa unahan! Nag-calculate ug bag-ong ruta." 
-                : "Flood detected ahead! Rerouting.";
-            
-            speakInstruction(warningText);
+        if (routeAffected) {
+            speakInstruction("Flood detected ahead! Rerouting.");
             fetchRoute(true, driveMode ? liveLocation : null); 
         }
-    }, [firebaseNodes, vehicleLayer, isNavigating, driveMode, selectedVoice, liveLocation]);
+    }, [firebaseNodes, vehicleLayer, isNavigating, driveMode, liveLocation, routeSegments]);
 
     const submitReport = (type) => {
         const loc = liveLocation || mapCenter; 
@@ -992,19 +1000,7 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
 
         setTimeout(() => {
-            let speechText = "";
-            if (selectedVoice === "bisaya_free") {
-                let bisayaAction = "deretso lang";
-                if (navStep.action.toLowerCase().includes("right")) bisayaAction = "liko sa tuo";
-                else if (navStep.action.toLowerCase().includes("left")) bisayaAction = "liko sa wala";
-                else if (navStep.action.toLowerCase().includes("arrive")) bisayaAction = "naa na ka sa imong padulngan";
-                
-                const distanceText = navStep.distance.replace('m', 'metros');
-                speechText = `Mga ${distanceText} sa unahan, ${bisayaAction}. Amping sa byahe kay basin naay baha sa imong agianan.`;
-            } else {
-                speechText = `In ${navStep.distance}, ${navStep.action.toLowerCase()}. Local floods may affect your active route.`;
-            }
-            speakInstruction(speechText);
+            speakInstruction(`In ${navStep.distance}, ${navStep.action.toLowerCase()}. Local floods may affect your active route.`);
         }, 800);
     };
 
@@ -1560,7 +1556,6 @@ export default function MapSection({ onNavigate, onLogout }) {
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <select value={selectedVoice} onChange={(e) => setSelectedVoice(e.target.value)} style={{ backgroundColor: ui.inputBg, color: ui.textMain, border: `1px solid ${ui.border}`, padding: '10px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '500', outline: 'none', width: '110px', flexShrink: 0, cursor: 'pointer', textOverflow: 'ellipsis' }}>
-                                <option value="bisaya_free">🇵🇭 Bisaya</option>
                                 {voices.length > 0 ? (
                                     voices.map(voice => (
                                         <option key={voice.name} value={voice.name}>{voice.name.replace(/Microsoft |Google |English /g, '')}</option>
