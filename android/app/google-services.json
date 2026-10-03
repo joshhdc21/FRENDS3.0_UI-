@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "134371958928",
+    "project_id": "frends-authentication",
+    "storage_bucket": "frends-authentication.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:134371958928:android:f5b4bd5803a5b2fb967815",
+        "android_client_info": {
+          "package_name": "com.frends.v3"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "134371958928-2oshl2eivnv4ufaspteof767di1sitqi.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7qZGapLcfAcGJi2EMuB08_tDVvYN8a5Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "134371958928-2oshl2eivnv4ufaspteof767di1sitqi.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

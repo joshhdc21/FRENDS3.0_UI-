@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+
 // =====================================================
 // GNEWS CONFIGURATION
 // =====================================================
@@ -53,6 +54,7 @@ const EMERGENCY_HOTLINES = [
     desc: "Fire & Rescue Emergency Assistance",
   },
 ];
+
 
 // =====================================================
 // TRUSTED PHILIPPINE SOURCES

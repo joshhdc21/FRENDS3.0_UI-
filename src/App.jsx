@@ -40,6 +40,7 @@ import TrafficHeroSection from "./components/trafficherosection";
 import NodesSection from "./components/NodesSection";
 import MapSection from "./components/MapSection";
 import AboutUs from "./components/AboutUs";
+import Chatbot from "./components/chatbot";
 
 import "./App.css";
 
@@ -122,6 +123,7 @@ function App() {
   // =========================================================
 
   const handlePageChange = (nextPage) => {
+
     setPage(nextPage);
 
     // Close menu after selecting a page
@@ -139,6 +141,7 @@ function App() {
   // =========================================================
 
   const handleLogout = async () => {
+
     try {
 
       await signOut(auth);
@@ -340,6 +343,7 @@ function App() {
             setAuthLoading(false);
 
           },
+
           (firebaseError) => {
 
             console.error(
@@ -351,7 +355,6 @@ function App() {
             // treat the account as a normal user.
 
             setUserRole("user");
-
             setAuthLoading(false);
 
           }
@@ -435,6 +438,7 @@ function App() {
           setError(null);
 
         },
+
         (firebaseError) => {
 
           console.error(
@@ -453,7 +457,9 @@ function App() {
       );
 
     return () => {
+
       unsubscribeDatabase();
+
     };
 
   }, [user]);
@@ -571,7 +577,9 @@ function App() {
               style={{
                 borderBottom:
                   "1px solid rgba(255, 255, 255, 0.10)",
+
                 paddingBottom: "16px",
+
                 marginBottom: "18px",
               }}
             >
@@ -580,18 +588,22 @@ function App() {
 
                 {/* =========================================
                     FULL SYSTEM TITLE
-                    Font Size: 16px
-                    Font Weight: 400
                 ========================================= */}
 
                 <h3
                   style={{
                     fontSize: "18px",
+
                     fontWeight: 400,
+
                     lineHeight: 1.2,
+
                     color: "inherit",
+
                     margin: 0,
+
                     letterSpacing: "0px",
+
                     textTransform: "none",
                   }}
                 >
@@ -957,6 +969,13 @@ function App() {
             </>
 
           )}
+
+        {/* =================================================
+            GLOBAL FRENDS CHATBOT
+            Appears on all normal-user pages
+        ================================================= */}
+
+        <Chatbot />
 
       </div>
 
