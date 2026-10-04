@@ -353,6 +353,26 @@ export default function MapSection({ onNavigate, onLogout }) {
                 }
             });
 
+            // 🌟 DEV TOOL: Alt + Click to target a specific hardware node in Firebase
+            map.on('click', (e) => {
+                if (e.originalEvent.altKey) {
+                    const nodeName = window.prompt("Enter the exact Node ID in Firebase (e.g., Node1):");
+                    if (nodeName && nodeName.trim() !== "") {
+                        const exactNodeRef = ref(database, `nodes/${nodeName.trim()}`);
+                        set(exactNodeRef, {
+                            lat: e.latlng.lat,
+                            lng: e.latlng.lng,
+                            waterLevel: 55, // Instantly triggers the HIGH threshold
+                            timestamp: Date.now()
+                        }).then(() => {
+                            console.log(`Mock flood injected at ${nodeName.trim()}:`, e.latlng);
+                        }).catch(err => {
+                            console.error("Failed to inject node:", err);
+                        });
+                    }
+                }
+            });
+
             mapInstanceRef.current = map;
         }
     }, [isNavigating]);
@@ -426,8 +446,15 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
     }, [mapCenter, driveMode, origin, destination]);
 
+    // 🌟 DYNAMIC LOOK-AHEAD (HAZARDS)
     useEffect(() => {
         if (!driveMode || !liveLocation || !userReports) return;
+
+        const speedNum = Number(speed) || 0;
+        let lookAheadRadius = 500; // Base: 500m for traffic/slow speeds (< 30km/h)
+        
+        if (speedNum >= 60) lookAheadRadius = 2000; // Highway speeds: scan 2km ahead
+        else if (speedNum >= 30) lookAheadRadius = 1000; // City speeds: scan 1km ahead
 
         Object.keys(userReports).forEach(key => {
             const report = userReports[key];
@@ -436,13 +463,15 @@ export default function MapSection({ onNavigate, onLogout }) {
 
             const dist = getDistanceInMeters(liveLocation[0], liveLocation[1], report.lat, report.lng);
 
-            if (dist < 500) {
+            if (dist <= lookAheadRadius) {
                 warnedHazardsRef.current.add(key);
                 let hazardName = report.type.toLowerCase();
-                speakInstruction(`Caution, ${hazardName} reported ahead.`);
+                // Dynamically format the spoken distance for Waze-like accuracy
+                let distStr = dist >= 1000 ? `${(dist / 1000).toFixed(1)} kilometers` : `${Math.round(dist / 50) * 50} meters`;
+                speakInstruction(`Caution, ${hazardName} reported ${distStr} ahead.`);
             }
         });
-    }, [liveLocation, driveMode, userReports, selectedVoice]);
+    }, [liveLocation, driveMode, userReports, selectedVoice, speed]);
 
     useEffect(() => {
         if (!driveMode || !isNavigating || speed === "--") {
@@ -620,19 +649,29 @@ export default function MapSection({ onNavigate, onLogout }) {
 
             const floodDepthFt = (floodDepth / 30.48).toFixed(2);
             
+            let marker;
             if (floodDepth >= 50) {
                 const pulseIcon = L.divIcon({
                     html: `<div class="flood-node-critical" style="width: 16px; height: 16px; background-color: #f28b82; border: 2px solid white;"></div>`,
                     className: '', iconSize: [16, 16], iconAnchor: [8, 8]
                 });
-                L.marker([lat, lng], { icon: pulseIcon, pane: 'routePane' })
-                    .addTo(mapGroup)
-                    .bindPopup(`<div style="font-family: Inter, sans-serif;"><b>Node: ${nodeId}</b><br />Flood: <b style="color: #f28b82;">${floodDepthFt}ft</b></div>`);
+                marker = L.marker([lat, lng], { icon: pulseIcon, pane: 'routePane' });
             } else {
-                L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9, pane: 'routePane' })
-                    .addTo(mapGroup)
-                    .bindPopup(`<div style="font-family: Inter, sans-serif;"><b>Node: ${nodeId}</b><br />Flood: <b style="color: ${color};">${floodDepthFt}ft</b></div>`);
+                marker = L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9, pane: 'routePane' });
             }
+
+            const popupColor = floodDepth >= 50 ? "#f28b82" : color;
+            marker.addTo(mapGroup)
+                .bindPopup(`<div style="font-family: Inter, sans-serif;"><b>Node: ${nodeId}</b><br />Flood: <b style="color: ${popupColor};">${floodDepthFt}ft</b><br/><span style="font-size: 10px; color: #9aa0a6;">Right-click to delete</span></div>`);
+
+            // 🌟 DEV TOOL: Right-click to delete node from Firebase
+            marker.on('contextmenu', () => {
+                if (window.confirm(`Are you sure you want to delete ${nodeId}?`)) {
+                    set(ref(database, `nodes/${nodeId}`), null)
+                        .then(() => console.log(`${nodeId} deleted successfully.`))
+                        .catch(err => console.error("Error deleting node:", err));
+                }
+            });
         });
 
         Object.keys(userReports).forEach(key => {
@@ -642,11 +681,37 @@ export default function MapSection({ onNavigate, onLogout }) {
             if (!report.lat || !report.lng || ageMs > 4 * 60 * 60 * 1000) return;
             
             let emoji = "⚠️";
-            if (report.type === "Accident") emoji = "💥";
-            else if (report.type === "Construction") emoji = "🚧";
-            else if (report.type === "Police") emoji = "🚓";
+            let delayText = "+3 min";
+            
+            if (report.type === "Accident") { emoji = "💥"; delayText = "+10 min"; }
+            else if (report.type === "Construction") { emoji = "🚧"; delayText = "+5 min"; }
+            else if (report.type === "Police") { emoji = "🚓"; delayText = "+1 min"; }
 
-            const reportIcon = L.divIcon({ html: `<div style="font-size: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">${emoji}</div>`, className: '', iconSize: [30, 30] });
+            // 🌟 CUSTOM ETA PILL INJECTION
+            const reportIcon = L.divIcon({ 
+                html: `
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translateY(-15px);">
+                        <div style="
+                            background: #ea4335; 
+                            color: #ffffff; 
+                            font-family: Inter, sans-serif; 
+                            font-size: 10px; 
+                            font-weight: 700; 
+                            padding: 2px 6px; 
+                            border-radius: 8px; 
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.4); 
+                            white-space: nowrap; 
+                            margin-bottom: 2px;
+                        ">
+                            ${delayText}
+                        </div>
+                        <div style="font-size: 24px; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">${emoji}</div>
+                    </div>
+                `, 
+                className: '', 
+                iconSize: [40, 50],
+                iconAnchor: [20, 45]
+            });
             
             const minsAgo = Math.floor(ageMs / 60000);
             const timeString = minsAgo === 0 ? "Just now" : `${minsAgo} min ago`;
@@ -654,7 +719,10 @@ export default function MapSection({ onNavigate, onLogout }) {
             const popupHtml = `
                 <div style="font-family: Inter, sans-serif; text-align: center; padding: 4px;">
                     <b style="color: #ea4335; font-size: 15px;">${report.type}</b><br/>
-                    <span style="color: #5f6368; font-size: 12px; font-weight: 500;">Reported ${timeString}</span>
+                    <span style="color: #5f6368; font-size: 12px; font-weight: 500;">Reported ${timeString}</span><br/>
+                    <div style="margin-top: 4px; padding-top: 4px; border-top: 1px solid #dadce0;">
+                        <span style="color: #ea4335; font-size: 11px; font-weight: 700;">Expect ${delayText} delay</span>
+                    </div>
                 </div>
             `;
 
@@ -756,9 +824,15 @@ export default function MapSection({ onNavigate, onLogout }) {
         // Only evaluate reactive reroutes if we are actively navigating AND have a path drawn
         if (!isNavigating || routeSegments.length === 0) return; 
 
-        const limits = { "LOW": 15, "MID": 30, "HIGH": 50 };
+        const limits = { "LOW": 33.02, "MID": 48.26, "HIGH": 66.04 };
         const myLimit = limits[vehicleLayer] || 15;
         let routeAffected = false;
+
+        // 🌟 DYNAMIC LOOK-AHEAD (REROUTING): Don't waste memory recalculating distant floods if stuck in traffic
+        const speedNum = Number(speed) || 0;
+        let rerouteRadius = 3000; // Default: care about floods within 3km
+        if (speedNum >= 60) rerouteRadius = 8000; // Expressway: care about floods 8km away
+        else if (speedNum <= 15) rerouteRadius = 1500; // Gridlock: only care about floods 1.5km away
 
         // Flatten the current active route to check for hazard collisions
         let flatPath = [];
@@ -789,15 +863,28 @@ export default function MapSection({ onNavigate, onLogout }) {
                 // ONLY trigger reroute if a node transitions to flooded AND physically intersects the active route
                 if (isFlooded && !wasBlocked) {
                     if (lat && lng && flatPath.length > 0) {
-                        for (let pt of flatPath) {
-                            const ptLat = pt.latitude !== undefined ? pt.latitude : pt[0];
-                            const ptLng = pt.longitude !== undefined ? pt.longitude : pt[1];
-                            
-                            // If the hazard is within 40 meters of the active path line
-                            if (getDistanceInMeters(lat, lng, ptLat, ptLng) <= 40) { 
-                                routeAffected = true;
-                                break;
+                        
+                        // Check 1: Is the flood inside our dynamic speed-based radius?
+                        let distFromCar = rerouteRadius; // Fallback if liveLocation is missing
+                        if (liveLocation) {
+                            distFromCar = getDistanceInMeters(liveLocation[0], liveLocation[1], lat, lng);
+                        }
+
+                        if (distFromCar <= rerouteRadius) {
+                            // Check 2: Does it physically block the blue line?
+                            for (let pt of flatPath) {
+                                const ptLat = pt.latitude !== undefined ? pt.latitude : pt[0];
+                                const ptLng = pt.longitude !== undefined ? pt.longitude : pt[1];
+                                
+                                // If the hazard is within 40 meters of the active path line
+                                if (getDistanceInMeters(lat, lng, ptLat, ptLng) <= 40) { 
+                                    routeAffected = true;
+                                    break;
+                                }
                             }
+                        } else {
+                            // Log the memory-saving optimization for debugging
+                            console.log(`Speed is ${speedNum}km/h. Ignoring distant flood at ${nodeId} (${Math.round(distFromCar)}m away).`);
                         }
                     }
                 }
@@ -809,7 +896,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             speakInstruction("Flood detected ahead! Rerouting.");
             fetchRoute(true, driveMode ? liveLocation : null); 
         }
-    }, [firebaseNodes, vehicleLayer, isNavigating, driveMode, liveLocation, routeSegments]);
+    }, [firebaseNodes, vehicleLayer, isNavigating, driveMode, liveLocation, routeSegments, speed]); // 🌟 Added speed dependency
 
     const submitReport = (type) => {
         const loc = liveLocation || mapCenter; 
