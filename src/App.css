@@ -7308,3 +7308,99 @@ html {
   text-transform: none;
   margin: 0;
 }
+
+/* ==========================================
+   FRENDS 3.0 - FORCE DARK FLOOD HISTORY
+========================================== */
+
+.page-section.flood-history-section,
+section.flood-history-section {
+    background: #071a2e !important;
+    background-color: #071a2e !important;
+    color: #eaf4ff !important;
+    border: 1px solid #173653 !important;
+    border-radius: 14px !important;
+    padding: 20px !important;
+    opacity: 1 !important;
+}
+
+/* Headings and descriptions */
+.page-section.flood-history-section h1,
+.page-section.flood-history-section h2,
+.page-section.flood-history-section h3,
+.page-section.flood-history-section p,
+.page-section.flood-history-section label,
+.page-section.flood-history-section span {
+    opacity: 1 !important;
+}
+
+.page-section.flood-history-section h3 {
+    color: #f1f7ff !important;
+}
+
+.page-section.flood-history-section p,
+.page-section.flood-history-section label,
+.page-section.flood-history-section span {
+    color: #a9bfd5 !important;
+}
+
+.page-section.flood-history-section .eyebrow {
+    color: #16b8e5 !important;
+}
+
+/* Dropdowns */
+.page-section.flood-history-section select {
+    background: #10243a !important;
+    background-color: #10243a !important;
+    color: #eaf4ff !important;
+    border: 1px solid #29445f !important;
+    border-radius: 8px !important;
+}
+
+.page-section.flood-history-section select option {
+    background: #10243a !important;
+    color: #eaf4ff !important;
+}
+
+/* Statistics cards */
+.page-section.flood-history-section .flood-history-stats,
+.page-section.flood-history-section .flood-history-stat {
+    background: #10243a !important;
+    background-color: #10243a !important;
+    border: 1px solid #203d59 !important;
+    border-radius: 10px !important;
+}
+
+.page-section.flood-history-section .flood-history-stat strong {
+    color: #eaf7ff !important;
+}
+
+/* Chart background */
+.page-section.flood-history-section .flood-history-chart {
+    background: #0b1e32 !important;
+    background-color: #0b1e32 !important;
+    border: 1px solid #1c3b59 !important;
+    border-radius: 12px !important;
+    padding: 15px !important;
+}
+
+/* Loading and empty messages */
+.page-section.flood-history-section .flood-history-message {
+    background: #10243a !important;
+    color: #eaf4ff !important;
+    border: 1px solid #29445f !important;
+}
+
+/* Keep the chart readable */
+.page-section.flood-history-section .recharts-text {
+    fill: #a9bfd5 !important;
+}
+
+.page-section.flood-history-section .recharts-cartesian-grid line {
+    stroke: #29445f !important;
+}
+
+.page-section.flood-history-section .recharts-cartesian-axis-line,
+.page-section.flood-history-section .recharts-cartesian-axis-tick line {
+    stroke: #45617d !important;
+}

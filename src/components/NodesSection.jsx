@@ -1,6 +1,16 @@
 import { useEffect, useState } from "react";
 import { ref, onValue } from "firebase/database";
 import { database } from "../firebase/firebaseConfig";
+import "./FloodHistory.css";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from "recharts";
 
 // ==========================================
 // NODE NAMES / LOCATIONS
@@ -373,6 +383,15 @@ const floodLevels = [
   },
 ];
 
+// Convert a timestamp to YYYY-MM-DD using the browser's local timezone.
+function toLocalDateInput(timestamp) {
+  const date = new Date(timestamp);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 // ==========================================
 // NODES SECTION
 // ==========================================
@@ -382,6 +401,14 @@ function NodesSection() {
   const [loading, setLoading] = useState(true);
 
   const [error, setError] = useState(null);
+
+  // Historical flood-depth graph state
+  const [selectedNodeKey, setSelectedNodeKey] = useState("");
+  const [historyReadings, setHistoryReadings] = useState([]);
+  const [historyInterval, setHistoryInterval] = useState("30m");
+  const [selectedHistoryDate, setSelectedHistoryDate] = useState("");
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState(null);
 
   // ========================================
   // FIREBASE REAL-TIME LISTENER
@@ -499,6 +526,11 @@ function NodesSection() {
             latestNodesArray
           );
 
+          // Select the first available node for the history graph.
+          setSelectedNodeKey((currentKey) =>
+            currentKey || latestNodesArray[0]?.firebaseKey || ""
+          );
+
         } else {
           // No Firebase data
           setNodes([]);
@@ -531,6 +563,97 @@ function NodesSection() {
     return () => unsubscribe();
 
   }, []);
+
+  // ========================================
+  // HISTORICAL FLOOD-DEPTH LISTENER
+  // Reads all recorded measurements for the
+  // selected node from nodes/{nodeKey}.
+  // ========================================
+  useEffect(() => {
+    if (!selectedNodeKey) {
+      setHistoryReadings([]);
+      return;
+    }
+
+    setHistoryLoading(true);
+    setHistoryError(null);
+
+    const historyRef = ref(
+      database,
+      `nodes/${selectedNodeKey}`
+    );
+
+    const unsubscribe = onValue(
+      historyRef,
+      (snapshot) => {
+        if (!snapshot.exists()) {
+          setHistoryReadings([]);
+          setHistoryLoading(false);
+          return;
+        }
+
+        const rawHistory = snapshot.val();
+
+        const readings = Object.entries(rawHistory)
+          .map(([recordKey, reading]) => {
+            if (!reading || typeof reading !== "object") {
+              return null;
+            }
+
+            const rawTimestamp = Number(reading.timestamp);
+            const waterLevel = Number(reading.waterLevel);
+
+            if (
+              !Number.isFinite(rawTimestamp) ||
+              !Number.isFinite(waterLevel)
+            ) {
+              return null;
+            }
+
+            // Support timestamps stored in either seconds or milliseconds.
+            const timestamp =
+              rawTimestamp < 1_000_000_000_000
+                ? rawTimestamp * 1000
+                : rawTimestamp;
+
+            return {
+              recordKey,
+              timestamp,
+              waterLevel,
+              timeLabel: new Date(timestamp).toLocaleString([], {
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              }),
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => a.timestamp - b.timestamp);
+
+        setHistoryReadings(readings);
+
+        // Default to the most recent day that has recorded data.
+        // Keep a date already selected by the user.
+        if (readings.length > 0) {
+          const latestDate = toLocalDateInput(
+            readings[readings.length - 1].timestamp
+          );
+          setSelectedHistoryDate((currentDate) => currentDate || latestDate);
+        }
+
+        setHistoryLoading(false);
+      },
+      (firebaseError) => {
+        console.error("Flood history Firebase error:", firebaseError);
+        setHistoryError("Unable to load historical flood readings.");
+        setHistoryReadings([]);
+        setHistoryLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [selectedNodeKey]);
 
   // ========================================
   // SAFETY CHECK
@@ -586,6 +709,69 @@ function NodesSection() {
         flood.className === "critical"
       );
     }).length;
+
+  // ========================================
+  // BUILD THE SELECTED DAY'S TIME SLOTS
+  // Every slot is displayed on the X-axis.
+  // A slot without Firebase readings has a
+  // null value, never a fabricated zero.
+  // Firebase waterLevel is in cm; chart is ft.
+  // ========================================
+  const intervalMinutes = {
+    "30m": 30,
+    "1h": 60,
+    "3h": 180,
+  }[historyInterval];
+
+  const timeSlots = [];
+  for (let minuteOfDay = 0; minuteOfDay < 24 * 60; minuteOfDay += intervalMinutes) {
+    const hour24 = Math.floor(minuteOfDay / 60);
+    const minute = minuteOfDay % 60;
+    const suffix = hour24 < 12 ? "AM" : "PM";
+    const hour12 = hour24 % 12 || 12;
+    const label = `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
+
+    timeSlots.push({
+      minuteOfDay,
+      label,
+      waterLevel: null,
+      totalDepthCm: 0,
+      count: 0,
+    });
+  }
+
+  // Only readings from the selected local calendar day are included.
+  const selectedDayReadings = selectedHistoryDate
+    ? historyReadings.filter((reading) =>
+        toLocalDateInput(reading.timestamp) === selectedHistoryDate
+      )
+    : [];
+
+  // Assign each real reading to its selected interval bucket.
+  selectedDayReadings.forEach((reading) => {
+    const date = new Date(reading.timestamp);
+    const minuteOfDay = date.getHours() * 60 + date.getMinutes();
+    const slotIndex = Math.floor(minuteOfDay / intervalMinutes);
+    const slot = timeSlots[slotIndex];
+
+    if (slot) {
+      slot.totalDepthCm += reading.waterLevel;
+      slot.count += 1;
+    }
+  });
+
+  // Average readings inside each interval, then convert cm to ft.
+  const chartReadings = timeSlots.map((slot) => ({
+    timeLabel: slot.label,
+    waterLevel: slot.count > 0
+      ? (slot.totalDepthCm / slot.count) * 0.0328084
+      : null,
+    readingCount: slot.count,
+  }));
+
+  const latestSelectedDayReading = selectedDayReadings.length > 0
+    ? selectedDayReadings[selectedDayReadings.length - 1]
+    : null;
 
   // ========================================
   // MAIN UI
@@ -721,6 +907,182 @@ function NodesSection() {
         )}
 
       </div>
+
+      {/* =================================================
+          HISTORICAL FLOOD-DEPTH GRAPH
+          X-axis: time of day
+          Y-axis: flood depth (ft)
+      ================================================= */}
+      <section
+        id="flood-history"
+        className="page-section flood-history-section"
+        style={{
+          marginTop: "32px",
+          padding: "24px",
+          borderRadius: "16px",
+          background: "#071a2e",
+          color: "#eaf4ff",
+          border: "1px solid #173653",
+          boxShadow: "0 8px 25px rgba(0,0,0,0.18)",
+        }}
+      >
+        <div
+          className="section-heading flood-history-heading"
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: "16px",
+            flexWrap: "wrap",
+          }}
+        >
+          <div>
+            <p className="eyebrow" style={{ color: "#16b8e5" }}>HISTORICAL DATA</p>
+            <h3 style={{ color: "#f1f7ff" }}>Flood-Depth History</h3>
+            <p className="section-description flood-history-description" style={{ color: "#9bb3cc" }}>
+              View the selected node's recorded flood depth throughout the day.
+            </p>
+          </div>
+
+          <div className="flood-history-filters" style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+            <label
+              htmlFor="flood-history-node"
+              style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: "210px", fontSize: "13px", color: "#a9bfd5" }}
+            >
+              Select monitoring node
+              <select
+                id="flood-history-node"
+                value={selectedNodeKey}
+                onChange={(event) => {
+                  setSelectedHistoryDate("");
+                  setSelectedNodeKey(event.target.value);
+                }}
+                disabled={safeNodes.length === 0}
+                style={{ padding: "10px 12px", borderRadius: "8px", border: "1px solid #29445f", background: "#10243a", color: "#eaf4ff", font: "inherit" }}
+              >
+                {safeNodes.map((node) => (
+                  <option key={node.firebaseKey || node.id} value={node.firebaseKey || node.id}>
+                    {NODE_NAMES[node.id] || node.location || node.id}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label
+              htmlFor="flood-history-date"
+              style={{ display: "flex", flexDirection: "column", gap: "6px", minWidth: "155px", fontSize: "13px", color: "#a9bfd5" }}
+            >
+              Select date
+              <input
+                id="flood-history-date"
+                className="flood-history-control"
+                type="date"
+                value={selectedHistoryDate}
+                onChange={(event) => setSelectedHistoryDate(event.target.value)}
+                style={{ padding: "10px 12px", borderRadius: "8px", border: "1px solid #29445f", background: "#10243a", color: "#eaf4ff", colorScheme: "dark", font: "inherit" }}
+              />
+            </label>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap", margin: "18px 0 10px" }}>
+          <label htmlFor="flood-history-interval" style={{ fontSize: "13px", fontWeight: 600, color: "#a9bfd5" }}>
+            Display interval
+          </label>
+          <select
+            id="flood-history-interval"
+            className="flood-history-control"
+            value={historyInterval}
+            onChange={(event) => setHistoryInterval(event.target.value)}
+            style={{ padding: "9px 12px", borderRadius: "8px", border: "1px solid #29445f", background: "#10243a", color: "#eaf4ff", font: "inherit" }}
+          >
+            <option value="30m">Per 30 Minutes</option>
+            <option value="1h">Per Hour</option>
+            <option value="3h">Per 3 Hours</option>
+          </select>
+         
+        </div>
+
+        {historyLoading && (
+          <div className="firebase-message" style={{ background: "#10243a", color: "#d8e8f7", border: "1px solid #29445f" }}>
+            Loading historical flood readings...
+          </div>
+        )}
+
+        {historyError && (
+          <div className="firebase-message firebase-error">{historyError}</div>
+        )}
+
+        {!historyLoading && !historyError && historyReadings.length === 0 && (
+          <div className="firebase-message" style={{ background: "#10243a", color: "#d8e8f7", border: "1px solid #29445f" }}>
+            No historical flood-depth readings are available for this node yet.
+          </div>
+        )}
+
+        {!historyLoading && !historyError && historyReadings.length > 0 && selectedDayReadings.length === 0 && (
+          <div className="firebase-message" style={{ background: "#10243a", color: "#d8e8f7", border: "1px solid #29445f" }}>
+            No readings were recorded for {selectedHistoryDate || "the selected date"}. Choose another date to view its history.
+          </div>
+        )}
+
+        {!historyLoading && !historyError && selectedDayReadings.length > 0 && (
+          <>
+            
+
+            <div className="flood-history-chart-scroll" role="region" aria-label="Flood depth chart; scroll horizontally to view all time slots">
+              <div className="flood-history-chart-inner" style={{ width: `max(100%, ${Math.max(760, chartReadings.length * 42)}px)` }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartReadings} margin={{ top: 14, right: 24, bottom: 48, left: 12 }}>
+                    <CartesianGrid stroke="#29445f" strokeDasharray="4 5" />
+                    <XAxis
+                      type="category"
+                      dataKey="timeLabel"
+                      interval={0}
+                      tick={{ fontSize: 10, fill: "#9bb3cc" }}
+                      tickLine={{ stroke: "#45617d" }}
+                      axisLine={{ stroke: "#45617d" }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={68}
+                      label={{ value: "Time", position: "insideBottom", offset: -42, fill: "#9bb3cc", fontSize: 12 }}
+                    />
+                    <YAxis
+                      type="number"
+                      dataKey="waterLevel"
+                      domain={["auto", "auto"]}
+                      width={68}
+                      tick={{ fontSize: 11, fill: "#9bb3cc" }}
+                      tickLine={{ stroke: "#45617d" }}
+                      axisLine={{ stroke: "#45617d" }}
+                      label={{ value: "Flood Depth (ft)", angle: -90, position: "insideLeft", fill: "#9bb3cc", fontSize: 12 }}
+                    />
+                    <Tooltip
+                      labelStyle={{ color: "#eaf4ff" }}
+                      contentStyle={{ background: "#10243a", border: "1px solid #29445f", borderRadius: "10px", color: "#eaf4ff" }}
+                      itemStyle={{ color: "#7dddf5" }}
+                      formatter={(value, name, item) => value == null ? ["No recorded reading", "Flood depth"] : [`${Number(value).toFixed(3)} ft (${item.payload.readingCount} reading${item.payload.readingCount === 1 ? "" : "s"})`, "Average flood depth"]}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="waterLevel"
+                      name="Average flood depth"
+                      stroke="#16b8e5"
+                      strokeWidth={2.8}
+                      dot={{ r: 3, fill: "#16b8e5", stroke: "#0b1e32", strokeWidth: 1 }}
+                      activeDot={{ r: 6, fill: "#7dddf5", stroke: "#eaf4ff", strokeWidth: 2 }}
+                      connectNulls={false}
+                      isAnimationActive={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            <p className="flood-history-footnote" style={{ marginTop: "10px", color: "#829bb5", fontSize: "12px" }}>
+              Empty intervals are left blank. Values are averaged from actual Firebase readings and converted from cm to ft. Scroll horizontally to view all time labels.
+            </p>
+          </>
+        )}
+      </section>
 
       {/* =================================================
           FLOOD LEVEL GUIDE

@@ -1,0 +1,148 @@
+/* ==========================================================
+   FRENDS 3.0 — RESPONSIVE FLOOD-DEPTH HISTORY
+   Place this file beside NodesSection.jsx as NodesSection.css
+   ========================================================== */
+
+.flood-history-section {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  margin-top: clamp(18px, 3vw, 32px) !important;
+  padding: clamp(14px, 2.5vw, 24px) !important;
+  overflow: hidden;
+  color: #eaf4ff !important;
+  background: #071a2e !important;
+  border: 1px solid #173653 !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 25px rgba(0,0,0,.18);
+}
+
+.flood-history-section,
+.flood-history-section * { box-sizing: border-box; }
+
+.flood-history-section .flood-history-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18px;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+.flood-history-section .eyebrow { color: #16b8e5 !important; }
+.flood-history-section h3 { color: #f1f7ff !important; margin: 0 0 8px; }
+.flood-history-section .flood-history-description { color: #9bb3cc !important; margin: 0; }
+
+.flood-history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 12px;
+  max-width: 100%;
+}
+
+.flood-history-section label {
+  display: flex;
+  flex: 1 1 180px;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0 !important;
+  color: #a9bfd5 !important;
+  font-size: 13px;
+}
+
+.flood-history-section .flood-history-control {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 40px;
+  padding: 9px 12px !important;
+  color: #eaf4ff !important;
+  color-scheme: dark;
+  background: #10243a !important;
+  border: 1px solid #29445f !important;
+  border-radius: 8px !important;
+  outline: none;
+  font: inherit;
+}
+.flood-history-section .flood-history-control:focus {
+  border-color: #16b8e5 !important;
+  box-shadow: 0 0 0 3px rgba(22,184,229,.14);
+}
+.flood-history-section .flood-history-control option {
+  color: #eaf4ff;
+  background: #10243a;
+}
+
+.flood-history-stats {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 22px !important;
+  margin: 14px 0 !important;
+  color: #9bb3cc !important;
+  font-size: 13px;
+}
+.flood-history-stats strong { color: #eaf7ff !important; }
+
+/* Scroll is intentional when all 24/48 labels cannot fit legibly. */
+.flood-history-chart-scroll {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 12px 8px 4px;
+  background: #0b1e32;
+  border: 1px solid #1c3b59;
+  border-radius: 12px;
+  scrollbar-width: thin;
+  scrollbar-color: #28708e #10243a;
+  -webkit-overflow-scrolling: touch;
+}
+.flood-history-chart-inner {
+  height: clamp(300px, 48vw, 410px);
+  min-height: 300px;
+  max-height: 410px;
+}
+.flood-history-chart-scroll::-webkit-scrollbar { height: 9px; }
+.flood-history-chart-scroll::-webkit-scrollbar-track { background: #10243a; border-radius: 8px; }
+.flood-history-chart-scroll::-webkit-scrollbar-thumb { background: #28708e; border-radius: 8px; }
+
+.flood-history-section .recharts-cartesian-grid line { stroke: #29445f !important; }
+.flood-history-section .recharts-text { fill: #a9bfd5 !important; }
+.flood-history-section .recharts-cartesian-axis-line,
+.flood-history-section .recharts-cartesian-axis-tick line { stroke: #45617d !important; }
+.flood-history-section .recharts-tooltip-wrapper { outline: none; }
+.flood-history-section .recharts-default-tooltip {
+  color: #eaf4ff !important;
+  background: #10243a !important;
+  border: 1px solid #29445f !important;
+  border-radius: 10px !important;
+}
+.flood-history-footnote { color: #829bb5 !important; line-height: 1.5; }
+.flood-history-section .firebase-message {
+  color: #d8e8f7 !important;
+  background: #10243a !important;
+  border: 1px solid #29445f !important;
+  border-radius: 10px;
+}
+
+@media (max-width: 760px) {
+  .flood-history-section .flood-history-heading { flex-direction: column; align-items: stretch; }
+  .flood-history-filters { display: grid !important; grid-template-columns: minmax(0, 1fr); width: 100%; }
+  .flood-history-section label { width: 100%; }
+  .flood-history-section .flood-history-control { width: 100%; }
+  .flood-history-stats { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .flood-history-chart-inner { height: 330px; }
+}
+
+@media (max-width: 420px) {
+  .flood-history-section { padding: 12px !important; border-radius: 12px !important; }
+  .flood-history-stats { grid-template-columns: minmax(0, 1fr); }
+  .flood-history-chart-scroll { padding: 8px 4px 3px; }
+  .flood-history-chart-inner { height: 300px; }
+}
