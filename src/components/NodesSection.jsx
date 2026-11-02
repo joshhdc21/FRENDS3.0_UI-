@@ -1029,23 +1029,30 @@ function NodesSection() {
           <>
             
 
-            <div className="flood-history-chart-scroll" role="region" aria-label="Flood depth chart; scroll horizontally to view all time slots">
-              <div className="flood-history-chart-inner" style={{ width: `max(100%, ${Math.max(760, chartReadings.length * 42)}px)` }}>
+<div className="flood-history-chart-scroll">
+  <div className="flood-history-chart-inner">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartReadings} margin={{ top: 14, right: 24, bottom: 48, left: 12 }}>
+                  <LineChart
+  data={chartReadings}
+  margin={{ top: 14, right: 15, bottom: 25, left: 5 }}
+>
                     <CartesianGrid stroke="#29445f" strokeDasharray="4 5" />
-                    <XAxis
-                      type="category"
-                      dataKey="timeLabel"
-                      interval={0}
-                      tick={{ fontSize: 10, fill: "#9bb3cc" }}
-                      tickLine={{ stroke: "#45617d" }}
-                      axisLine={{ stroke: "#45617d" }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={68}
-                      label={{ value: "Time", position: "insideBottom", offset: -42, fill: "#9bb3cc", fontSize: 12 }}
-                    />
+  <XAxis
+  type="category"
+  dataKey="timeLabel"
+  interval={
+    historyInterval === "30m" ? 3 :
+    historyInterval === "1h" ? 1 :
+    0
+  }
+  tickFormatter={(value) => value.replace(":00", "")}
+  tick={{ fontSize: 10, fill: "#9bb3cc" }}
+  tickLine={{ stroke: "#45617d" }}
+  axisLine={{ stroke: "#45617d" }}
+  angle={-35}
+  textAnchor="end"
+  height={55}
+/>
                     <YAxis
                       type="number"
                       dataKey="waterLevel"

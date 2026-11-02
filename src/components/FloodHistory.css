@@ -146,3 +146,27 @@
   .flood-history-chart-scroll { padding: 8px 4px 3px; }
   .flood-history-chart-inner { height: 300px; }
 }
+
+/* Make the complete flood history graph fit on screen */
+.flood-history-chart-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.flood-history-chart-inner {
+  width: 100%;
+  min-width: 0;
+  height: 350px;
+}
+
+.flood-history-chart-inner .recharts-responsive-container {
+  width: 100% !important;
+  max-width: 100%;
+}
+
+@media (max-width: 600px) {
+  .flood-history-chart-inner {
+    height: 280px;
+  }
+}
