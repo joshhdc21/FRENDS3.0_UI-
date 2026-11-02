@@ -1053,16 +1053,17 @@ function NodesSection() {
   textAnchor="end"
   height={55}
 />
-                    <YAxis
-                      type="number"
-                      dataKey="waterLevel"
-                      domain={["auto", "auto"]}
-                      width={68}
-                      tick={{ fontSize: 11, fill: "#9bb3cc" }}
-                      tickLine={{ stroke: "#45617d" }}
-                      axisLine={{ stroke: "#45617d" }}
-                      label={{ value: "Flood Depth (ft)", angle: -90, position: "insideLeft", fill: "#9bb3cc", fontSize: 12 }}
-                    />
+  <YAxis
+  domain={[0, 3]}
+  ticks={[0, 0.5, 1, 1.5, 2, 2.5, 3]}
+  interval={0}
+  allowDecimals={true}
+  label={{
+    value: "Flood Depth (ft)",
+    angle: -90,
+    position: "insideLeft",
+  }}
+/>
                     <Tooltip
                       labelStyle={{ color: "#eaf4ff" }}
                       contentStyle={{ background: "#10243a", border: "1px solid #29445f", borderRadius: "10px", color: "#eaf4ff" }}
