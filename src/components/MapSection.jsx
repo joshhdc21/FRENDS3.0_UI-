@@ -42,6 +42,55 @@ const getBearing = (lat1, lon1, lat2, lon2) => {
     return (toDeg(Math.atan2(y, x)) + 360) % 360;
 };
 
+// Distance (m) from a point to the segment a-b - the old check only looked at route VERTICES,
+// so a long straight avenue with sparse vertices never "touched" a flood sitting beside it.
+const distToSegmentMeters = (pLat, pLng, aLat, aLng, bLat, bLng) => {
+    const k = Math.cos(((aLat + bLat) / 2) * Math.PI / 180);
+    const dx = (bLng - aLng) * k, dy = bLat - aLat;
+    const den = dx * dx + dy * dy;
+    let t = den === 0 ? 0 : (((pLng - aLng) * k) * dx + (pLat - aLat) * dy) / den;
+    t = Math.max(0, Math.min(1, t));
+    return getDistanceInMeters(pLat, pLng, aLat + t * dy, aLng + t * (bLng - aLng));
+};
+
+// Same limits and parsing as the backend (routing_engine.py) so both sides agree what is "flooded"
+const FLOOD_LIMITS = { LOW: 33.02, MID: 48.26, HIGH: 66.04 };
+const FLOOD_ROUTE_RADIUS_M = 25;
+const toNum = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v))) ? null : Number(v);
+const firstNum = (sources, keys) => {
+    for (const src of sources) {
+        if (!src) continue;
+        for (const key of keys) { const n = toNum(src[key]); if (n !== null) return n; }
+    }
+    return null;
+};
+const readFloodNode = (container) => {
+    if (!container || typeof container !== 'object') return null;
+    const pushKeys = Object.keys(container).filter(k => k.startsWith('-') && container[k] && typeof container[k] === 'object').sort();
+    const latest = pushKeys.length ? container[pushKeys[pushKeys.length - 1]] : null;
+    const sources = [latest, container];
+    const lat = firstNum(sources, ['lat', 'latitude']);
+    const lng = firstNum(sources, ['lng', 'lon', 'longitude']);
+    const depth = firstNum(sources, ['waterLevel', 'water_level', 'depth', 'level', 'floodDepth', 'flood_depth']);
+    if (lat === null || lng === null || (lat === 0 && lng === 0)) return null;
+    return { lat, lng, depth: depth === null ? 0 : depth };
+};
+
+// 🌟 Lane / carriageway of a trip, from the straight-line bearing origin -> destination
+const LANE_BOUNDS = {
+    NB: { code: 'NB', label: 'Northbound', arrow: '↑', opposite: 'SB', color: '#8ab4f8' },
+    SB: { code: 'SB', label: 'Southbound', arrow: '↓', opposite: 'NB', color: '#f59e0b' },
+    EB: { code: 'EB', label: 'Eastbound',  arrow: '→', opposite: 'WB', color: '#81c995' },
+    WB: { code: 'WB', label: 'Westbound',  arrow: '←', opposite: 'EB', color: '#c58af9' },
+};
+const getLaneBound = (lat1, lon1, lat2, lon2) => {
+    const b = getBearing(lat1, lon1, lat2, lon2);
+    if (b >= 315 || b < 45) return LANE_BOUNDS.NB;
+    if (b < 135) return LANE_BOUNDS.EB;
+    if (b < 225) return LANE_BOUNDS.SB;
+    return LANE_BOUNDS.WB;
+};
+
 export default function MapSection({ onNavigate, onLogout }) {
     const TOMTOM_API_KEY = import.meta.env.VITE_MAPAPI_TOMTOM_API_KEY;
 
@@ -84,6 +133,9 @@ export default function MapSection({ onNavigate, onLogout }) {
     
     useEffect(() => { originRef.current = origin; }, [origin]);
     useEffect(() => { destRef.current = destination; }, [destination]);
+    const driveModeRef = useRef(false);
+    useEffect(() => { driveModeRef.current = driveMode; }, [driveMode]);
+    const lastPinDropRef = useRef(0);
 
     useEffect(() => {
         let unsubscribeUser = () => {};
@@ -136,10 +188,12 @@ export default function MapSection({ onNavigate, onLogout }) {
 
     const [firebaseNodes, setFirebaseNodes] = useState({});
     const nodeBlockStates = useRef({});
+    const lastFloodRerouteRef = useRef({ key: '', time: 0 });
 
     const mapRef = useRef(null);
     const mapInstanceRef = useRef(null);
     const layerGroupRef = useRef(null);
+
     const baseLayerRef = useRef(null);
     const labelLayerRef = useRef(null);
     const trafficLayerRef = useRef(null); 
@@ -340,10 +394,13 @@ export default function MapSection({ onNavigate, onLogout }) {
             const layerGroup = L.layerGroup().addTo(map);
             layerGroupRef.current = layerGroup;
 
-            map.on('contextmenu', (e) => { 
-                if (e.originalEvent.shiftKey || isNavigating) return; 
+            // 🌟 Drops a pin: the first pin becomes the Origin, every pin after that becomes the Destination
+            const dropPin = (latlngObj) => {
+                const now = Date.now();
+                if (now - lastPinDropRef.current < 500) return; // ignore double-fire (e.g. touch long-press)
+                lastPinDropRef.current = now;
 
-                const latlng = [e.latlng.lat, e.latlng.lng];
+                const latlng = [latlngObj.lat, latlngObj.lng];
                 if (!originRef.current) {
                     setOrigin({ latlng, title: "Dropped Pin" });
                     setOriginQuery("Dropped Pin");
@@ -351,10 +408,16 @@ export default function MapSection({ onNavigate, onLogout }) {
                     setDestination({ latlng, title: "Dropped Pin" });
                     setDestQuery("Dropped Pin");
                 }
+            };
+
+            // Right-click (kept) also drops a pin
+            map.on('contextmenu', (e) => { 
+                if (e.originalEvent.shiftKey || isNavigating) return; 
+                dropPin(e.latlng);
             });
 
-            // 🌟 DEV TOOL: Alt + Click to target a specific hardware node in Firebase
             map.on('click', (e) => {
+                // 🌟 DEV TOOL: Alt + Click to target a specific hardware node in Firebase
                 if (e.originalEvent.altKey) {
                     const nodeName = window.prompt("Enter the exact Node ID in Firebase (e.g., Node1):");
                     if (nodeName && nodeName.trim() !== "") {
@@ -370,7 +433,12 @@ export default function MapSection({ onNavigate, onLogout }) {
                             console.error("Failed to inject node:", err);
                         });
                     }
+                    return;
                 }
+
+                // Normal left-click = pick this spot as a location
+                if (driveModeRef.current) return;
+                dropPin(e.latlng);
             });
 
             mapInstanceRef.current = map;
@@ -626,21 +694,9 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
 
         Object.keys(firebaseNodes).forEach(nodeId => {
-            const nodeContainer = firebaseNodes[nodeId];
-            if (!nodeContainer || typeof nodeContainer !== 'object') return;
-            let lat = nodeContainer.lat, lng = nodeContainer.lng;
-            let floodDepth = 0;
-
-            const pushKeys = Object.keys(nodeContainer).filter(key => key.startsWith('-')).sort(); 
-            if (pushKeys.length > 0) {
-                const latestData = nodeContainer[pushKeys[pushKeys.length - 1]];
-                lat = latestData?.lat !== undefined ? latestData.lat : lat;
-                lng = latestData?.lng !== undefined ? latestData.lng : lng;
-                floodDepth = latestData?.waterLevel !== undefined ? latestData.waterLevel : (latestData?.depth || 0);
-            } else if (nodeContainer.waterLevel !== undefined || nodeContainer.depth !== undefined) {
-                floodDepth = nodeContainer.waterLevel !== undefined ? nodeContainer.waterLevel : (nodeContainer.depth || 0);
-            }
-            if (!lat || !lng) return;
+            const parsed = readFloodNode(firebaseNodes[nodeId]);
+            if (!parsed) return;
+            const { lat, lng, depth: floodDepth } = parsed;
 
             let color = "#81c995";
             if (floodDepth >= 50) color = "#f28b82";
@@ -657,7 +713,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 });
                 marker = L.marker([lat, lng], { icon: pulseIcon, pane: 'routePane' });
             } else {
-                marker = L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9, pane: 'routePane' });
+                marker = L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9, pane: 'routePane', bubblingMouseEvents: false });
             }
 
             const popupColor = floodDepth >= 50 ? "#f28b82" : color;
@@ -808,9 +864,7 @@ export default function MapSection({ onNavigate, onLogout }) {
     useEffect(() => {
         const nodesRef = ref(database, 'nodes');
         const unsubscribeNodes = onValue(nodesRef, (snapshot) => {
-            if (snapshot.val()) { 
-                setFirebaseNodes(snapshot.val()); 
-            }
+            setFirebaseNodes(snapshot.val() || {});
         });
 
         const reportsRef = ref(database, 'reports');
@@ -820,93 +874,73 @@ export default function MapSection({ onNavigate, onLogout }) {
     }, []);
 
     // 🌟 REACTIVE FLOOD TRIGGER WITH SPATIAL COLLISION
+    // Fires whenever ANY currently-flooded node lies on the drawn route (not only on a "became flooded"
+    // transition), measured against route SEGMENTS. A loop guard stops endless re-requests when no
+    // detour exists.
     useEffect(() => {
-        // Only evaluate reactive reroutes if we are actively navigating AND have a path drawn
-        if (!isNavigating || routeSegments.length === 0) return; 
+        if (!isNavigating || isCalculating || routeSegments.length === 0) return;
 
-        const limits = { "LOW": 33.02, "MID": 48.26, "HIGH": 66.04 };
-        const myLimit = limits[vehicleLayer] || 15;
-        let routeAffected = false;
-
-        // 🌟 DYNAMIC LOOK-AHEAD (REROUTING): Don't waste memory recalculating distant floods if stuck in traffic
+        const myLimit = FLOOD_LIMITS[vehicleLayer] || FLOOD_LIMITS.LOW;
         const speedNum = Number(speed) || 0;
-        let rerouteRadius = 3000; // Default: care about floods within 3km
-        if (speedNum >= 60) rerouteRadius = 8000; // Expressway: care about floods 8km away
-        else if (speedNum <= 15) rerouteRadius = 1500; // Gridlock: only care about floods 1.5km away
+        let rerouteRadius = 3000;
+        if (speedNum >= 60) rerouteRadius = 8000;
+        else if (speedNum <= 15) rerouteRadius = 1500;
 
-        // Flatten the current active route to check for hazard collisions
-        let flatPath = [];
+        const flatPath = [];
         routeSegments.forEach(segment => {
-            if (segment.coords) flatPath.push(...segment.coords);
+            (segment.coords || []).forEach(pt => {
+                const ptLat = pt.latitude !== undefined ? pt.latitude : pt[0];
+                const ptLng = pt.longitude !== undefined ? pt.longitude : pt[1];
+                if (ptLat !== undefined && ptLng !== undefined) flatPath.push([ptLat, ptLng]);
+            });
         });
+        if (flatPath.length < 2) return;
 
+        const hits = [];
         Object.keys(firebaseNodes).forEach(nodeId => {
-            const nodeContainer = firebaseNodes[nodeId];
-            if (nodeContainer && typeof nodeContainer === 'object') {
-                let floodDepth = 0;
-                let lat = nodeContainer.lat;
-                let lng = nodeContainer.lng;
-                
-                const pushKeys = Object.keys(nodeContainer).filter(key => key.startsWith('-')).sort();
-                if (pushKeys.length > 0) {
-                    const latestData = nodeContainer[pushKeys[pushKeys.length - 1]];
-                    floodDepth = latestData?.waterLevel !== undefined ? latestData.waterLevel : (latestData?.depth || 0);
-                    lat = latestData?.lat !== undefined ? latestData.lat : lat;
-                    lng = latestData?.lng !== undefined ? latestData.lng : lng;
-                } else if (nodeContainer.waterLevel !== undefined || nodeContainer.depth !== undefined) {
-                    floodDepth = nodeContainer.waterLevel !== undefined ? nodeContainer.waterLevel : (nodeContainer.depth || 0);
-                }
-                
-                const isFlooded = floodDepth >= myLimit;
-                const wasBlocked = nodeBlockStates.current[nodeId] === 'blocked';
+            const node = readFloodNode(firebaseNodes[nodeId]);
+            if (!node) return;
+            const isFlooded = node.depth >= myLimit;
+            nodeBlockStates.current[nodeId] = isFlooded ? 'blocked' : 'clear';
+            if (!isFlooded) return;
 
-                // ONLY trigger reroute if a node transitions to flooded AND physically intersects the active route
-                if (isFlooded && !wasBlocked) {
-                    if (lat && lng && flatPath.length > 0) {
-                        
-                        // Check 1: Is the flood inside our dynamic speed-based radius?
-                        let distFromCar = rerouteRadius; // Fallback if liveLocation is missing
-                        if (liveLocation) {
-                            distFromCar = getDistanceInMeters(liveLocation[0], liveLocation[1], lat, lng);
-                        }
+            if (liveLocation && getDistanceInMeters(liveLocation[0], liveLocation[1], node.lat, node.lng) > rerouteRadius) return;
 
-                        if (distFromCar <= rerouteRadius) {
-                            // Check 2: Does it physically block the blue line?
-                            for (let pt of flatPath) {
-                                const ptLat = pt.latitude !== undefined ? pt.latitude : pt[0];
-                                const ptLng = pt.longitude !== undefined ? pt.longitude : pt[1];
-                                
-                                // If the hazard is within 40 meters of the active path line
-                                if (getDistanceInMeters(lat, lng, ptLat, ptLng) <= 40) { 
-                                    routeAffected = true;
-                                    break;
-                                }
-                            }
-                        } else {
-                            // Log the memory-saving optimization for debugging
-                            console.log(`Speed is ${speedNum}km/h. Ignoring distant flood at ${nodeId} (${Math.round(distFromCar)}m away).`);
-                        }
-                    }
-                }
-                nodeBlockStates.current[nodeId] = isFlooded ? 'blocked' : 'clear';
+            for (let i = 0; i < flatPath.length - 1; i++) {
+                const d = distToSegmentMeters(node.lat, node.lng, flatPath[i][0], flatPath[i][1], flatPath[i + 1][0], flatPath[i + 1][1]);
+                if (d <= FLOOD_ROUTE_RADIUS_M) { hits.push(nodeId); break; }
             }
         });
 
-        if (routeAffected) {
-            speakInstruction("Flood detected ahead! Rerouting.");
-            fetchRoute(true, driveMode ? liveLocation : null); 
-        }
-    }, [firebaseNodes, vehicleLayer, isNavigating, driveMode, liveLocation, routeSegments, speed]); // 🌟 Added speed dependency
+        if (hits.length === 0) { lastFloodRerouteRef.current.key = ''; return; }
+
+        const key = hits.sort().join('|');
+        const now = Date.now();
+        const last = lastFloodRerouteRef.current;
+        if (last.key === key && now - last.time < 60000) return;   // same flood set: don't hammer the server
+        if (now - lastRerouteTime.current < 6000) return;
+
+        lastFloodRerouteRef.current = { key, time: now };
+        lastRerouteTime.current = now;
+        if (last.key !== key) speakInstruction("Flood detected ahead! Rerouting.");
+        fetchRoute(true, driveMode ? liveLocation : null);
+    }, [firebaseNodes, vehicleLayer, isNavigating, isCalculating, driveMode, liveLocation, routeSegments, speed]);
 
     const submitReport = (type) => {
         const loc = liveLocation || mapCenter; 
         if (!loc) return;
+
+        const activeBound = (originRef.current && destRef.current)
+            ? getLaneBound(originRef.current.latlng[0], originRef.current.latlng[1], destRef.current.latlng[0], destRef.current.latlng[1]).code
+            : null;
 
         const newReportRef = push(ref(database, 'reports'));
         set(newReportRef, {
             type: type,
             lat: loc[0],
             lng: loc[1],
+            heading: driveMode ? heading : null,
+            bound: activeBound,
             timestamp: Date.now()
         }).then(() => {
             alert(`✅ ${type} reported successfully!`);
@@ -983,10 +1017,29 @@ export default function MapSection({ onNavigate, onLogout }) {
         setMapCenter(latlng); setActiveInput(null);
     };
 
+    const tripLane = (origin && destination)
+        ? getLaneBound(origin.latlng[0], origin.latlng[1], destination.latlng[0], destination.latlng[1])
+        : null;
+
+    // 🌟 UPGRADED: Clicking the NB/SB arrow button swaps Origin <-> Destination AND immediately recalculates the route for the new bound!
     const swapLocations = () => {
-        const tempOrigin = origin; const tempOriginQuery = originQuery;
-        setOrigin(destination); setOriginQuery(destQuery);
-        setDestination(tempOrigin); setDestQuery(tempOriginQuery);
+        const nextOrigin = destination;
+        const nextDest = origin;
+        const nextOriginQuery = destQuery;
+        const nextDestQuery = originQuery;
+
+        originRef.current = nextOrigin;
+        destRef.current = nextDest;
+
+        setOrigin(nextOrigin);
+        setOriginQuery(nextOriginQuery);
+        setDestination(nextDest);
+        setDestQuery(nextDestQuery);
+
+        // Immediately generate the new NB/SB route when clicked
+        if (nextOrigin && nextDest) {
+            fetchRoute(false, nextOrigin.latlng, false, nextDest.latlng);
+        }
     };
 
     const clearMap = () => {
@@ -997,16 +1050,21 @@ export default function MapSection({ onNavigate, onLogout }) {
         setNavStep({ distance: '--', action: 'Calculating...', arrow: '↱' });
     };
 
-    const fetchRoute = async (isAutoReroute = false, overrideOrigin = null, isSilent = false) => {
+    const fetchRoute = async (isAutoReroute = false, overrideOrigin = null, isSilent = false, overrideDest = null) => {
         const currentOrigin = originRef.current;
         const currentDest = destRef.current;
         const startLat = overrideOrigin ? overrideOrigin[0] : (currentOrigin ? currentOrigin.latlng[0] : null);
         const startLon = overrideOrigin ? overrideOrigin[1] : (currentOrigin ? currentOrigin.latlng[1] : null);
+        const endLat = overrideDest ? overrideDest[0] : (currentDest ? currentDest.latlng[0] : null);
+        const endLon = overrideDest ? overrideDest[1] : (currentDest ? currentDest.latlng[1] : null);
 
-        if (!startLat || !currentDest) {
+        if (!startLat || !endLat) {
             if (!isAutoReroute) alert("⚠️ Please set Origin and Destination.");
             return;
         }
+
+        // 🌟 Compute the active lane bound (NB/SB/EB/WB) for this trip
+        const lane = getLaneBound(startLat, startLon, endLat, endLon);
 
         if (!isSilent) {
             setIsNavigating(true); 
@@ -1018,16 +1076,23 @@ export default function MapSection({ onNavigate, onLogout }) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    origin_lat: startLat, origin_lon: startLon,
-                    dest_lat: currentDest.latlng[0], dest_lon: currentDest.latlng[1],
-                    vehicle_type: vehicleLayer, is_reroute: isAutoReroute
+                    origin_lat: startLat,
+                    origin_lon: startLon,
+                    dest_lat: endLat,
+                    dest_lon: endLon,
+                    vehicle_type: vehicleLayer,
+                    is_reroute: isAutoReroute,
+                    lane_direction: lane.code,
+                    dest_direction: lane.code,
+                    user_heading: driveMode ? heading : null,
+                    user_speed: (driveMode && speed !== "--") ? (Number(speed) / 3.6) : null
                 })
             });
             const data = await response.json();
             
             if (data.status === 'SUCCESS' || data.status === 'success') {
                 const startPin = { latitude: startLat, longitude: startLon };
-                const endPin = { latitude: currentDest.latlng[0], longitude: currentDest.latlng[1] };
+                const endPin = { latitude: endLat, longitude: endLon };
 
                 if (data.segments && data.segments.length > 0 && data.segments[0].coords) {
                     data.segments[0].coords.unshift(startPin);
@@ -1038,12 +1103,19 @@ export default function MapSection({ onNavigate, onLogout }) {
                 }
 
                 if (!isSilent) {
-                    setNavStep({ distance: "Calculating m", action: "Head straight", arrow: "↱" });
+                    setNavStep({
+                        distance: "Calculating m",
+                        action: `Head ${lane.label}`,
+                        arrow: lane.arrow
+                    });
                 }
                 
                 setRouteInfo({ 
                     distance: (data.distance / 1000).toFixed(1), 
-                    time: Math.max(1, Math.round(data.time / 60)) 
+                    time: Math.max(1, Math.round(data.time / 60)),
+                    lane: lane.code,
+                    laneLabel: lane.label,
+                    laneSwitched: data.lane_switched || false
                 });
             } else {
                 if (!isSilent) alert(`⚠️ Routing Error: ${data.message || 'Unable to calculate path.'}`);
@@ -1576,13 +1648,15 @@ export default function MapSection({ onNavigate, onLogout }) {
                                 </div>
                             </div>
                             
-                            {/* 🌟 SWAP BUTTON PLACED HERE */}
+                            {/* 🌟 NB / SB LANE & SWAP BUTTON PLACED HERE */}
                             <button 
                                 onClick={swapLocations} 
-                                title="Swap Origin and Destination"
-                                style={{ width: '32px', height: '32px', flexShrink: 0, backgroundColor: 'transparent', border: 'none', color: ui.textMain, fontSize: '18px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}
+                                title={`${tripLane.label} lane. Tap to switch to ${LANE_BOUNDS[tripLane.opposite].label} and recalculate route`}
+                                aria-label={`${tripLane.label}. Switch to ${LANE_BOUNDS[tripLane.opposite].label} and recalculate route`}
+                                style={{ width: '40px', height: '40px', flexShrink: 0, backgroundColor: `${tripLane.color}22`, border: `1px solid ${tripLane.color}`, color: tripLane.color, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', borderRadius: '12px', gap: '1px', padding: 0 }}
                             >
-                                ⇅
+                                <span style={{ fontSize: '18px', fontWeight: 700, lineHeight: 1 }}>{tripLane.arrow}</span>
+                                <span style={{ fontSize: '9px', fontWeight: 800, letterSpacing: '0.6px', lineHeight: 1 }}>{tripLane.code}</span>
                             </button>
                         </>
                     )}
@@ -1676,7 +1750,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                             <span style={{ fontSize: '16px', color: ui.textMuted }}>({routeInfo.distance} km)</span>
                         </div>
                         <span style={{ color: ui.textMuted, fontSize: '13px', marginTop: '2px' }}>
-                            Arrive around <b style={{color: ui.textMain}}>{new Date(Date.now() + routeInfo.time * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</b> • Adjusted for live conditions
+                            Arrive around <b style={{color: ui.textMain}}>{new Date(Date.now() + routeInfo.time * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</b> • {routeInfo.laneLabel || 'Adjusted for live conditions'}
                         </span>
                     </div>
                     <div style={{ style: 'flex', display: 'flex', gap: '10px' }}>
