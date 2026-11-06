@@ -7404,3 +7404,107 @@ section.flood-history-section {
 .page-section.flood-history-section .recharts-cartesian-axis-tick line {
     stroke: #45617d !important;
 }
+
+
+/* =====================================================
+   FRENDS 3.0 — FORCE DARK THEME
+   Applies consistently to Web and Android APK
+===================================================== */
+
+:root {
+  color-scheme: dark;
+
+  /* Main backgrounds */
+  --bg-gradient:
+    radial-gradient(circle at 10% 20%, rgba(0, 198, 255, 0.12), transparent 45%),
+    radial-gradient(circle at 85% 65%, rgba(0, 114, 255, 0.12), transparent 50%),
+    linear-gradient(135deg, #051527 0%, #0b3154 50%, #064f78 100%);
+
+  /* Cards and surfaces */
+  --surface: #0a1728;
+  --surface-alt: #0f223a;
+  --surface-glass: rgba(10, 23, 40, 0.94);
+
+  /* Text */
+  --ink: #f8fafc;
+  --muted: #94a3b8;
+
+  /* Borders */
+  --border: rgba(255, 255, 255, 0.12);
+
+  /* Accent colors */
+  --primary: #16b8e5;
+  --primary-dark: #083b63;
+  --primary-light: rgba(11, 94, 215, 0.15);
+
+  --blue-light: rgba(21, 119, 216, 0.15);
+  --cyan-light: rgba(22, 184, 229, 0.15);
+  --green-light: rgba(25, 135, 84, 0.15);
+  --yellow-light: rgba(247, 181, 0, 0.15);
+  --red-light: rgba(220, 53, 69, 0.15);
+
+  --footer: #030a12;
+
+  /* Shadows */
+  --shadow: 0 15px 38px rgba(0, 0, 0, 0.35);
+  --shadow-hover: 0 19px 42px rgba(0, 0, 0, 0.5);
+}
+
+/* Force page backgrounds */
+html,
+body,
+#root,
+.app {
+  background: var(--bg-gradient) !important;
+  color: var(--ink) !important;
+}
+
+/* Flood, Traffic, and News cards */
+.sensor-card,
+.current-level-panel,
+.flood-level-list,
+.device-information-card,
+.device-condition-card,
+.news-card,
+.node-summary > div {
+  background-color: var(--surface) !important;
+  color: var(--ink) !important;
+  border-color: var(--border) !important;
+}
+
+/* Secondary panels */
+.sensor-icon,
+.connection-status {
+  background-color: var(--surface-alt) !important;
+  color: var(--ink);
+}
+
+/* Inputs and dropdowns */
+input,
+select,
+textarea {
+  background-color: var(--surface-alt) !important;
+  color: var(--ink) !important;
+  border-color: var(--border) !important;
+}
+
+select option {
+  background-color: var(--surface-alt);
+  color: var(--ink);
+}
+
+/* Keep headings and descriptions readable */
+.page-section h1,
+.page-section h2,
+.page-section h3,
+.page-section h4,
+.page-section p,
+.page-section label {
+  color: var(--ink);
+}
+
+/* Muted labels */
+.page-section small,
+.page-section .last-update {
+  color: var(--muted);
+}

@@ -1441,7 +1441,8 @@ input {
 }
 
 .node-online,
-.node-offline {
+.node-offline,
+.status-badge {
   display: inline-flex;
 
   align-items: center;
@@ -1456,12 +1457,12 @@ input {
   text-transform: uppercase;
 }
 
-.node-online {
+.status-online {
   color:
     var(--success);
 }
 
-.node-offline {
+.status-offline {
   color:
     var(--danger);
 }
@@ -1472,7 +1473,7 @@ input {
 ========================================================= */
 
 .node-location {
-  margin-bottom: 17px;
+  margin-bottom: 15px;
 
   padding: 9px 11px;
 
@@ -1495,42 +1496,47 @@ input {
 
 
 /* =========================================================
-   NODE DATA
+   NODE METRICS GRID & BOXES (FIXED SPACING & ALIGNMENT)
 ========================================================= */
 
-.node-data-row {
-  display: flex;
-
-  align-items: flex-end;
-  justify-content: space-between;
-
+.node-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-
-  margin-bottom: 17px;
+  margin-bottom: 15px;
 }
 
-.node-data span {
+.metric-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: rgba(5, 21, 37, 0.45);
+  border: 1px solid rgba(117, 164, 210, 0.08);
+  border-radius: 10px;
+}
+
+.metric-label {
   display: block;
-
-  color:
-    var(--text-muted);
-
+  color: var(--text-muted);
   font-size: 8px;
   font-weight: 800;
-
   letter-spacing: 1px;
 }
 
-.node-data strong {
+.metric-value {
   display: block;
-
-  margin-top: 5px;
-
-  color:
-    var(--text);
-
-  font-size: 25px;
+  color: var(--text);
+  font-size: 15px;
   font-weight: 800;
+  line-height: 1.2;
+}
+
+.battery-voltage {
+  display: block;
+  color: var(--text-muted);
+  font-size: 9px;
+  margin-top: 2px;
 }
 
 
@@ -1541,19 +1547,17 @@ input {
 .flood-normal,
 .flood-moderate,
 .flood-high,
-.flood-critical {
+.flood-critical,
+.flood-badge {
   display: inline-flex;
-
   align-items: center;
-
-  padding: 6px 9px;
-
-  border-radius: 7px;
-
+  padding: 4px 8px;
+  border-radius: 6px;
   font-size: 8px;
   font-weight: 800;
-
   letter-spacing: 0.6px;
+  width: fit-content;
+  margin-top: 2px;
 }
 
 .flood-normal {
@@ -1590,144 +1594,19 @@ input {
 
 
 /* =========================================================
-   BATTERY
+   BATTERY CLASSES
 ========================================================= */
 
-.battery-section {
-  margin-top: 4px;
-
-  padding-top: 14px;
-
-  border-top:
-    1px solid
-    rgba(117, 164, 210, 0.1);
-}
-
-.battery-header {
-  display: flex;
-
-  justify-content: space-between;
-  align-items: center;
-
-  margin-bottom: 8px;
-}
-
-.battery-header span {
-  color:
-    var(--text-muted);
-
-  font-size: 8px;
-  font-weight: 800;
-
-  letter-spacing: 1px;
-}
-
-.battery-header strong {
-  color:
-    var(--text-secondary);
-
-  font-size: 11px;
-}
-
-.battery-bar {
-  width: 100%;
-  height: 6px;
-
-  overflow: hidden;
-
-  border-radius: 20px;
-
-  background:
-    rgba(255, 255, 255, 0.08);
-}
-
-.battery-bar > div {
-  height: 100%;
-
-  border-radius: inherit;
-
-  transition:
-    width 0.4s ease;
-}
-
 .battery-good {
-  background:
-    var(--success);
+  color: var(--success);
 }
 
 .battery-low {
-  background:
-    var(--warning);
+  color: var(--warning);
 }
 
 .battery-critical {
-  background:
-    var(--danger);
-}
-
-
-/* =========================================================
-   OFFLINE NODE
-========================================================= */
-
-.node-offline-data {
-  padding: 13px;
-
-  border-radius: 11px;
-
-  background:
-    rgba(240, 100, 100, 0.045);
-
-  border:
-    1px solid
-    rgba(240, 100, 100, 0.09);
-}
-
-.offline-data-item {
-  display: flex;
-
-  justify-content: space-between;
-  align-items: center;
-
-  padding: 7px 0;
-
-  border-bottom:
-    1px solid
-    rgba(240, 100, 100, 0.07);
-}
-
-.offline-data-item:last-of-type {
-  border-bottom: none;
-}
-
-.offline-data-item span {
-  color:
-    var(--text-muted);
-
-  font-size: 8px;
-  font-weight: 800;
-
-  letter-spacing: 0.8px;
-}
-
-.offline-data-item strong {
-  color:
-    var(--danger);
-
-  font-size: 9px;
-}
-
-.node-offline-data small {
-  display: block;
-
-  margin-top: 10px;
-
-  color:
-    var(--text-muted);
-
-  font-size: 9px;
-
-  line-height: 1.5;
+  color: var(--danger);
 }
 
 
@@ -1735,40 +1614,21 @@ input {
    LAST UPDATE
 ========================================================= */
 
-.node-last-update {
+.node-card-footer {
   display: flex;
-
   justify-content: space-between;
   align-items: center;
-
   gap: 10px;
-
-  margin-top: 16px;
-
-  padding-top: 13px;
-
-  border-top:
-    1px solid
-    rgba(117, 164, 210, 0.09);
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(117, 164, 210, 0.09);
 }
 
-.node-last-update span {
-  color:
-    var(--text-muted);
-
+.node-card-footer small {
+  color: var(--text-muted);
   font-size: 8px;
-  font-weight: 800;
-
-  letter-spacing: 0.8px;
-}
-
-.node-last-update strong {
-  color:
-    var(--text-secondary);
-
-  font-size: 8px;
-
-  text-align: right;
+  font-weight: 700;
+  letter-spacing: 0.5px;
 }
 
 
@@ -2138,10 +1998,6 @@ input {
 
   .node-card-header h4 {
     font-size: 15px;
-  }
-
-  .node-data strong {
-    font-size: 23px;
   }
 
 

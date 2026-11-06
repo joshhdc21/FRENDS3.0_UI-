@@ -7,28 +7,107 @@ import { auth } from "../firebase/authConfig";
 
 import "./AdminDashboard.css";
 
+// ==========================================
+// NODE NAMES / LOCATIONS (Synchronized with NodesSection)
+// ==========================================
+const NODE_NAMES = {
+  "NODE-01": "Leon Guinto St. Corner, Quirino Avenue Westbound Lane",
+  "NODE-02": "Leon Guinto St. Corner, Quirino Avenue Eastbound Lane",
+  "NODE-03": "Taft Avenue (Northbound), Malate, Manila",
+  "NODE-04": "Taft Avenue (Southbound), Malate, Manila",
+  "NODE-05": "1004 Taft Avenue (Southbound), Malate, Manila",
+  "NODE-06": "1000 Ermita, Manila",
+};
+
+const CONFIGURED_NODE_IDS = Object.keys(NODE_NAMES);
+
+function normalizeNodeId(value) {
+  const raw = String(value ?? "").trim().toLowerCase();
+  const match = raw.match(/node[-_ ]?0*(\d+)/);
+  return match
+    ? `NODE-${String(Number(match[1])).padStart(2, "0")}`
+    : raw.toUpperCase();
+}
+
+function toMilliseconds(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue) || numericValue <= 0) return null;
+  return numericValue < 1_000_000_000_000
+    ? numericValue * 1000
+    : numericValue;
+}
+
+function looksLikeSensorReading(value) {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    [
+      "waterLevel", "water_level", "floodLevel",
+      "pressure", "pressureHpa", "battery",
+      "batteryVoltage", "voltage", "status", "timestamp",
+    ].some((field) => value[field] !== undefined)
+  );
+}
+
+function getLatestReading(nodeData) {
+  if (!nodeData || typeof nodeData !== "object") return null;
+
+  if (looksLikeSensorReading(nodeData)) return nodeData;
+
+  const records = Object.values(nodeData).filter(looksLikeSensorReading);
+  if (!records.length) return null;
+
+  return records.reduce((latest, current) => {
+    const currentTime = toMilliseconds(current.timestamp) || 0;
+    const latestTime = toMilliseconds(latest.timestamp) || 0;
+    return currentTime >= latestTime ? current : latest;
+  });
+}
+
+// ==========================================
+// CONVERT CM TO FEET
+// ==========================================
+function cmToFeet(cm) {
+  return cm * 0.0328084;
+}
+
 // =====================================================
 // FLOOD STATUS
 // =====================================================
 
-function getFloodStatus(waterLevel) {
+function getFloodStatus(waterLevel, status, hasReading = true) {
+  if (status !== "online") {
+    return {
+      label: "OFFLINE",
+      className: "flood-normal",
+    };
+  }
+
+  if (!hasReading || !Number.isFinite(Number(waterLevel))) {
+    return {
+      label: "OFFLINE",
+      className: "flood-normal",
+    };
+  }
+
   const level = Number(waterLevel);
 
-  if (level >= 30) {
+  if (level > 50) {
     return {
       label: "CRITICAL",
       className: "flood-critical",
     };
   }
 
-  if (level >= 20) {
+  if (level > 25) {
     return {
       label: "HIGH",
       className: "flood-high",
     };
   }
 
-  if (level >= 10) {
+  if (level > 10) {
     return {
       label: "MODERATE",
       className: "flood-moderate",
@@ -46,7 +125,7 @@ function getFloodStatus(waterLevel) {
 // =====================================================
 
 function batteryPercentage(voltage) {
-  const FULL_VOLTAGE = 7.4;
+  const FULL_VOLTAGE = 8.4;
   const EMPTY_VOLTAGE = 6.0;
 
   const numericVoltage = Number(voltage);
@@ -61,76 +140,6 @@ function batteryPercentage(voltage) {
     100;
 
   return Math.min(Math.max(percentage, 0), 100);
-}
-
-// =====================================================
-// NODE STATUS
-// =====================================================
-
-function normalizeNodeStatus(value) {
-  if (value === null || value === undefined) {
-    return "offline";
-  }
-
-  if (typeof value === "boolean") {
-    return value ? "online" : "offline";
-  }
-
-  if (typeof value === "number") {
-    return value === 1 ? "online" : "offline";
-  }
-
-  const status = String(value).trim().toLowerCase();
-
-  if (
-    status === "online" ||
-    status === "active" ||
-    status === "connected" ||
-    status === "true" ||
-    status === "1" ||
-    status === "open"
-  ) {
-    return "online";
-  }
-
-  if (
-    status === "offline" ||
-    status === "inactive" ||
-    status === "disconnected" ||
-    status === "false" ||
-    status === "0" ||
-    status === "closed"
-  ) {
-    return "offline";
-  }
-
-  return "offline";
-}
-
-// =====================================================
-// GET LATEST NODE READING
-// =====================================================
-
-function getLatestReading(nodeHistory) {
-  if (!nodeHistory || typeof nodeHistory !== "object") {
-    return null;
-  }
-
-  const entries = Object.values(nodeHistory).filter(
-    (entry) => entry && typeof entry === "object"
-  );
-
-  if (entries.length === 0) {
-    return null;
-  }
-
-  const sortedEntries = [...entries].sort(
-    (a, b) =>
-      Number(b.timestamp || 0) -
-      Number(a.timestamp || 0)
-  );
-
-  return sortedEntries[0];
 }
 
 // =====================================================
@@ -151,7 +160,7 @@ function formatLastUpdate(timestamp) {
   let date;
 
   if (Number.isFinite(numericTimestamp)) {
-    date = new Date(numericTimestamp * 1000);
+    date = new Date(numericTimestamp);
   } else {
     date = new Date(timestamp);
   }
@@ -223,20 +232,6 @@ function AdminDashboard() {
       (snapshot) => {
         const data = snapshot.val();
 
-        console.log(
-          "================================="
-        );
-
-        console.log(
-          "FIREBASE ACCOUNTS DATA"
-        );
-
-        console.log(data);
-
-        console.log(
-          "================================="
-        );
-
         if (!data) {
           setUsers([]);
           setUsersLoading(false);
@@ -292,7 +287,7 @@ function AdminDashboard() {
   }, []);
 
   // ===================================================
-  // FIREBASE FLOOD NODES
+  // FIREBASE FLOOD NODES (Synchronized with NodesSection)
   // ===================================================
 
   useEffect(() => {
@@ -315,239 +310,103 @@ function AdminDashboard() {
     const unsubscribe = onValue(
       nodesRef,
       (snapshot) => {
-        const rawData = snapshot.val();
+        if (snapshot.exists()) {
+          const rawData = snapshot.val();
+          const latestNodesArray = [];
+          const recordsByNodeId = new Map();
 
-        console.log(
-          "================================="
-        );
+          for (const [firebaseKey, nodeData] of Object.entries(rawData || {})) {
+            const latestEntry = getLatestReading(nodeData);
+            if (!latestEntry) continue;
 
-        console.log(
-          "FIREBASE RAW NODES DATA"
-        );
+            const nodeId = normalizeNodeId(latestEntry.id || firebaseKey);
+            if (!CONFIGURED_NODE_IDS.includes(nodeId)) continue;
 
-        console.log(rawData);
+            const existing = recordsByNodeId.get(nodeId);
+            const newTimestamp = toMilliseconds(latestEntry.timestamp) || 0;
+            const oldTimestamp = toMilliseconds(existing?.reading?.timestamp) || 0;
 
-        console.log(
-          "================================="
-        );
-
-        if (
-          !snapshot.exists() ||
-          !rawData
-        ) {
-          setNodes([]);
-
-          setNodesLoading(false);
-
-          setDatabaseConnected(true);
-
-          return;
-        }
-
-        const latestNodesArray = [];
-
-        for (
-          const [
-            nodeKey,
-            nodeHistory,
-          ] of Object.entries(rawData)
-        ) {
-          if (
-            !nodeHistory ||
-            typeof nodeHistory !== "object"
-          ) {
-            continue;
+            if (!existing || newTimestamp >= oldTimestamp) {
+              recordsByNodeId.set(nodeId, { firebaseKey, reading: latestEntry });
+            }
           }
 
-          const latestEntry =
-            getLatestReading(
-              nodeHistory
-            );
+          for (const nodeId of CONFIGURED_NODE_IDS) {
+            const matched = recordsByNodeId.get(nodeId);
+            const reading = matched?.reading || {};
+            const rawStatus = String(reading.status || "").toLowerCase();
+            const status = rawStatus === "online" ? "online" : "offline";
+            const isActive = status === "online";
 
-          if (!latestEntry) {
-            continue;
-          }
+            let waterLevel =
+              reading.waterLevel ?? reading.water_level ?? reading.floodLevel ?? 0;
+            waterLevel = Number(waterLevel);
+            if (!Number.isFinite(waterLevel)) waterLevel = 0;
 
-          const rawStatus =
-            latestEntry.status ??
-            latestEntry.connectionStatus ??
-            latestEntry.online ??
-            latestEntry.active ??
-            null;
+            let pressure =
+              reading.pressure ?? reading.pressureHpa ?? 0;
+            pressure = Number(pressure);
+            if (!Number.isFinite(pressure)) pressure = 0;
 
-          const status =
-            normalizeNodeStatus(
-              rawStatus
-            );
+            let battery =
+              reading.battery ?? reading.batteryVoltage ?? reading.voltage ?? 0;
+            battery = Number(battery);
+            if (!Number.isFinite(battery)) battery = 0;
 
-          const isActive =
-            status === "online";
+            const batteryPercent =
+              isActive
+                ? batteryPercentage(battery)
+                : 0;
 
-          // =================================================
-          // WATER LEVEL
-          // =================================================
+            const timestamp = toMilliseconds(reading.timestamp);
 
-          let waterLevel =
-            latestEntry.waterLevel ??
-            latestEntry.water_level ??
-            latestEntry.depth ??
-            0;
-
-          waterLevel =
-            Number(waterLevel);
-
-          if (
-            !Number.isFinite(
-              waterLevel
-            )
-          ) {
-            waterLevel = 0;
-          }
-
-          // =================================================
-          // PRESSURE
-          // =================================================
-
-          let pressure =
-            latestEntry.pressure ??
-            0;
-
-          pressure =
-            Number(pressure);
-
-          if (
-            !Number.isFinite(
-              pressure
-            )
-          ) {
-            pressure = 0;
-          }
-
-          // =================================================
-          // BATTERY
-          // =================================================
-
-          let battery =
-            latestEntry.battery ??
-            latestEntry.batteryVoltage ??
-            0;
-
-          battery =
-            Number(battery);
-
-          if (
-            !Number.isFinite(
-              battery
-            )
-          ) {
-            battery = 0;
-          }
-
-          const batteryPercent =
-            isActive
-              ? batteryPercentage(
-                  battery
-                )
-              : 0;
-
-          // =================================================
-          // TIMESTAMP
-          // =================================================
-
-          const timestamp =
-            latestEntry.timestamp
-              ? Number(
-                  latestEntry.timestamp
-                )
-              : null;
-
-          // =================================================
-          // NORMALIZED NODE
-          // =================================================
-
-          const normalizedNode = {
-            firebaseKey:
-              nodeKey,
-
-            nodeId:
-              latestEntry.id ||
-              nodeKey,
-
-            id:
-              latestEntry.id ||
-              nodeKey,
-
-            location:
-              latestEntry.location ||
-              `Location ${nodeKey}`,
-
-            waterLevel,
-
-            pressure,
-
-            battery,
-
-            batteryPercent,
-
-            status,
-
-            isActive,
-
-            timestamp,
-
-            lastUpdate:
+            const normalizedNode = {
+              firebaseKey: matched?.firebaseKey || nodeId,
+              nodeId: normalizeNodeId(reading.id || nodeId),
+              id: nodeId,
+              location: reading.location || NODE_NAMES[nodeId],
+              waterLevel,
+              waterLevelFeet: cmToFeet(waterLevel),
+              pressure,
+              battery,
+              batteryPercent,
+              status,
+              isActive,
               timestamp,
+              lastUpdate: timestamp,
+              latitude: reading.lat ?? reading.latitude ?? null,
+              longitude: reading.lng ?? reading.longitude ?? null,
+            };
 
-            latitude:
-              latestEntry.latitude ??
-              null,
+            latestNodesArray.push(normalizedNode);
+          }
 
-            longitude:
-              latestEntry.longitude ??
-              null,
-          };
+          setNodes(latestNodesArray);
+          setNodesLoading(false);
+          setDatabaseConnected(true);
+        } else {
+          const fallbackNodes = CONFIGURED_NODE_IDS.map((nodeId) => ({
+            firebaseKey: nodeId,
+            nodeId: nodeId,
+            id: nodeId,
+            location: NODE_NAMES[nodeId],
+            waterLevel: 0,
+            waterLevelFeet: 0,
+            pressure: 0,
+            battery: 0,
+            batteryPercent: 0,
+            status: "offline",
+            isActive: false,
+            timestamp: null,
+            lastUpdate: null,
+            latitude: null,
+            longitude: null,
+          }));
 
-          latestNodesArray.push(
-            normalizedNode
-          );
+          setNodes(fallbackNodes);
+          setNodesLoading(false);
+          setDatabaseConnected(true);
         }
-
-        console.log(
-          "NORMALIZED ADMIN FLOOD NODES"
-        );
-
-        console.log(
-          latestNodesArray
-        );
-
-        console.log(
-          "TOTAL:",
-          latestNodesArray.length
-        );
-
-        console.log(
-          "ACTIVE:",
-          latestNodesArray.filter(
-            (node) =>
-              node.isActive === true
-          ).length
-        );
-
-        console.log(
-          "INACTIVE:",
-          latestNodesArray.filter(
-            (node) =>
-              node.isActive !== true
-          ).length
-        );
-
-        setNodes(
-          latestNodesArray
-        );
-
-        setNodesLoading(false);
-
-        setDatabaseConnected(true);
       },
 
       (error) => {
@@ -570,28 +429,7 @@ function AdminDashboard() {
 
   async function handleLogout() {
     try {
-      console.log(
-        "================================="
-      );
-
-      console.log(
-        "SIGN OUT BUTTON CLICKED"
-      );
-
-      console.log(
-        "Current Firebase user:",
-        auth?.currentUser
-      );
-
-      console.log(
-        "================================="
-      );
-
       if (!auth) {
-        console.error(
-          "Firebase Authentication is not initialized."
-        );
-
         alert(
           "Authentication service is not available."
         );
@@ -600,14 +438,6 @@ function AdminDashboard() {
       }
 
       await signOut(auth);
-
-      console.log(
-        "Firebase logout successful."
-      );
-
-      // =================================================
-      // CLEAR LOCAL STORAGE
-      // =================================================
 
       try {
         localStorage.removeItem(
@@ -631,10 +461,6 @@ function AdminDashboard() {
           storageError
         );
       }
-
-      // =================================================
-      // REDIRECT TO LOGIN
-      // =================================================
 
       window.location.replace("/");
 
@@ -690,11 +516,6 @@ function AdminDashboard() {
         userRef
       );
 
-      console.log(
-        "Account deleted successfully:",
-        uid
-      );
-
       alert(
         "Account deleted successfully."
       );
@@ -748,7 +569,7 @@ function AdminDashboard() {
         node.isActive === true &&
         Number(
           node.waterLevel
-        ) >= 30
+        ) > 50
     ).length;
 
   // ===================================================
@@ -1129,7 +950,7 @@ function AdminDashboard() {
                         true &&
                       Number(
                         node.waterLevel
-                      ) < 10
+                      ) <= 10
                   ).length
                 }
 
@@ -1154,10 +975,10 @@ function AdminDashboard() {
                         true &&
                       Number(
                         node.waterLevel
-                      ) >= 10 &&
+                      ) > 10 &&
                       Number(
                         node.waterLevel
-                      ) < 20
+                      ) <= 25
                   ).length
                 }
 
@@ -1182,10 +1003,10 @@ function AdminDashboard() {
                         true &&
                       Number(
                         node.waterLevel
-                      ) >= 20 &&
+                      ) > 25 &&
                       Number(
                         node.waterLevel
-                      ) < 30
+                      ) <= 50
                   ).length
                 }
 
@@ -1530,7 +1351,9 @@ function AdminDashboard() {
 
                 const flood =
                   getFloodStatus(
-                    node.waterLevel
+                    node.waterLevel,
+                    node.status,
+                    node.waterLevel !== null && node.waterLevel !== undefined
                   );
 
                 const batteryValue =
@@ -1620,7 +1443,7 @@ function AdminDashboard() {
                         <strong className="metric-value">
 
                           {isActive
-                            ? `${node.waterLevel} cm`
+                            ? `${node.waterLevelFeet.toFixed(2)} ft`
                             : "--"}
 
                         </strong>
@@ -1648,7 +1471,7 @@ function AdminDashboard() {
                         <strong className="metric-value">
 
                           {isActive
-                            ? `${node.pressure} kPa`
+                            ? `${node.pressure} hPa`
                             : "--"}
 
                         </strong>
@@ -1682,6 +1505,24 @@ function AdminDashboard() {
                             : "--"}
 
                         </small>
+
+                      </div>
+
+                      {/* COORDINATES (LAT / LNG) */}
+
+                      <div className="metric-box" style={{ gridColumn: "span 3" }}>
+
+                        <span className="metric-label">
+                          COORDINATES (LAT / LNG)
+                        </span>
+
+                        <strong className="metric-value" style={{ fontSize: "12px", fontWeight: "normal" }}>
+
+                          {isActive && node.latitude !== null && node.longitude !== null
+                            ? `${Number(node.latitude).toFixed(6)}, ${Number(node.longitude).toFixed(6)}`
+                            : "--"}
+
+                        </strong>
 
                       </div>
 

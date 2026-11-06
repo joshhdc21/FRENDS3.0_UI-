@@ -20,17 +20,61 @@ import {
 // actual monitoring node locations.
 // ==========================================
 const NODE_NAMES = {
-  "node-01": "Leon Guinto St., Manila",
-  "node-02": "Remedios St., Manila",
-  "node-03": "Pilar Hidalgo St., Manila",
-  "node-04": "San Andres St., Manila",
-  "node-05": "Maginhawa St., Manila",
-  "node-06": "Fidel Reyes St., Manila",
-  "node-07": "Taft Avenue",
-  "node-08": "Pablo Ocampo St., Manila",
-  "node-09": "A. Estrada St., Manila",
-  "node-10": "Castro St., Manila",
+  "node-01": "Leon Guinto St. Corner, Quirino Avenue Westbound Lane",
+  "node-02": "Leon Guinto St. Corner, Quirino Avenue Eastbound Lane",
+  "node-03": "Taft Avenue (Northbound), Malate, Manila",
+  "node-04": "Taft Avenue (Southbound), Malate, Manila",
+  "node-05": "1004 Taft Avenue (Southbound), Malate, Manila",
+  "node-06": "1000 Ermita, Manila",
 };
+
+// Always show the configured node cards, even when a device has not sent data.
+const CONFIGURED_NODE_IDS = Object.keys(NODE_NAMES);
+
+function normalizeNodeId(value) {
+  const raw = String(value ?? "").trim().toLowerCase();
+  const match = raw.match(/node[-_ ]?0*(\d+)/);
+  return match
+    ? `node-${String(Number(match[1])).padStart(2, "0")}`
+    : raw;
+}
+
+function toMilliseconds(value) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue) || numericValue <= 0) return null;
+  return numericValue < 1_000_000_000_000
+    ? numericValue * 1000
+    : numericValue;
+}
+
+function looksLikeSensorReading(value) {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    [
+      "waterLevel", "water_level", "floodLevel",
+      "pressure", "pressureHpa", "battery",
+      "batteryVoltage", "voltage", "status", "timestamp",
+    ].some((field) => value[field] !== undefined)
+  );
+}
+
+function getLatestReading(nodeData) {
+  if (!nodeData || typeof nodeData !== "object") return null;
+
+  // A node may contain one direct sensor object or multiple historical records.
+  if (looksLikeSensorReading(nodeData)) return nodeData;
+
+  const records = Object.values(nodeData).filter(looksLikeSensorReading);
+  if (!records.length) return null;
+
+  return records.reduce((latest, current) => {
+    const currentTime = toMilliseconds(current.timestamp) || 0;
+    const latestTime = toMilliseconds(latest.timestamp) || 0;
+    return currentTime >= latestTime ? current : latest;
+  });
+}
 
 // ==========================================
 // FLOOD LEVEL CLASSIFICATION
@@ -48,12 +92,20 @@ const NODE_NAMES = {
 // 25 cm = 0.82 ft
 // 50 cm = 1.64 ft
 // ==========================================
-function getFloodInformation(floodLevel, status) {
-  if (status === "offline") {
+function getFloodInformation(floodLevel, status, hasReading = true) {
+  if (status !== "online") {
     return {
       label: "Offline",
       className: "offline",
       description: "Sensor data unavailable",
+    };
+  }
+
+  if (!hasReading || !Number.isFinite(Number(floodLevel))) {
+    return {
+      label: "No reading",
+      className: "offline",
+      description: "Waiting for a valid flood-depth reading from Firebase",
     };
   }
 
@@ -123,11 +175,14 @@ function batteryPercentage(voltage) {
 // FORMAT LAST UPDATE
 // ==========================================
 function formatLastUpdate(timestamp) {
-  if (!timestamp) {
+  if (!timestamp || !Number.isFinite(Number(timestamp))) {
     return "No recent data";
   }
 
-  return new Date(timestamp).toLocaleString();
+  const date = new Date(Number(timestamp));
+  return Number.isNaN(date.getTime())
+    ? "No recent data"
+    : date.toLocaleString();
 }
 
 // ==========================================
@@ -138,27 +193,24 @@ function NodeCard({ node }) {
   // GET DATA FROM FIREBASE
   // ----------------------------------------
 
-  const floodLevel = Number(node.waterLevel ?? 0);
+  const floodLevel = node.waterLevel === null || node.waterLevel === undefined
+    ? null
+    : Number(node.waterLevel);
+  const pressure = node.pressure === null || node.pressure === undefined
+    ? null
+    : Number(node.pressure);
+  const battery = node.battery === null || node.battery === undefined
+    ? null
+    : Number(node.battery);
 
-  const pressure = Number(node.pressure ?? 0);
+  const hasFloodReading = floodLevel !== null && Number.isFinite(floodLevel);
+  const hasPressureReading = pressure !== null && Number.isFinite(pressure);
+  const hasBatteryReading = battery !== null && Number.isFinite(battery);
+  const status = node.status === "online" ? "online" : "offline";
 
-  const battery = Number(node.battery ?? 0);
-
-  const status = node.status ?? "offline";
-
-  // ----------------------------------------
-  // GET FLOOD STATUS
-  // ----------------------------------------
-  const flood = getFloodInformation(
-    floodLevel,
-    status
-  );
-
-  // ----------------------------------------
-  // CONVERT FLOOD LEVEL
-  // CM → FT
-  // ----------------------------------------
-  const floodLevelFeet = cmToFeet(floodLevel);
+  // Flood classification is only possible when Firebase supplied a valid reading.
+  const flood = getFloodInformation(floodLevel, status, hasFloodReading);
+  const floodLevelFeet = hasFloodReading ? cmToFeet(floodLevel) : null;
 
   // ----------------------------------------
   // FLOOD LEVEL PROGRESS BAR
@@ -167,27 +219,24 @@ function NodeCard({ node }) {
   // 60 cm is considered 100%.
   // ----------------------------------------
   const floodPercentage =
-    status === "offline"
-      ? 0
-      : Math.min(
-          (floodLevel / 60) * 100,
-          100
-        );
+    status === "online" && hasFloodReading
+      ? Math.min((floodLevel / 60) * 100, 100)
+      : 0;
 
   // ----------------------------------------
   // BATTERY PERCENTAGE
   // ----------------------------------------
   const batteryPercent =
-    status === "online"
+    status === "online" && hasBatteryReading
       ? batteryPercentage(battery)
-      : 0;
+      : null;
 
   // ----------------------------------------
   // GET NODE DISPLAY NAME
   // ----------------------------------------
   const nodeName =
-    NODE_NAMES[node.id] ||
     node.location ||
+    NODE_NAMES[node.id] ||
     `Location ${node.id}`;
 
   return (
@@ -197,18 +246,34 @@ function NodeCard({ node }) {
       {/* ==================================
           NODE HEADER
       ================================== */}
-      <div className="node-card-top">
+      <div
+        className="node-card-top"
+        style={{ minWidth: 0, width: "100%", overflow: "visible" }}
+      >
 
         {/* ==================================
             NODE TITLE / LOCATION
         ================================== */}
-        <div className="node-title-container">
+        <div
+          className="node-title-container"
+          style={{ minWidth: 0, width: "100%", flex: "1 1 auto" }}
+        >
 
           <span className="node-id">
             {node.id}
           </span>
 
-          <h4 className="node-location-name" style={{ textTransform: "none" }}>
+          <h4
+            className="node-location-name"
+            style={{
+              textTransform: "none",
+              whiteSpace: "normal",
+              overflowWrap: "anywhere",
+              wordBreak: "normal",
+              maxWidth: "100%",
+              lineHeight: 1.25,
+            }}
+          >
             {nodeName}
           </h4>
 
@@ -240,7 +305,7 @@ function NodeCard({ node }) {
           </span>
 
           <strong>
-            {status === "online"
+            {status === "online" && hasFloodReading
               ? floodLevelFeet.toFixed(2)
               : "--"}
 
@@ -296,7 +361,7 @@ function NodeCard({ node }) {
           </span>
 
           <strong>
-            {status === "online"
+            {status === "online" && hasPressureReading
               ? `${pressure} hPa`
               : "--"}
           </strong>
@@ -311,7 +376,7 @@ function NodeCard({ node }) {
           </span>
 
           <strong>
-            {status === "online"
+            {status === "online" && hasBatteryReading
               ? `${batteryPercent.toFixed(0)}%`
               : "--"}
           </strong>
@@ -428,95 +493,48 @@ function NodesSection() {
 
           const latestNodesArray = [];
 
-          // ==================================
-          // LOOP THROUGH EACH NODE
-          // ==================================
-          for (
-            const [nodeKey, nodeHistory] of Object.entries(
-              rawData
-            )
-          ) {
-            if (
-              !nodeHistory ||
-              typeof nodeHistory !== "object"
-            ) {
-              continue;
+          // Read each Firebase node. This supports both:
+          // 1. nodes/node-01/{recordId}: timestamped history records
+          // 2. nodes/{recordId}: records containing an id such as "node-01"
+          const recordsByNodeId = new Map();
+
+          for (const [firebaseKey, nodeData] of Object.entries(rawData || {})) {
+            const latestEntry = getLatestReading(nodeData);
+            if (!latestEntry) continue;
+
+            const nodeId = normalizeNodeId(latestEntry.id || firebaseKey);
+            if (!CONFIGURED_NODE_IDS.includes(nodeId)) continue;
+
+            const existing = recordsByNodeId.get(nodeId);
+            const newTimestamp = toMilliseconds(latestEntry.timestamp) || 0;
+            const oldTimestamp = toMilliseconds(existing?.reading?.timestamp) || 0;
+
+            if (!existing || newTimestamp >= oldTimestamp) {
+              recordsByNodeId.set(nodeId, { firebaseKey, reading: latestEntry });
             }
+          }
 
-            // --------------------------------
-            // GET ALL HISTORICAL READINGS
-            // --------------------------------
-            const entries =
-              Object.values(nodeHistory);
+          // Build only the six configured place cards. A node without
+          // an actual Firebase record remains visible and is marked Offline.
+          for (const nodeId of CONFIGURED_NODE_IDS) {
+            const matched = recordsByNodeId.get(nodeId);
+            const reading = matched?.reading || {};
+            const rawStatus = String(reading.status || "").toLowerCase();
 
-            if (entries.length > 0) {
-
-              // =================================
-              // FIND THE MOST RECENT READING
-              // =================================
-              const latestEntry =
-                entries.sort(
-                  (a, b) =>
-                    Number(
-                      b.timestamp || 0
-                    ) -
-                    Number(
-                      a.timestamp || 0
-                    )
-                )[0];
-
-              // =================================
-              // GET NODE ID
-              // =================================
-              const nodeId =
-                latestEntry.id ||
-                nodeKey;
-
-              // =================================
-              // NORMALIZE FIREBASE DATA
-              // =================================
-              latestNodesArray.push({
-                ...latestEntry,
-
-                // Firebase node key
-                firebaseKey:
-                  nodeKey,
-
-                // Node ID
-                id:
-                  nodeId,
-
-                // Convert status:
-                // ONLINE → online
-                // OFFLINE → offline
-                status:
-                  latestEntry.status
-                    ? String(
-                        latestEntry.status
-                      ).toLowerCase()
-                    : "offline",
-
-                // Firebase timestamp is in
-                // seconds.
-                //
-                // JavaScript Date requires
-                // milliseconds.
-                timestamp:
-                  latestEntry.timestamp
-                    ? Number(
-                        latestEntry.timestamp
-                      ) * 1000
-                    : null,
-
-                // =================================
-                // NODE LOCATION
-                // =================================
-                location:
-                  NODE_NAMES[nodeId] ||
-                  latestEntry.location ||
-                  `Location ${nodeId}`,
-              });
-            }
+            latestNodesArray.push({
+              ...reading,
+              id: nodeId,
+              firebaseKey: matched?.firebaseKey || nodeId,
+              waterLevel:
+                reading.waterLevel ?? reading.water_level ?? reading.floodLevel ?? null,
+              pressure:
+                reading.pressure ?? reading.pressureHpa ?? null,
+              battery:
+                reading.battery ?? reading.batteryVoltage ?? reading.voltage ?? null,
+              status: rawStatus === "online" ? "online" : "offline",
+              timestamp: toMilliseconds(reading.timestamp),
+              location: reading.location ?? NODE_NAMES[nodeId],
+            });
           }
 
           // ----------------------------------
@@ -527,13 +545,30 @@ function NodesSection() {
           );
 
           // Select the first available node for the history graph.
-          setSelectedNodeKey((currentKey) =>
-            currentKey || latestNodesArray[0]?.firebaseKey || ""
-          );
+          setSelectedNodeKey((currentKey) => {
+            const currentStillExists = latestNodesArray.some(
+              (node) => node.firebaseKey === currentKey
+            );
+            return currentStillExists
+              ? currentKey
+              : latestNodesArray[0]?.firebaseKey || "";
+          });
 
         } else {
-          // No Firebase data
-          setNodes([]);
+          // No records yet: still render all configured nodes as Offline.
+          setNodes(
+            CONFIGURED_NODE_IDS.map((nodeId) => ({
+              id: nodeId,
+              firebaseKey: nodeId,
+              location: NODE_NAMES[nodeId],
+              status: "offline",
+              waterLevel: null,
+              pressure: null,
+              battery: null,
+              timestamp: null,
+            }))
+          );
+          setSelectedNodeKey(CONFIGURED_NODE_IDS[0] || "");
         }
 
         setLoading(false);
@@ -551,6 +586,12 @@ function NodesSection() {
 
         setError(
           "Failed to load node data."
+        );
+        setNodes(
+          CONFIGURED_NODE_IDS.map((nodeId) => ({
+            id: nodeId, firebaseKey: nodeId, location: NODE_NAMES[nodeId],
+            status: "offline", waterLevel: null, pressure: null, battery: null, timestamp: null,
+          }))
         );
 
         setLoading(false);
@@ -594,14 +635,20 @@ function NodesSection() {
 
         const rawHistory = snapshot.val();
 
-        const readings = Object.entries(rawHistory)
+        const historyEntries = looksLikeSensorReading(rawHistory)
+          ? [["latest", rawHistory]]
+          : Object.entries(rawHistory);
+
+        const readings = historyEntries
           .map(([recordKey, reading]) => {
             if (!reading || typeof reading !== "object") {
               return null;
             }
 
             const rawTimestamp = Number(reading.timestamp);
-            const waterLevel = Number(reading.waterLevel);
+            const waterLevel = Number(
+              reading.waterLevel ?? reading.water_level ?? reading.floodLevel
+            );
 
             if (
               !Number.isFinite(rawTimestamp) ||
@@ -658,10 +705,42 @@ function NodesSection() {
   // ========================================
   // SAFETY CHECK
   // ========================================
+  // Display ONLY the six configured place cards (node-01 through node-06).
+  // This also prevents old node-07 to node-10 Firebase records from appearing.
   const safeNodes =
     Array.isArray(nodes)
       ? nodes
+          .filter((node) =>
+            CONFIGURED_NODE_IDS.includes(normalizeNodeId(node?.id))
+          )
+          .slice(0, 6)
       : [];
+
+  // Use the newest actual Firebase sensor reading for the overview.
+  // Do not substitute demo values when no reading is available.
+  const currentNode = safeNodes
+    .filter((node) =>
+      node.status === "online" &&
+      node.waterLevel !== null &&
+      node.waterLevel !== undefined &&
+      Number.isFinite(Number(node.waterLevel))
+    )
+    .sort((a, b) =>
+      (toMilliseconds(b.timestamp) || 0) - (toMilliseconds(a.timestamp) || 0)
+    )[0] || null;
+
+  const currentFloodLevelCm = currentNode ? Number(currentNode.waterLevel) : null;
+  const currentFloodLevelFt = currentFloodLevelCm === null
+    ? null
+    : cmToFeet(currentFloodLevelCm);
+  const currentFlood = currentNode
+    ? getFloodInformation(currentFloodLevelCm, currentNode.status)
+    : null;
+  const firebaseConnectionLabel = error
+    ? "Connection error"
+    : loading
+      ? "Connecting..."
+      : "Connected";
 
   // ========================================
   // COUNT ONLINE NODES
@@ -679,10 +758,9 @@ function NodesSection() {
     safeNodes.filter((node) => {
       const flood =
         getFloodInformation(
-          Number(
-            node.waterLevel ?? 0
-          ),
-          node.status
+          node.waterLevel === null || node.waterLevel === undefined ? null : Number(node.waterLevel),
+          node.status,
+          node.waterLevel !== null && node.waterLevel !== undefined && Number.isFinite(Number(node.waterLevel))
         );
 
       return (
@@ -698,10 +776,9 @@ function NodesSection() {
     safeNodes.filter((node) => {
       const flood =
         getFloodInformation(
-          Number(
-            node.waterLevel ?? 0
-          ),
-          node.status
+          node.waterLevel === null || node.waterLevel === undefined ? null : Number(node.waterLevel),
+          node.status,
+          node.waterLevel !== null && node.waterLevel !== undefined && Number.isFinite(Number(node.waterLevel))
         );
 
       return (
@@ -962,7 +1039,7 @@ function NodesSection() {
               >
                 {safeNodes.map((node) => (
                   <option key={node.firebaseKey || node.id} value={node.firebaseKey || node.id}>
-                    {NODE_NAMES[node.id] || node.location || node.id}
+                    {node.location || NODE_NAMES[node.id] || node.id}
                   </option>
                 ))}
               </select>
@@ -1041,8 +1118,8 @@ function NodesSection() {
   type="category"
   dataKey="timeLabel"
   interval={
-    historyInterval === "30m" ? 3 :
-    historyInterval === "1h" ? 1 :
+    historyInterval === "30m" ? 5 :
+    historyInterval === "1h" ? 2 :
     0
   }
   tickFormatter={(value) => value.replace(":00", "")}
@@ -1052,6 +1129,8 @@ function NodesSection() {
   angle={-35}
   textAnchor="end"
   height={55}
+  padding={{ left: 10, right: 10 }}
+  minTickGap={8}
 />
   <YAxis
   domain={[0, 3]}
@@ -1124,39 +1203,38 @@ function NodesSection() {
           <article className="current-level-panel">
 
             <div className="level-visual">
-
               <div className="water-indicator">
-
-                <div className="water-fill"></div>
-
+                <div
+                  className="water-fill"
+                  style={{
+                    height: currentFloodLevelCm === null
+                      ? "0%"
+                      : `${Math.min((currentFloodLevelCm / 60) * 100, 100)}%`,
+                  }}
+                />
                 <span>
-                  0 ft
+                  {currentFloodLevelFt === null
+                    ? "-- ft"
+                    : `${currentFloodLevelFt.toFixed(2)} ft`}
                 </span>
-
               </div>
-
             </div>
 
             <div className="current-level-content">
-
-              <p className="eyebrow">
-                CURRENT FLOOD LEVEL
-              </p>
-
+              <p className="eyebrow">CURRENT FLOOD LEVEL</p>
               <h4>
-                No reading available
+                {currentNode
+                  ? `${currentFloodLevelFt.toFixed(2)} ft`
+                  : "No Firebase reading available"}
               </h4>
-
               <p>
-                The current water level will appear
-                here once Firebase receives sensor
-                data from the ESP32-C3 device.
+                {currentNode
+                  ? `${NODE_NAMES[currentNode.id] || currentNode.location || currentNode.id} · Latest reading from ${currentNode.id}.`
+                  : "No online node with a valid flood-depth reading is currently available."}
               </p>
-
               <span className="level-status-badge">
-                Waiting for device
+                {currentFlood ? currentFlood.label : "Waiting for Firebase data"}
               </span>
-
             </div>
 
           </article>
@@ -1207,132 +1285,75 @@ function NodesSection() {
 
       {/* =================================================
           DEVICE INFORMATION
+          Values below are read from the latest Firebase
+          node record. Missing fields are shown as "--".
       ================================================= */}
       <section
         id="device"
         className="page-section"
       >
-
         <div className="section-heading">
-
           <div>
-
-            <p className="eyebrow">
-              DEVICE INFORMATION
-            </p>
-
+            <p className="eyebrow">DEVICE INFORMATION</p>
             <h3>
-              ESP32-C3 monitoring unit
+              {currentNode ? `${currentNode.id} monitoring unit` : "Monitoring unit"}
             </h3>
-
           </div>
 
-          <span className="offline-badge">
-            Offline
+          <span className={currentNode ? "online-badge" : "offline-badge"}>
+            {currentNode ? "Online" : "No active reading"}
           </span>
-
         </div>
 
         <div className="device-grid">
-
-          {/* =============================================
-              DEVICE INFORMATION CARD
-          ============================================= */}
           <article className="device-information-card">
-
             <div className="information-row">
-
-              <span>
-                Device ID
-              </span>
-
-              <strong>
-                esp32-c3-01
-              </strong>
-
+              <span>Device ID</span>
+              <strong>{currentNode?.deviceId ?? currentNode?.id ?? "--"}</strong>
             </div>
 
             <div className="information-row">
-
-              <span>
-                Sensor
-              </span>
-
-              <strong>
-                MS5540C pressure sensor
-              </strong>
-
+              <span>Sensor</span>
+              <strong>{currentNode?.sensor ?? "--"}</strong>
             </div>
 
             <div className="information-row">
-
-              <span>
-                Communication
-              </span>
-
-              <strong>
-                Wi-Fi / Air780E cellular
-              </strong>
-
+              <span>Communication</span>
+              <strong>{currentNode?.communication ?? "--"}</strong>
             </div>
 
             <div className="information-row">
-
-              <span>
-                Last update
-              </span>
-
+              <span>Last update</span>
               <strong>
-                No data received
+                {currentNode?.timestamp
+                  ? formatLastUpdate(currentNode.timestamp)
+                  : "--"}
               </strong>
-
             </div>
 
             <div className="information-row">
-
-              <span>
-                Firebase status
-              </span>
-
-              <strong>
-                Not connected
-              </strong>
-
+              <span>Firebase status</span>
+              <strong>{firebaseConnectionLabel}</strong>
             </div>
-
           </article>
 
-          {/* =============================================
-              DEVICE CONDITION CARD
-          ============================================= */}
           <article className="device-condition-card">
-
-            <span className="device-icon">
-              ESP
-            </span>
-
+            <span className="device-icon">ESP</span>
             <div>
-
-              <p className="eyebrow">
-                DEVICE CONDITION
-              </p>
-
+              <p className="eyebrow">DEVICE CONDITION</p>
               <h4>
-                Monitoring unit is offline
+                {currentNode
+                  ? "Firebase node is reporting online"
+                  : "No active node reading"}
               </h4>
-
               <p>
-                Connect the website to Firebase and
-                upload sensor readings from the ESP32
-                to begin real-time monitoring.
+                {currentNode
+                  ? "The displayed monitoring values are taken from the latest available Firebase sensor record."
+                  : "The interface is waiting for an online node and a valid sensor reading from Firebase."}
               </p>
-
             </div>
-
           </article>
-
         </div>
-
       </section>
 
     </section>
