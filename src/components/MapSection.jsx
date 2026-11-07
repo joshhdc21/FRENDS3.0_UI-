@@ -55,7 +55,7 @@ const distToSegmentMeters = (pLat, pLng, aLat, aLng, bLat, bLng) => {
 
 // Same limits and parsing as the backend (routing_engine.py) so both sides agree what is "flooded"
 const FLOOD_LIMITS = { LOW: 33.02, MID: 48.26, HIGH: 66.04 };
-const FLOOD_ROUTE_RADIUS_M = 25;
+const FLOOD_ROUTE_RADIUS_M = 15;   // MMDA blast radius (matches the backend)
 const toNum = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v))) ? null : Number(v);
 const firstNum = (sources, keys) => {
     for (const src of sources) {
@@ -896,6 +896,11 @@ export default function MapSection({ onNavigate, onLogout }) {
         });
         if (flatPath.length < 2) return;
 
+        // Distance reference for the look-ahead radius: the real GPS position only while DRIVING.
+        // With dropped pins the phone can be anywhere (e.g. another city), which made every flood look
+        // "too far away" and silently disabled auto-reroute. Otherwise measure from the start of the route.
+        const refPoint = (driveMode && liveLocation) ? liveLocation : flatPath[0];
+
         const hits = [];
         Object.keys(firebaseNodes).forEach(nodeId => {
             const node = readFloodNode(firebaseNodes[nodeId]);
@@ -904,7 +909,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             nodeBlockStates.current[nodeId] = isFlooded ? 'blocked' : 'clear';
             if (!isFlooded) return;
 
-            if (liveLocation && getDistanceInMeters(liveLocation[0], liveLocation[1], node.lat, node.lng) > rerouteRadius) return;
+            if (refPoint && getDistanceInMeters(refPoint[0], refPoint[1], node.lat, node.lng) > rerouteRadius) return;
 
             for (let i = 0; i < flatPath.length - 1; i++) {
                 const d = distToSegmentMeters(node.lat, node.lng, flatPath[i][0], flatPath[i][1], flatPath[i + 1][0], flatPath[i + 1][1]);
@@ -1085,7 +1090,10 @@ export default function MapSection({ onNavigate, onLogout }) {
                     lane_direction: lane.code,
                     dest_direction: lane.code,
                     user_heading: driveMode ? heading : null,
-                    user_speed: (driveMode && speed !== "--") ? (Number(speed) / 3.6) : null
+                    user_speed: (driveMode && speed !== "--") ? (Number(speed) / 3.6) : null,
+                    // Live Firebase snapshots from this client: zero sync lag (app.py merges them with its own read)
+                    flood_data: firebaseNodes || {},
+                    reports_data: userReports || {}
                 })
             });
             const data = await response.json();
