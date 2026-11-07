@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ref, onValue } from "firebase/database";
 import { database } from "../firebase/firebaseConfig";
 import "./FloodHistory.css";
@@ -47,6 +47,45 @@ function toMilliseconds(value) {
     : numericValue;
 }
 
+// ==========================================
+// ONLINE / OFFLINE DETECTION
+// ==========================================
+// A node is ONLINE only when it has sent data recently.
+// We no longer trust the stored "status" string alone, because:
+//  - a dead device never rewrites "online" (stale "online" stays forever)
+//  - firmware may send true / 1 / "connected" / "active" instead of "online"
+//  - firmware may send no status field at all
+//
+// Set this to a little more than your ESP32's upload interval.
+// (e.g. node uploads every 1 min -> 3-5 min is a safe value)
+const ONLINE_TIMEOUT_MS = 5 * 60 * 1000;
+
+// false = trust the "status" value stored in Firebase (matches Firebase console).
+// true  = ALSO require a recent timestamp, so a dead device whose last record
+//         still says "online" (like node-03 / node-04, last data in July)
+//         is shown as Offline.
+const USE_FRESHNESS_CHECK = false;
+
+const ONLINE_WORDS = ["online", "connected", "active", "up", "ok", "true", "1"];
+const OFFLINE_WORDS = ["offline", "disconnected", "inactive", "down", "false", "0"];
+
+function parseReportedStatus(value) {
+  if (value === true || value === 1) return "online";
+  if (value === false || value === 0) return "offline";
+  const text = String(value ?? "").trim().toLowerCase();
+  if (ONLINE_WORDS.includes(text)) return "online";
+  if (OFFLINE_WORDS.includes(text)) return "offline";
+  return "unknown"; // field missing or unrecognised
+}
+
+function resolveNodeStatus(node, now) {
+  if (USE_FRESHNESS_CHECK) {
+    const age = node.timestamp ? now - node.timestamp : Infinity;
+    if (age > ONLINE_TIMEOUT_MS) return "offline";
+  }
+  return node.reportedStatus === "online" ? "online" : "offline";
+}
+
 function looksLikeSensorReading(value) {
   return Boolean(
     value &&
@@ -60,13 +99,28 @@ function looksLikeSensorReading(value) {
   );
 }
 
+// Firebase keys written by firmware sometimes contain typos such as
+// "status:" or "status: " (extra colon / space). Clean them so they are
+// read as "status".
+function cleanKeys(record) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) return record;
+  const cleaned = {};
+  for (const [key, value] of Object.entries(record)) {
+    const cleanKey = key.trim().replace(/[:\s]+$/, "");
+    // Never let a typo'd key overwrite a correctly spelled one.
+    if (!(cleanKey in cleaned) || cleanKey === key) cleaned[cleanKey] = value;
+  }
+  return cleaned;
+}
+
 function getLatestReading(nodeData) {
   if (!nodeData || typeof nodeData !== "object") return null;
 
   // A node may contain one direct sensor object or multiple historical records.
-  if (looksLikeSensorReading(nodeData)) return nodeData;
+  const direct = cleanKeys(nodeData);
+  if (looksLikeSensorReading(direct)) return direct;
 
-  const records = Object.values(nodeData).filter(looksLikeSensorReading);
+  const records = Object.values(nodeData).map(cleanKeys).filter(looksLikeSensorReading);
   if (!records.length) return null;
 
   return records.reduce((latest, current) => {
@@ -461,7 +515,40 @@ function toLocalDateInput(timestamp) {
 // NODES SECTION
 // ==========================================
 function NodesSection() {
-  const [nodes, setNodes] = useState([]);
+  const [rawNodes, setRawNodes] = useState([]);
+
+  // Re-evaluate online/offline every 15 s so a node that stops sending
+  // flips to Offline even when Firebase itself has no new data.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const nodes = useMemo(
+    () =>
+      rawNodes.map((node) => {
+        const status = resolveNodeStatus(node, now);
+        return { ...node, status };
+      }),
+    [rawNodes, now]
+  );
+
+  // Debug helper: open the browser console to see why a node is Offline.
+  useEffect(() => {
+    if (!rawNodes.length) return;
+    console.table(
+      nodes.map((n) => ({
+        node: n.id,
+        firebaseKey: n.firebaseKey,
+        reportedStatus: n.reportedStatus,
+        lastUpdate: n.timestamp ? new Date(n.timestamp).toLocaleString() : "none",
+        ageMinutes: n.timestamp ? ((now - n.timestamp) / 60000).toFixed(1) : "n/a",
+        resolved: n.status,
+      }))
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawNodes]);
 
   const [loading, setLoading] = useState(true);
 
@@ -519,7 +606,9 @@ function NodesSection() {
           for (const nodeId of CONFIGURED_NODE_IDS) {
             const matched = recordsByNodeId.get(nodeId);
             const reading = matched?.reading || {};
-            const rawStatus = String(reading.status || "").toLowerCase();
+            const reportedStatus = parseReportedStatus(
+              reading.status ?? reading.connection ?? reading.state ?? reading.online
+            );
 
             latestNodesArray.push({
               ...reading,
@@ -531,7 +620,8 @@ function NodesSection() {
                 reading.pressure ?? reading.pressureHpa ?? null,
               battery:
                 reading.battery ?? reading.batteryVoltage ?? reading.voltage ?? null,
-              status: rawStatus === "online" ? "online" : "offline",
+              reportedStatus,
+              status: "offline", // real value is computed by resolveNodeStatus()
               timestamp: toMilliseconds(reading.timestamp),
               location: reading.location ?? NODE_NAMES[nodeId],
             });
@@ -540,7 +630,7 @@ function NodesSection() {
           // ----------------------------------
           // UPDATE REACT STATE
           // ----------------------------------
-          setNodes(
+          setRawNodes(
             latestNodesArray
           );
 
@@ -556,7 +646,7 @@ function NodesSection() {
 
         } else {
           // No records yet: still render all configured nodes as Offline.
-          setNodes(
+          setRawNodes(
             CONFIGURED_NODE_IDS.map((nodeId) => ({
               id: nodeId,
               firebaseKey: nodeId,
@@ -587,7 +677,7 @@ function NodesSection() {
         setError(
           "Failed to load node data."
         );
-        setNodes(
+        setRawNodes(
           CONFIGURED_NODE_IDS.map((nodeId) => ({
             id: nodeId, firebaseKey: nodeId, location: NODE_NAMES[nodeId],
             status: "offline", waterLevel: null, pressure: null, battery: null, timestamp: null,

@@ -50,12 +50,27 @@ function looksLikeSensorReading(value) {
   );
 }
 
+// Firebase keys written by the firmware contain typos such as
+// "status:" or "status: " (extra colon / space). Clean them so they are
+// read as "status".
+function cleanKeys(record) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) return record;
+  const cleaned = {};
+  for (const [key, value] of Object.entries(record)) {
+    const cleanKey = key.trim().replace(/[:\s]+$/, "");
+    // Never let a typo'd key overwrite a correctly spelled one.
+    if (!(cleanKey in cleaned) || cleanKey === key) cleaned[cleanKey] = value;
+  }
+  return cleaned;
+}
+
 function getLatestReading(nodeData) {
   if (!nodeData || typeof nodeData !== "object") return null;
 
-  if (looksLikeSensorReading(nodeData)) return nodeData;
+  const direct = cleanKeys(nodeData);
+  if (looksLikeSensorReading(direct)) return direct;
 
-  const records = Object.values(nodeData).filter(looksLikeSensorReading);
+  const records = Object.values(nodeData).map(cleanKeys).filter(looksLikeSensorReading);
   if (!records.length) return null;
 
   return records.reduce((latest, current) => {
@@ -334,8 +349,11 @@ function AdminDashboard() {
           for (const nodeId of CONFIGURED_NODE_IDS) {
             const matched = recordsByNodeId.get(nodeId);
             const reading = matched?.reading || {};
-            const rawStatus = String(reading.status || "").toLowerCase();
-            const status = rawStatus === "online" ? "online" : "offline";
+            const rawStatus = String(reading.status ?? "").trim().toLowerCase();
+            const status =
+              ["online", "connected", "active", "true", "1"].includes(rawStatus)
+                ? "online"
+                : "offline";
             const isActive = status === "online";
 
             let waterLevel =
