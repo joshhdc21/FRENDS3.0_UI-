@@ -410,14 +410,25 @@ export default function MapSection({ onNavigate, onLogout }) {
                 }
             };
 
-            // Right-click (kept) also drops a pin
+            // 🌟 Right-click to add a hardware flood node in Firebase
             map.on('contextmenu', (e) => { 
-                if (e.originalEvent.shiftKey || isNavigating) return; 
-                dropPin(e.latlng);
+                const nodeName = window.prompt("Enter the exact Node ID in Firebase (e.g., Node1):");
+                if (nodeName && nodeName.trim() !== "") {
+                    const exactNodeRef = ref(database, `nodes/${nodeName.trim()}`);
+                    set(exactNodeRef, {
+                        lat: e.latlng.lat,
+                        lng: e.latlng.lng,
+                        waterLevel: 55, // Instantly triggers the HIGH threshold
+                        timestamp: Date.now()
+                    }).then(() => {
+                        console.log(`Mock flood injected at ${nodeName.trim()}:`, e.latlng);
+                    }).catch(err => {
+                        console.error("Failed to inject node:", err);
+                    });
+                }
             });
 
             map.on('click', (e) => {
-                
                 // Normal left-click = pick this spot as a location
                 if (driveModeRef.current) return;
                 dropPin(e.latlng);
@@ -676,32 +687,33 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
 
         Object.keys(firebaseNodes).forEach(nodeId => {
-    const parsed = readFloodNode(firebaseNodes[nodeId]);
-    if (!parsed) return;
-    const { lat, lng, depth: floodDepth } = parsed;
+            const parsed = readFloodNode(firebaseNodes[nodeId]);
+            if (!parsed) return;
+            const { lat, lng, depth: floodDepth } = parsed;
 
-    let color = "#81c995";
-    if (floodDepth >= 50) color = "#f28b82";
-    else if (floodDepth >= 30) color = "#fdd663";
-    else if (floodDepth >= 15) color = "#fce8b2";
+            let color = "#81c995";
+            if (floodDepth >= 50) color = "#f28b82";
+            else if (floodDepth >= 30) color = "#fdd663";
+            else if (floodDepth >= 15) color = "#fce8b2";
 
-    const floodDepthFt = (floodDepth / 30.48).toFixed(2);
+            const floodDepthFt = (floodDepth / 30.48).toFixed(2);
 
-    let marker;
-    if (floodDepth >= 50) {
-        const pulseIcon = L.divIcon({
-            html: `<div class="flood-node-critical" style="width: 16px; height: 16px; background-color: #f28b82; border: 2px solid white;"></div>`,
-            className: '', iconSize: [16, 16], iconAnchor: [8, 8]
+            let marker;
+            if (floodDepth >= 50) {
+                const pulseIcon = L.divIcon({
+                    html: `<div class="flood-node-critical" style="width: 16px; height: 16px; background-color: #f28b82; border: 2px solid white;"></div>`,
+                    className: '', iconSize: [16, 16], iconAnchor: [8, 8]
+                });
+                marker = L.marker([lat, lng], { icon: pulseIcon, pane: 'routePane' });
+            } else {
+                marker = L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9, pane: 'routePane', bubblingMouseEvents: false });
+            }
+
+            const popupColor = floodDepth >= 50 ? "#f28b82" : color;
+            marker.addTo(mapGroup)
+                .bindPopup(`<div style="font-family: Inter, sans-serif;"><b>Node: ${nodeId}</b><br />Flood: <b style="color: ${popupColor};">${floodDepthFt}ft</b></div>`);
         });
-        marker = L.marker([lat, lng], { icon: pulseIcon, pane: 'routePane' });
-    } else {
-        marker = L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9, pane: 'routePane', bubblingMouseEvents: false });
-    }
 
-    const popupColor = floodDepth >= 50 ? "#f28b82" : color;
-    marker.addTo(mapGroup)
-        .bindPopup(`<div style="font-family: Inter, sans-serif;"><b>Node: ${nodeId}</b><br />Flood: <b style="color: ${popupColor};">${floodDepthFt}ft</b></div>`);
-});
         Object.keys(userReports).forEach(key => {
             const report = userReports[key];
             const ageMs = Date.now() - report.timestamp;
