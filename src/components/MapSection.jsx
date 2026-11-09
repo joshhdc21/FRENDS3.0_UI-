@@ -42,7 +42,8 @@ const getBearing = (lat1, lon1, lat2, lon2) => {
     return (toDeg(Math.atan2(y, x)) + 360) % 360;
 };
 
-// Distance (m) from a point to the segment a-b
+// Distance (m) from a point to the segment a-b - the old check only looked at route VERTICES,
+// so a long straight avenue with sparse vertices never "touched" a flood sitting beside it.
 const distToSegmentMeters = (pLat, pLng, aLat, aLng, bLat, bLng) => {
     const k = Math.cos(((aLat + bLat) / 2) * Math.PI / 180);
     const dx = (bLng - aLng) * k, dy = bLat - aLat;
@@ -52,8 +53,9 @@ const distToSegmentMeters = (pLat, pLng, aLat, aLng, bLat, bLng) => {
     return getDistanceInMeters(pLat, pLng, aLat + t * dy, aLng + t * (bLng - aLng));
 };
 
+// Same limits and parsing as the backend (routing_engine.py) so both sides agree what is "flooded"
 const FLOOD_LIMITS = { LOW: 33.02, MID: 48.26, HIGH: 66.04 };
-const FLOOD_ROUTE_RADIUS_M = 15;   
+const FLOOD_ROUTE_RADIUS_M = 15;   // MMDA blast radius (matches the backend)
 const toNum = (v) => (v === null || v === undefined || v === '' || !Number.isFinite(Number(v))) ? null : Number(v);
 const firstNum = (sources, keys) => {
     for (const src of sources) {
@@ -74,6 +76,7 @@ const readFloodNode = (container) => {
     return { lat, lng, depth: depth === null ? 0 : depth };
 };
 
+// 🌟 Lane / carriageway of a trip, from the straight-line bearing origin -> destination
 const LANE_BOUNDS = {
     NB: { code: 'NB', label: 'Northbound', arrow: '↑', opposite: 'SB', color: '#8ab4f8' },
     SB: { code: 'SB', label: 'Southbound', arrow: '↓', opposite: 'NB', color: '#f59e0b' },
@@ -91,6 +94,7 @@ const getLaneBound = (lat1, lon1, lat2, lon2) => {
 export default function MapSection({ onNavigate, onLogout }) {
     const TOMTOM_API_KEY = import.meta.env.VITE_MAPAPI_TOMTOM_API_KEY;
 
+    // FRENDS LEFT SLIDE-OUT MENU
     const [menuOpen, setMenuOpen] = useState(false);
     const [username, setUsername] = useState("User");
 
@@ -390,9 +394,10 @@ export default function MapSection({ onNavigate, onLogout }) {
             const layerGroup = L.layerGroup().addTo(map);
             layerGroupRef.current = layerGroup;
 
+            // 🌟 Drops a pin: the first pin becomes the Origin, every pin after that becomes the Destination
             const dropPin = (latlngObj) => {
                 const now = Date.now();
-                if (now - lastPinDropRef.current < 500) return; 
+                if (now - lastPinDropRef.current < 500) return; // ignore double-fire (e.g. touch long-press)
                 lastPinDropRef.current = now;
 
                 const latlng = [latlngObj.lat, latlngObj.lng];
@@ -405,12 +410,15 @@ export default function MapSection({ onNavigate, onLogout }) {
                 }
             };
 
+            // Right-click (kept) also drops a pin
             map.on('contextmenu', (e) => { 
                 if (e.originalEvent.shiftKey || isNavigating) return; 
                 dropPin(e.latlng);
             });
 
             map.on('click', (e) => {
+                
+                // Normal left-click = pick this spot as a location
                 if (driveModeRef.current) return;
                 dropPin(e.latlng);
             });
@@ -488,14 +496,15 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
     }, [mapCenter, driveMode, origin, destination]);
 
+    // 🌟 DYNAMIC LOOK-AHEAD (HAZARDS)
     useEffect(() => {
         if (!driveMode || !liveLocation || !userReports) return;
 
         const speedNum = Number(speed) || 0;
-        let lookAheadRadius = 500; 
+        let lookAheadRadius = 500; // Base: 500m for traffic/slow speeds (< 30km/h)
         
-        if (speedNum >= 60) lookAheadRadius = 2000; 
-        else if (speedNum >= 30) lookAheadRadius = 1000; 
+        if (speedNum >= 60) lookAheadRadius = 2000; // Highway speeds: scan 2km ahead
+        else if (speedNum >= 30) lookAheadRadius = 1000; // City speeds: scan 1km ahead
 
         Object.keys(userReports).forEach(key => {
             const report = userReports[key];
@@ -507,6 +516,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             if (dist <= lookAheadRadius) {
                 warnedHazardsRef.current.add(key);
                 let hazardName = report.type.toLowerCase();
+                // Dynamically format the spoken distance for Waze-like accuracy
                 let distStr = dist >= 1000 ? `${(dist / 1000).toFixed(1)} kilometers` : `${Math.round(dist / 50) * 50} meters`;
                 speakInstruction(`Caution, ${hazardName} reported ${distStr} ahead.`);
             }
@@ -666,33 +676,32 @@ export default function MapSection({ onNavigate, onLogout }) {
         }
 
         Object.keys(firebaseNodes).forEach(nodeId => {
-            const parsed = readFloodNode(firebaseNodes[nodeId]);
-            if (!parsed) return;
-            const { lat, lng, depth: floodDepth } = parsed;
+    const parsed = readFloodNode(firebaseNodes[nodeId]);
+    if (!parsed) return;
+    const { lat, lng, depth: floodDepth } = parsed;
 
-            let color = "#81c995";
-            if (floodDepth >= 50) color = "#f28b82";
-            else if (floodDepth >= 30) color = "#fdd663";
-            else if (floodDepth >= 15) color = "#fce8b2";
+    let color = "#81c995";
+    if (floodDepth >= 50) color = "#f28b82";
+    else if (floodDepth >= 30) color = "#fdd663";
+    else if (floodDepth >= 15) color = "#fce8b2";
 
-            const floodDepthFt = (floodDepth / 30.48).toFixed(2);
-            
-            let marker;
-            if (floodDepth >= 50) {
-                const pulseIcon = L.divIcon({
-                    html: `<div class="flood-node-critical" style="width: 16px; height: 16px; background-color: #f28b82; border: 2px solid white;"></div>`,
-                    className: '', iconSize: [16, 16], iconAnchor: [8, 8]
-                });
-                marker = L.marker([lat, lng], { icon: pulseIcon, pane: 'routePane' });
-            } else {
-                marker = L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9, pane: 'routePane', bubblingMouseEvents: false });
-            }
+    const floodDepthFt = (floodDepth / 30.48).toFixed(2);
 
-            const popupColor = floodDepth >= 50 ? "#f28b82" : color;
-            marker.addTo(mapGroup)
-                .bindPopup(`<div style="font-family: Inter, sans-serif;"><b>Node: ${nodeId}</b><br />Flood: <b style="color: ${popupColor};">${floodDepthFt}ft</b></div>`);
+    let marker;
+    if (floodDepth >= 50) {
+        const pulseIcon = L.divIcon({
+            html: `<div class="flood-node-critical" style="width: 16px; height: 16px; background-color: #f28b82; border: 2px solid white;"></div>`,
+            className: '', iconSize: [16, 16], iconAnchor: [8, 8]
         });
+        marker = L.marker([lat, lng], { icon: pulseIcon, pane: 'routePane' });
+    } else {
+        marker = L.circleMarker([lat, lng], { radius: 8, fillColor: color, color: "#ffffff", weight: 2, fillOpacity: 0.9, pane: 'routePane', bubblingMouseEvents: false });
+    }
 
+    const popupColor = floodDepth >= 50 ? "#f28b82" : color;
+    marker.addTo(mapGroup)
+        .bindPopup(`<div style="font-family: Inter, sans-serif;"><b>Node: ${nodeId}</b><br />Flood: <b style="color: ${popupColor};">${floodDepthFt}ft</b></div>`);
+});
         Object.keys(userReports).forEach(key => {
             const report = userReports[key];
             const ageMs = Date.now() - report.timestamp;
@@ -706,6 +715,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             else if (report.type === "Construction") { emoji = "🚧"; delayText = "+5 min"; }
             else if (report.type === "Police") { emoji = "🚓"; delayText = "+1 min"; }
 
+            // 🌟 CUSTOM ETA PILL INJECTION
             const reportIcon = L.divIcon({ 
                 html: `
                     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; transform: translateY(-15px);">
@@ -835,6 +845,10 @@ export default function MapSection({ onNavigate, onLogout }) {
         return () => { unsubscribeNodes(); unsubscribeReports(); };
     }, []);
 
+    // 🌟 REACTIVE FLOOD TRIGGER WITH SPATIAL COLLISION
+    // Fires whenever ANY currently-flooded node lies on the drawn route (not only on a "became flooded"
+    // transition), measured against route SEGMENTS. A loop guard stops endless re-requests when no
+    // detour exists.
     useEffect(() => {
         if (!isNavigating || isCalculating || routeSegments.length === 0) return;
 
@@ -854,6 +868,9 @@ export default function MapSection({ onNavigate, onLogout }) {
         });
         if (flatPath.length < 2) return;
 
+        // Distance reference for the look-ahead radius: the real GPS position only while DRIVING.
+        // With dropped pins the phone can be anywhere (e.g. another city), which made every flood look
+        // "too far away" and silently disabled auto-reroute. Otherwise measure from the start of the route.
         const refPoint = (driveMode && liveLocation) ? liveLocation : flatPath[0];
 
         const hits = [];
@@ -877,7 +894,7 @@ export default function MapSection({ onNavigate, onLogout }) {
         const key = hits.sort().join('|');
         const now = Date.now();
         const last = lastFloodRerouteRef.current;
-        if (last.key === key && now - last.time < 60000) return;   
+        if (last.key === key && now - last.time < 60000) return;   // same flood set: don't hammer the server
         if (now - lastRerouteTime.current < 6000) return;
 
         lastFloodRerouteRef.current = { key, time: now };
@@ -981,6 +998,7 @@ export default function MapSection({ onNavigate, onLogout }) {
         ? getLaneBound(origin.latlng[0], origin.latlng[1], destination.latlng[0], destination.latlng[1])
         : null;
 
+    // 🌟 UPGRADED: Clicking the NB/SB arrow button swaps Origin <-> Destination AND immediately recalculates the route for the new bound!
     const swapLocations = () => {
         const nextOrigin = destination;
         const nextDest = origin;
@@ -995,6 +1013,7 @@ export default function MapSection({ onNavigate, onLogout }) {
         setDestination(nextDest);
         setDestQuery(nextDestQuery);
 
+        // Immediately generate the new NB/SB route when clicked
         if (nextOrigin && nextDest) {
             fetchRoute(false, nextOrigin.latlng, false, nextDest.latlng);
         }
@@ -1021,6 +1040,7 @@ export default function MapSection({ onNavigate, onLogout }) {
             return;
         }
 
+        // 🌟 Compute the active lane bound (NB/SB/EB/WB) for this trip
         const lane = getLaneBound(startLat, startLon, endLat, endLon);
 
         if (!isSilent) {
@@ -1043,6 +1063,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                     dest_direction: lane.code,
                     user_heading: driveMode ? heading : null,
                     user_speed: (driveMode && speed !== "--") ? (Number(speed) / 3.6) : null,
+                    // Live Firebase snapshots from this client: zero sync lag (app.py merges them with its own read)
                     flood_data: firebaseNodes || {},
                     reports_data: userReports || {}
                 })
@@ -1458,6 +1479,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 </aside>
             )}
 
+            {/* CURRENT LOCATION REMINDER TOAST BANNER */}
             {showLocationBanner && currentLocationName && (
                 <div style={{
                     position: 'absolute',
@@ -1483,6 +1505,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 </div>
             )}
 
+            {/* WAZE-STYLE UNUSUAL TRAFFIC PROMPT BANNER */}
             {showTrafficPrompt && (
                 <div style={{
                     position: 'absolute',
@@ -1519,6 +1542,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 </div>
             )}
 
+            {/* 🌟 GOOGLE MAPS STYLE SLIM FLOATING SEARCH BAR & CONDITIONAL OPTIONS */}
             <div style={{
                 position: 'absolute', 
                 top: '12px', 
@@ -1535,6 +1559,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 transition: 'transform 0.35s cubic-bezier(0.22, 1, 0.36, 1)',
                 overflow: 'hidden'
             }}>
+            {/* Slim Search Row */}
                 <div style={{ padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '48px' }}>
                     <button
                         type="button"
@@ -1603,6 +1628,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                                 </div>
                             </div>
                             
+                            {/* 🌟 NB / SB LANE & SWAP BUTTON PLACED HERE */}
                             <button 
                                 onClick={swapLocations} 
                                 title={`${tripLane.label} lane. Tap to switch to ${LANE_BOUNDS[tripLane.opposite].label} and recalculate route`}
@@ -1658,6 +1684,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                     </div>
                 )}
 
+                {/* VEHICLE, VOICE, AND DIRECTIONS (Reveals ONLY when BOTH Origin & Destination are selected) */}
                 {origin && destination && !routeInfo && !activeInput && (
                     <div style={{ padding: '10px 14px 14px', display: 'flex', flexDirection: 'column', gap: '10px', borderTop: `1px solid ${ui.border}` }}>
                         <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', scrollbarWidth: 'none' }}>
@@ -1687,6 +1714,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 )}
             </div>
 
+            {/* RESPONSIVE BOTTOM SHEET - ROUTE INFO */}
             {routeInfo && !driveMode && !activeInput && (
                 <div style={{
                     position: 'absolute', bottom: isMobile ? 0 : '24px', left: isMobile ? 0 : '24px', right: isMobile ? 0 : 'auto', 
@@ -1711,6 +1739,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 </div>
             )}
 
+            {/* INCIDENT REPORT MODAL */}
             {showReportModal && (
                 <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', boxSizing: 'border-box' }}>
                     <div style={{ backgroundColor: ui.bg, padding: '24px', borderRadius: '20px', width: '100%', maxWidth: '340px', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 8px 32px rgba(0,0,0,0.3)' }}>
@@ -1730,6 +1759,7 @@ export default function MapSection({ onNavigate, onLogout }) {
                 </div>
             )}
 
+            {/* RESPONSIVE DRIVE MODE UI OVERLAYS */}
             {driveMode && (
                 <>
                     <div style={{ position: 'absolute', top: '16px', left: isMobile ? '16px' : '50%', right: isMobile ? '16px' : 'auto', transform: isMobile ? 'none' : 'translateX(-50%)', width: isMobile ? 'auto' : '400px', boxSizing: 'border-box', zIndex: 3000, pointerEvents: 'none' }}>
