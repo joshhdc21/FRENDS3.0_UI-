@@ -34,38 +34,21 @@ const CONFIGURED_NODE_IDS = Object.keys(NODE_NAMES);
 function normalizeNodeId(value) {
   const raw = String(value ?? "").trim().toLowerCase();
   const match = raw.match(/node[-_ ]?0*(\d+)/);
-  return match
-    ? `node-${String(Number(match[1])).padStart(2, "0")}`
-    : raw;
+  return match ? `node-${String(Number(match[1])).padStart(2, "0")}` : raw;
 }
 
 function toMilliseconds(value) {
+  if (value === null || value === undefined || value === "") return null;
   const numericValue = Number(value);
-  if (!Number.isFinite(numericValue) || numericValue <= 0) return null;
-  return numericValue < 1_000_000_000_000
-    ? numericValue * 1000
-    : numericValue;
+  if (Number.isFinite(numericValue) && numericValue > 0) {
+    return numericValue < 1_000_000_000_000 ? numericValue * 1000 : numericValue;
+  }
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
-// ==========================================
-// ONLINE / OFFLINE DETECTION
-// ==========================================
-// A node is ONLINE only when it has sent data recently.
-// We no longer trust the stored "status" string alone, because:
-//  - a dead device never rewrites "online" (stale "online" stays forever)
-//  - firmware may send true / 1 / "connected" / "active" instead of "online"
-//  - firmware may send no status field at all
-//
-// Set this to a little more than your ESP32's upload interval.
-// (e.g. node uploads every 1 min -> 3-5 min is a safe value)
 const ONLINE_TIMEOUT_MS = 5 * 60 * 1000;
-
-// false = trust the "status" value stored in Firebase (matches Firebase console).
-// true  = ALSO require a recent timestamp, so a dead device whose last record
-//         still says "online" (like node-03 / node-04, last data in July)
-//         is shown as Offline.
-const USE_FRESHNESS_CHECK = false;
-
+const USE_FRESHNESS_CHECK = true;
 const ONLINE_WORDS = ["online", "connected", "active", "up", "ok", "true", "1"];
 const OFFLINE_WORDS = ["offline", "disconnected", "inactive", "down", "false", "0"];
 
@@ -75,59 +58,118 @@ function parseReportedStatus(value) {
   const text = String(value ?? "").trim().toLowerCase();
   if (ONLINE_WORDS.includes(text)) return "online";
   if (OFFLINE_WORDS.includes(text)) return "offline";
-  return "unknown"; // field missing or unrecognised
+  return "unknown";
 }
 
 function resolveNodeStatus(node, now) {
-  if (USE_FRESHNESS_CHECK) {
-    const age = node.timestamp ? now - node.timestamp : Infinity;
-    if (age > ONLINE_TIMEOUT_MS) return "offline";
+  if (node.reportedStatus === "offline") return "offline";
+  if (node.reportedStatus === "online") {
+    if (!USE_FRESHNESS_CHECK || !node.timestamp) return "online";
+    return now - node.timestamp <= ONLINE_TIMEOUT_MS ? "online" : "offline";
   }
-  return node.reportedStatus === "online" ? "online" : "offline";
+  // If firmware omits status, use the timestamp of its latest real reading.
+  return node.timestamp && now - node.timestamp <= ONLINE_TIMEOUT_MS ? "online" : "offline";
 }
 
-function looksLikeSensorReading(value) {
-  return Boolean(
-    value &&
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    [
-      "waterLevel", "water_level", "floodLevel",
-      "pressure", "pressureHpa", "battery",
-      "batteryVoltage", "voltage", "status", "timestamp",
-    ].some((field) => value[field] !== undefined)
-  );
+const FIELD_ALIASES = {
+  nodeId: ["id", "nodeId", "node_id", "deviceId", "device_id", "sensorId", "sensor_id"],
+  waterLevel: ["waterLevel", "water_level", "water_level_cm", "floodLevel", "flood_level", "floodDepth", "flood_depth", "flood_depth_cm", "depth", "waterDepth"],
+  pressure: ["pressure", "pressureHpa", "pressure_hpa", "pressureMbar", "pressure_mbar", "pressureValue"],
+  battery: ["battery", "batteryVoltage", "battery_voltage", "battery_v", "voltage", "voltage_v", "batteryLevel", "battery_level"],
+  timestamp: ["timestamp", "timeStamp", "createdAt", "created_at", "updatedAt", "updated_at", "time", "ts"],
+  status: ["status", "connection", "state", "online", "isOnline", "is_online"],
+};
+
+function firstDefined(record, aliases) {
+  for (const key of aliases) {
+    if (record?.[key] !== undefined && record?.[key] !== null && record?.[key] !== "") return record[key];
+  }
+  return null;
 }
 
-// Firebase keys written by firmware sometimes contain typos such as
-// "status:" or "status: " (extra colon / space). Clean them so they are
-// read as "status".
 function cleanKeys(record) {
   if (!record || typeof record !== "object" || Array.isArray(record)) return record;
   const cleaned = {};
   for (const [key, value] of Object.entries(record)) {
     const cleanKey = key.trim().replace(/[:\s]+$/, "");
-    // Never let a typo'd key overwrite a correctly spelled one.
     if (!(cleanKey in cleaned) || cleanKey === key) cleaned[cleanKey] = value;
   }
   return cleaned;
 }
 
-function getLatestReading(nodeData) {
-  if (!nodeData || typeof nodeData !== "object") return null;
+function looksLikeSensorReading(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  return [...FIELD_ALIASES.waterLevel, ...FIELD_ALIASES.pressure, ...FIELD_ALIASES.battery,
+    ...FIELD_ALIASES.timestamp, ...FIELD_ALIASES.status].some((field) => value[field] !== undefined);
+}
 
-  // A node may contain one direct sensor object or multiple historical records.
-  const direct = cleanKeys(nodeData);
-  if (looksLikeSensorReading(direct)) return direct;
+function normalizeReading(record, nodeId, firebaseKey) {
+  const reading = cleanKeys(record);
+  if (!looksLikeSensorReading(reading)) return null;
+  const timestamp = toMilliseconds(firstDefined(reading, FIELD_ALIASES.timestamp));
+  const parentNodeId = normalizeNodeId(nodeId);
+  const suppliedNodeId = normalizeNodeId(firstDefined(reading, FIELD_ALIASES.nodeId));
+  // A grouped path such as /nodes/node-01 is authoritative. For flat records,
+  // use the node identifier carried inside the record itself.
+  const resolvedNodeId = /^node-\d+$/i.test(parentNodeId)
+    ? parentNodeId
+    : suppliedNodeId || parentNodeId;
+  return {
+    ...reading,
+    id: resolvedNodeId,
+    firebaseKey,
+    waterLevel: firstDefined(reading, FIELD_ALIASES.waterLevel),
+    pressure: firstDefined(reading, FIELD_ALIASES.pressure),
+    battery: firstDefined(reading, FIELD_ALIASES.battery),
+    timestamp,
+    reportedStatus: parseReportedStatus(firstDefined(reading, FIELD_ALIASES.status)),
+  };
+}
 
-  const records = Object.values(nodeData).map(cleanKeys).filter(looksLikeSensorReading);
-  if (!records.length) return null;
+// Supports both nodes/node-01/record-id and nodes/record-id { id: node-01 }.
+function extractFirebaseReadings(rawData) {
+  const readings = [];
+  const seen = new Set();
 
-  return records.reduce((latest, current) => {
-    const currentTime = toMilliseconds(current.timestamp) || 0;
-    const latestTime = toMilliseconds(latest.timestamp) || 0;
+  if (!rawData || typeof rawData !== "object" || Array.isArray(rawData)) return readings;
+
+  const visit = (value, path, inheritedNodeId = null) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return;
+
+    const reading = normalizeReading(value, inheritedNodeId, path);
+    if (reading && reading.id && reading.timestamp !== null) {
+      if (!seen.has(path)) {
+        seen.add(path);
+        readings.push(reading);
+      }
+      return;
+    }
+
+    for (const [childKey, childValue] of Object.entries(value)) {
+      const possibleChildNodeId = normalizeNodeId(childKey);
+      const nextNodeId = /^node-\d+$/i.test(possibleChildNodeId)
+        ? possibleChildNodeId
+        : inheritedNodeId;
+      visit(childValue, path ? `${path}/${childKey}` : childKey, nextNodeId);
+    }
+  };
+
+  for (const [rootKey, rootValue] of Object.entries(rawData)) {
+    const possibleNodeId = normalizeNodeId(rootKey);
+    const inheritedNodeId = /^node-\d+$/i.test(possibleNodeId) ? possibleNodeId : null;
+    visit(rootValue, rootKey, inheritedNodeId);
+  }
+
+  return readings;
+}
+
+function getLatestReading(readings) {
+  return readings.reduce((latest, current) => {
+    if (!latest) return current;
+    const currentTime = current.timestamp || 0;
+    const latestTime = latest.timestamp || 0;
     return currentTime >= latestTime ? current : latest;
-  });
+  }, null);
 }
 
 // ==========================================
@@ -147,19 +189,14 @@ function getLatestReading(nodeData) {
 // 50 cm = 1.64 ft
 // ==========================================
 function getFloodInformation(floodLevel, status, hasReading = true) {
-  if (status !== "online") {
-    return {
-      label: "Offline",
-      className: "offline",
-      description: "Sensor data unavailable",
-    };
-  }
-
+  // The last measured flood level remains useful even if connectivity is stale.
   if (!hasReading || !Number.isFinite(Number(floodLevel))) {
     return {
-      label: "No reading",
+      label: status === "online" ? "No reading" : "Offline",
       className: "offline",
-      description: "Waiting for a valid flood-depth reading from Firebase",
+      description: status === "online"
+        ? "Waiting for a valid flood-depth reading from Firebase"
+        : "No sensor reading has been received yet",
     };
   }
 
@@ -273,7 +310,7 @@ function NodeCard({ node }) {
   // 60 cm is considered 100%.
   // ----------------------------------------
   const floodPercentage =
-    status === "online" && hasFloodReading
+    hasFloodReading
       ? Math.min((floodLevel / 60) * 100, 100)
       : 0;
 
@@ -281,7 +318,7 @@ function NodeCard({ node }) {
   // BATTERY PERCENTAGE
   // ----------------------------------------
   const batteryPercent =
-    status === "online" && hasBatteryReading
+    hasBatteryReading
       ? batteryPercentage(battery)
       : null;
 
@@ -359,9 +396,7 @@ function NodeCard({ node }) {
           </span>
 
           <strong>
-            {status === "online" && hasFloodReading
-              ? floodLevelFeet.toFixed(2)
-              : "--"}
+            {hasFloodReading ? floodLevelFeet.toFixed(2) : "--"}
 
             <small>
               {" "}ft
@@ -415,9 +450,7 @@ function NodeCard({ node }) {
           </span>
 
           <strong>
-            {status === "online" && hasPressureReading
-              ? `${pressure} hPa`
-              : "--"}
+            {hasPressureReading ? `${pressure} hPa` : "--"}
           </strong>
         </div>
 
@@ -430,9 +463,7 @@ function NodeCard({ node }) {
           </span>
 
           <strong>
-            {status === "online" && hasBatteryReading
-              ? `${batteryPercent.toFixed(0)}%`
-              : "--"}
+            {hasBatteryReading ? `${batteryPercent.toFixed(0)}%` : "--"}
           </strong>
         </div>
 
@@ -516,6 +547,7 @@ function toLocalDateInput(timestamp) {
 // ==========================================
 function NodesSection() {
   const [rawNodes, setRawNodes] = useState([]);
+  const [allHistoryReadings, setAllHistoryReadings] = useState([]);
 
   // Re-evaluate online/offline every 15 s so a node that stops sending
   // flips to Offline even when Firebase itself has no new data.
@@ -556,261 +588,108 @@ function NodesSection() {
 
   // Historical flood-depth graph state
   const [selectedNodeKey, setSelectedNodeKey] = useState("");
-  const [historyReadings, setHistoryReadings] = useState([]);
   const [historyInterval, setHistoryInterval] = useState("30m");
   const [selectedHistoryDate, setSelectedHistoryDate] = useState("");
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState(null);
+  const historyLoading = false;
+  const historyError = null;
 
   // ========================================
   // FIREBASE REAL-TIME LISTENER
+  // Your Firebase screenshot shows node-01, node-02, etc. directly under
+  // the database root, so subscribe to the root rather than /nodes.
+  // onValue() fires initially and again whenever any subscribed data changes.
+  // The extractor only processes sensor-node records and ignores other root data.
   // ========================================
   useEffect(() => {
-    const nodesRef = ref(
-      database,
-      "nodes"
-    );
-
+    const databaseRootRef = ref(database);
     const unsubscribe = onValue(
-      nodesRef,
-
+      databaseRootRef,
       (snapshot) => {
-        if (snapshot.exists()) {
-          const rawData = snapshot.val();
+        const rawData = snapshot.exists() ? snapshot.val() : {};
+        const allReadings = extractFirebaseReadings(rawData);
+        console.log("[FRENDS] Firebase root snapshot:", rawData);
+        console.log("[FRENDS] Parsed sensor readings:", allReadings);
+        setAllHistoryReadings(allReadings);
 
-          const latestNodesArray = [];
-
-          // Read each Firebase node. This supports both:
-          // 1. nodes/node-01/{recordId}: timestamped history records
-          // 2. nodes/{recordId}: records containing an id such as "node-01"
-          const recordsByNodeId = new Map();
-
-          for (const [firebaseKey, nodeData] of Object.entries(rawData || {})) {
-            const latestEntry = getLatestReading(nodeData);
-            if (!latestEntry) continue;
-
-            const nodeId = normalizeNodeId(latestEntry.id || firebaseKey);
-            if (!CONFIGURED_NODE_IDS.includes(nodeId)) continue;
-
-            const existing = recordsByNodeId.get(nodeId);
-            const newTimestamp = toMilliseconds(latestEntry.timestamp) || 0;
-            const oldTimestamp = toMilliseconds(existing?.reading?.timestamp) || 0;
-
-            if (!existing || newTimestamp >= oldTimestamp) {
-              recordsByNodeId.set(nodeId, { firebaseKey, reading: latestEntry });
-            }
-          }
-
-          // Build only the six configured place cards. A node without
-          // an actual Firebase record remains visible and is marked Offline.
-          for (const nodeId of CONFIGURED_NODE_IDS) {
-            const matched = recordsByNodeId.get(nodeId);
-            const reading = matched?.reading || {};
-            const reportedStatus = parseReportedStatus(
-              reading.status ?? reading.connection ?? reading.state ?? reading.online
-            );
-
-            latestNodesArray.push({
-              ...reading,
-              id: nodeId,
-              firebaseKey: matched?.firebaseKey || nodeId,
-              waterLevel:
-                reading.waterLevel ?? reading.water_level ?? reading.floodLevel ?? null,
-              pressure:
-                reading.pressure ?? reading.pressureHpa ?? null,
-              battery:
-                reading.battery ?? reading.batteryVoltage ?? reading.voltage ?? null,
-              reportedStatus,
-              status: "offline", // real value is computed by resolveNodeStatus()
-              timestamp: toMilliseconds(reading.timestamp),
-              location: reading.location ?? NODE_NAMES[nodeId],
-            });
-          }
-
-          // ----------------------------------
-          // UPDATE REACT STATE
-          // ----------------------------------
-          setRawNodes(
-            latestNodesArray
-          );
-
-          // Select the first available node for the history graph.
-          setSelectedNodeKey((currentKey) => {
-            const currentStillExists = latestNodesArray.some(
-              (node) => node.firebaseKey === currentKey
-            );
-            return currentStillExists
-              ? currentKey
-              : latestNodesArray[0]?.firebaseKey || "";
-          });
-
-        } else {
-          // No records yet: still render all configured nodes as Offline.
-          setRawNodes(
-            CONFIGURED_NODE_IDS.map((nodeId) => ({
-              id: nodeId,
-              firebaseKey: nodeId,
-              location: NODE_NAMES[nodeId],
-              status: "offline",
-              waterLevel: null,
-              pressure: null,
-              battery: null,
-              timestamp: null,
-            }))
-          );
-          setSelectedNodeKey(CONFIGURED_NODE_IDS[0] || "");
+        const readingsByNode = new Map();
+        for (const reading of allReadings) {
+          if (!reading.id) continue;
+          const existing = readingsByNode.get(reading.id);
+          const latest = getLatestReading([existing, reading].filter(Boolean));
+          readingsByNode.set(reading.id, latest);
         }
 
+        // Keep configured cards visible, and also include any additional
+        // node-NN identifiers actually discovered in Firebase.
+        const discoveredIds = [...readingsByNode.keys()].filter((id) => /^node-\d+$/i.test(id));
+        const allNodeIds = [...new Set([...CONFIGURED_NODE_IDS, ...discoveredIds])]
+          .sort((a, b) => Number(a.match(/\d+/)?.[0] || 0) - Number(b.match(/\d+/)?.[0] || 0));
+
+        const latestNodesArray = allNodeIds.map((nodeId) => {
+          const reading = readingsByNode.get(nodeId) || {};
+          return {
+            ...reading,
+            id: nodeId,
+            firebaseKey: nodeId,
+            location: reading.location || NODE_NAMES[nodeId] || `Location ${nodeId}`,
+            reportedStatus: reading.reportedStatus || "unknown",
+            status: "offline", // resolved from reported status and timestamp below
+          };
+        });
+
+        setRawNodes(latestNodesArray);
+        const firstNodeWithHistory = allNodeIds.find((id) =>
+          allReadings.some((reading) => reading.id === id && reading.timestamp && Number.isFinite(Number(reading.waterLevel)))
+        );
+        const initialHistoryNode = firstNodeWithHistory || allNodeIds[0] || "";
+        setSelectedNodeKey((currentKey) => allNodeIds.includes(currentKey) ? currentKey : initialHistoryNode);
+
+        // Default to the latest date belonging to the initially selected node.
+        const initialNodeReadings = allReadings
+          .filter((reading) => reading.id === initialHistoryNode && reading.timestamp && Number.isFinite(Number(reading.waterLevel)))
+          .sort((a, b) => a.timestamp - b.timestamp);
+        const latestInitialReading = initialNodeReadings[initialNodeReadings.length - 1];
+        if (latestInitialReading?.timestamp) {
+          setSelectedHistoryDate((currentDate) => currentDate || toLocalDateInput(latestInitialReading.timestamp));
+        }
         setLoading(false);
         setError(null);
       },
-
-      // ======================================
-      // FIREBASE ERROR
-      // ======================================
       (firebaseError) => {
-        console.error(
-          "Firebase error:",
-          firebaseError
-        );
-
-        setError(
-          "Failed to load node data."
-        );
-        setRawNodes(
-          CONFIGURED_NODE_IDS.map((nodeId) => ({
-            id: nodeId, firebaseKey: nodeId, location: NODE_NAMES[nodeId],
-            status: "offline", waterLevel: null, pressure: null, battery: null, timestamp: null,
-          }))
-        );
-
+        console.error("Firebase root listener error:", firebaseError);
+        setError(firebaseError?.message || "Failed to load node data.");
         setLoading(false);
       }
     );
-
-    // ========================================
-    // CLEANUP FIREBASE LISTENER
-    // ========================================
     return () => unsubscribe();
-
   }, []);
 
-  // ========================================
-  // HISTORICAL FLOOD-DEPTH LISTENER
-  // Reads all recorded measurements for the
-  // selected node from nodes/{nodeKey}.
-  // ========================================
-  useEffect(() => {
-    if (!selectedNodeKey) {
-      setHistoryReadings([]);
-      return;
-    }
+  // Historical readings are populated by the same database-root listener above,
+  // ensuring the graph and live cards use one consistent Firebase snapshot.
 
-    setHistoryLoading(true);
-    setHistoryError(null);
+  // Include every configured node plus every discovered node in Firebase.
+  const safeNodes = Array.isArray(nodes) ? nodes : [];
 
-    const historyRef = ref(
-      database,
-      `nodes/${selectedNodeKey}`
-    );
-
-    const unsubscribe = onValue(
-      historyRef,
-      (snapshot) => {
-        if (!snapshot.exists()) {
-          setHistoryReadings([]);
-          setHistoryLoading(false);
-          return;
-        }
-
-        const rawHistory = snapshot.val();
-
-        const historyEntries = looksLikeSensorReading(rawHistory)
-          ? [["latest", rawHistory]]
-          : Object.entries(rawHistory);
-
-        const readings = historyEntries
-          .map(([recordKey, reading]) => {
-            if (!reading || typeof reading !== "object") {
-              return null;
-            }
-
-            const rawTimestamp = Number(reading.timestamp);
-            const waterLevel = Number(
-              reading.waterLevel ?? reading.water_level ?? reading.floodLevel
-            );
-
-            if (
-              !Number.isFinite(rawTimestamp) ||
-              !Number.isFinite(waterLevel)
-            ) {
-              return null;
-            }
-
-            // Support timestamps stored in either seconds or milliseconds.
-            const timestamp =
-              rawTimestamp < 1_000_000_000_000
-                ? rawTimestamp * 1000
-                : rawTimestamp;
-
-            return {
-              recordKey,
-              timestamp,
-              waterLevel,
-              timeLabel: new Date(timestamp).toLocaleString([], {
-                month: "short",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              }),
-            };
-          })
-          .filter(Boolean)
-          .sort((a, b) => a.timestamp - b.timestamp);
-
-        setHistoryReadings(readings);
-
-        // Default to the most recent day that has recorded data.
-        // Keep a date already selected by the user.
-        if (readings.length > 0) {
-          const latestDate = toLocalDateInput(
-            readings[readings.length - 1].timestamp
-          );
-          setSelectedHistoryDate((currentDate) => currentDate || latestDate);
-        }
-
-        setHistoryLoading(false);
-      },
-      (firebaseError) => {
-        console.error("Flood history Firebase error:", firebaseError);
-        setHistoryError("Unable to load historical flood readings.");
-        setHistoryReadings([]);
-        setHistoryLoading(false);
-      }
-    );
-
-    return () => unsubscribe();
-  }, [selectedNodeKey]);
-
-  // ========================================
-  // SAFETY CHECK
-  // ========================================
-  // Display ONLY the six configured place cards (node-01 through node-06).
-  // This also prevents old node-07 to node-10 Firebase records from appearing.
-  const safeNodes =
-    Array.isArray(nodes)
-      ? nodes
-          .filter((node) =>
-            CONFIGURED_NODE_IDS.includes(normalizeNodeId(node?.id))
-          )
-          .slice(0, 6)
-      : [];
+  // Filter the complete Firebase reading set for the selected graph node.
+  const historyReadings = useMemo(() => {
+    return allHistoryReadings
+      .filter((reading) => normalizeNodeId(reading.id) === normalizeNodeId(selectedNodeKey))
+      .filter((reading) => reading.timestamp && Number.isFinite(Number(reading.waterLevel)))
+      .map((reading, index) => ({
+        recordKey: reading.firebaseKey || `reading-${index}`,
+        timestamp: reading.timestamp,
+        waterLevel: Number(reading.waterLevel),
+        timeLabel: new Date(reading.timestamp).toLocaleString([], {
+          month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
+        }),
+      }))
+      .sort((a, b) => a.timestamp - b.timestamp);
+  }, [allHistoryReadings, selectedNodeKey]);
 
   // Use the newest actual Firebase sensor reading for the overview.
   // Do not substitute demo values when no reading is available.
   const currentNode = safeNodes
     .filter((node) =>
-      node.status === "online" &&
       node.waterLevel !== null &&
       node.waterLevel !== undefined &&
       Number.isFinite(Number(node.waterLevel))
@@ -1121,14 +1000,19 @@ function NodesSection() {
                 id="flood-history-node"
                 value={selectedNodeKey}
                 onChange={(event) => {
-                  setSelectedHistoryDate("");
-                  setSelectedNodeKey(event.target.value);
+                  const nextNodeId = event.target.value;
+                  const nodeReadings = allHistoryReadings
+                    .filter((reading) => reading.id === nextNodeId && reading.timestamp && Number.isFinite(Number(reading.waterLevel)))
+                    .sort((a, b) => a.timestamp - b.timestamp);
+                  const latestForNode = nodeReadings[nodeReadings.length - 1];
+                  setSelectedNodeKey(nextNodeId);
+                  setSelectedHistoryDate(latestForNode ? toLocalDateInput(latestForNode.timestamp) : "");
                 }}
                 disabled={safeNodes.length === 0}
                 style={{ padding: "10px 12px", borderRadius: "8px", border: "1px solid #29445f", background: "#10243a", color: "#eaf4ff", font: "inherit" }}
               >
                 {safeNodes.map((node) => (
-                  <option key={node.firebaseKey || node.id} value={node.firebaseKey || node.id}>
+                  <option key={node.id} value={node.id}>
                     {node.location || NODE_NAMES[node.id] || node.id}
                   </option>
                 ))}
@@ -1223,8 +1107,8 @@ function NodesSection() {
   minTickGap={8}
 />
   <YAxis
-  domain={[0, 3]}
-  ticks={[0, 0.5, 1, 1.5, 2, 2.5, 3]}
+  domain={[0, 5]}
+  ticks={[0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5]}
   interval={0}
   allowDecimals={true}
   label={{
